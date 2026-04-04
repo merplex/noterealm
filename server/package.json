@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "node --watch index.js",
     "start": "node index.js",
-    "db:migrate": "node models/migrate.js"
+    "db:migrate": "node models/migrate.js",
+    "build": "cd .. && npm install && npm run build"
   },
   "dependencies": {
     "express": "^4.21.0",

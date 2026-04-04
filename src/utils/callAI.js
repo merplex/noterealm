@@ -1,6 +1,6 @@
 import { AI_PROVIDERS } from '../constants/providers';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 /**
  * Call AI provider through backend proxy
