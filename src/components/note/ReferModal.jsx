@@ -1,0 +1,119 @@
+import { useState, useMemo } from 'react';
+import { C } from '../../constants/theme';
+import { useApp } from '../../context/AppContext';
+
+export default function ReferModal({ onSelect, onClose }) {
+  const { state } = useApp();
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!search) return state.notes.slice(0, 20);
+    const q = search.toLowerCase();
+    return state.notes.filter(
+      (n) => n.title?.toLowerCase().includes(q) || n.content?.toLowerCase().includes(q)
+    );
+  }, [state.notes, search]);
+
+  return (
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.header}>
+          <h3 style={styles.title}>🔗 อ้างอิงโน้ต</h3>
+          <button style={styles.closeBtn} onClick={onClose}>✕</button>
+        </div>
+        <input
+          type="text"
+          placeholder="ค้นหาโน้ต..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={styles.input}
+          autoFocus
+        />
+        <div style={styles.list}>
+          {filtered.map((note) => (
+            <button
+              key={note.id}
+              style={styles.item}
+              onClick={() => onSelect(note)}
+            >
+              <span style={styles.itemTitle}>{note.title || 'Untitled'}</span>
+              <span style={styles.itemPreview}>
+                {note.content?.slice(0, 50)}
+              </span>
+            </button>
+          ))}
+          {filtered.length === 0 && (
+            <p style={{ padding: 20, color: C.muted, textAlign: 'center' }}>
+              ไม่พบโน้ต
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.3)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 200,
+  },
+  modal: {
+    background: C.bg,
+    borderRadius: 14,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '70vh',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '14px 16px 10px',
+  },
+  title: { fontSize: 16, fontWeight: 600, color: C.text },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: 18,
+    cursor: 'pointer',
+    color: C.muted,
+  },
+  input: {
+    margin: '0 16px 10px',
+    padding: '8px 12px',
+    borderRadius: 8,
+    border: `1px solid ${C.border}`,
+    fontSize: 14,
+    fontFamily: C.font,
+    outline: 'none',
+  },
+  list: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '0 8px 8px',
+  },
+  item: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    padding: '10px 12px',
+    border: 'none',
+    background: 'none',
+    cursor: 'pointer',
+    borderRadius: 8,
+    textAlign: 'left',
+    fontFamily: C.font,
+  },
+  itemTitle: { fontSize: 14, fontWeight: 500, color: C.text },
+  itemPreview: { fontSize: 12, color: C.sub, marginTop: 2 },
+};

@@ -1,0 +1,17 @@
+{
+  "name": "noterealm-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js",
+    "db:migrate": "node models/migrate.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "pg": "^8.13.0",
+    "dotenv": "^16.4.5",
+    "anthropic": "^0.39.0"
+  }
+}

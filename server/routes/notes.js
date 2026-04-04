@@ -1,0 +1,91 @@
+import { Router } from 'express';
+import pool from '../models/db.js';
+
+const router = Router();
+
+// List notes
+router.get('/', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC`
+    );
+    res.json(rows.map(mapNote));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get single note
+router.get('/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM notes WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(mapNote(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create note
+router.post('/', async (req, res) => {
+  const { id, title, content, tags, pinned, archived, images, aiBlocks, group, source, refs, history } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO notes (id, title, content, tags, pinned, archived, images, ai_blocks, "group", source, refs, history)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       RETURNING *`,
+      [id, title, content, tags || [], pinned || false, archived || false, images || [], JSON.stringify(aiBlocks || []), group, source || 'manual', refs || [], JSON.stringify(history || [])]
+    );
+    res.status(201).json(mapNote(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update note
+router.put('/:id', async (req, res) => {
+  const { title, content, tags, pinned, archived, images, aiBlocks, group, source, refs, history } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE notes SET title=$1, content=$2, tags=$3, pinned=$4, archived=$5, images=$6,
+       ai_blocks=$7, "group"=$8, source=$9, refs=$10, history=$11, updated_at=NOW()
+       WHERE id=$12 RETURNING *`,
+      [title, content, tags || [], pinned || false, archived || false, images || [], JSON.stringify(aiBlocks || []), group, source, refs || [], JSON.stringify(history || []), req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(mapNote(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete note
+router.delete('/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM notes WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+function mapNote(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    content: row.content,
+    tags: row.tags,
+    pinned: row.pinned,
+    archived: row.archived,
+    images: row.images,
+    aiBlocks: row.ai_blocks,
+    group: row.group,
+    source: row.source,
+    refs: row.refs,
+    history: row.history,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export default router;
