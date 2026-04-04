@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../constants/theme';
-import { PROVIDERS } from '../constants/providers';
+import { AI_PROVIDERS } from '../constants/providers';
 import { useApp } from '../context/AppContext';
 
 export default function Header({ onNewItem, onSearch }) {
@@ -8,7 +8,7 @@ export default function Header({ onNewItem, onSearch }) {
   const [searchText, setSearchText] = useState('');
 
   const activeProvider = state.aiSettings?.provider || 'claude';
-  const provider = PROVIDERS[activeProvider];
+  const provider = AI_PROVIDERS[activeProvider] || AI_PROVIDERS.claude;
 
   const handleSearch = (e) => {
     setSearchText(e.target.value);

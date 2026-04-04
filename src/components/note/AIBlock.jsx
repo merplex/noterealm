@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { C } from '../../constants/theme';
-import { PROVIDERS } from '../../constants/providers';
+import { AI_PROVIDERS, getEnabledProviders } from '../../constants/providers';
 import { callAI } from '../../utils/callAI';
+import { startOAuth, getOAuthProvider } from '../../utils/oauth';
 import { useApp } from '../../context/AppContext';
 
 export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showProviderPicker, setShowProviderPicker] = useState(false);
 
-  const provider = PROVIDERS[block.provider || 'claude'];
+  const providerId = block.provider || 'claude';
+  const provider = AI_PROVIDERS[providerId] || AI_PROVIDERS.claude;
+  const enabledProviders = getEnabledProviders();
   const messages = block.messages || [];
   const hasWrapped = !!wrappedContent;
 
@@ -25,6 +29,33 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
         { label: 'อธิบาย', prompt: 'ช่วยอธิบายเรื่อง' },
       ];
 
+  const needsAuth = provider.authType === 'oauth' && !state.aiSettings?.[`${providerId}Token`];
+
+  const handleSignIn = async () => {
+    try {
+      setLoading(true);
+      const oauthProvider = getOAuthProvider(providerId);
+      const tokens = await startOAuth(oauthProvider);
+      dispatch({
+        type: 'SET_AI_SETTINGS',
+        payload: {
+          ...state.aiSettings,
+          [`${providerId}Token`]: tokens.accessToken,
+          [`${providerId}RefreshToken`]: tokens.refreshToken,
+        },
+      });
+    } catch (err) {
+      console.error('OAuth error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchProvider = (newId) => {
+    onUpdate({ ...block, provider: newId });
+    setShowProviderPicker(false);
+  };
+
   const handleSend = async (text) => {
     if (!text?.trim()) return;
     const newMsg = { role: 'user', content: text.trim() };
@@ -35,7 +66,7 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
 
     try {
       const aiResponse = await callAI({
-        provider: block.provider || 'claude',
+        provider: providerId,
         messages: updatedMsgs,
         wrappedContent,
         settings: state.aiSettings,
@@ -63,11 +94,40 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
 
   return (
     <div style={{ ...styles.container, borderColor: provider.color + '40' }}>
-      {/* Header */}
+      {/* Header with provider selector */}
       <div style={styles.header}>
-        <span style={{ ...styles.badge, background: provider.color + '20', color: provider.color }}>
-          {provider.icon} {provider.label}
-        </span>
+        <div style={{ position: 'relative' }}>
+          <button
+            style={{ ...styles.badge, background: provider.color + '20', color: provider.color }}
+            onClick={() => enabledProviders.length > 1 && setShowProviderPicker(!showProviderPicker)}
+          >
+            {provider.icon} {provider.label} {enabledProviders.length > 1 ? '▾' : ''}
+          </button>
+
+          {/* Provider picker dropdown */}
+          {showProviderPicker && (
+            <div style={styles.providerDropdown}>
+              {enabledProviders.map((p) => (
+                <button
+                  key={p.id}
+                  style={{
+                    ...styles.providerOption,
+                    background: p.id === providerId ? p.color + '15' : 'transparent',
+                  }}
+                  onClick={() => switchProvider(p.id)}
+                >
+                  <span style={{ color: p.color }}>{p.icon}</span>
+                  <span>{p.label}</span>
+                  {p.authType === 'oauth' && (
+                    <span style={styles.authHint}>
+                      {state.aiSettings?.[`${p.id}Token`] ? '✓' : 'Sign in'}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <span style={styles.msgCount}>{messages.length} ข้อความ</span>
         <button style={styles.dismissBtn} onClick={() => onDismiss?.(block)}>
           ✕ Dismiss
@@ -114,24 +174,39 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
         </div>
       )}
 
-      {/* Input */}
-      <div style={styles.inputRow}>
-        <textarea
-          style={styles.input}
-          placeholder="พิมพ์ข้อความ..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          rows={1}
-        />
-        <button
-          style={{ ...styles.sendBtn, background: provider.color }}
-          onClick={() => handleSend(input)}
-          disabled={loading}
-        >
-          ↑
-        </button>
-      </div>
+      {/* Sign in prompt or Input */}
+      {needsAuth ? (
+        <div style={styles.signInPrompt}>
+          <p style={styles.signInText}>
+            กด Sign in เพื่อใช้ {provider.label}
+          </p>
+          <button
+            style={{ ...styles.signInBtn, background: provider.color }}
+            onClick={handleSignIn}
+            disabled={loading}
+          >
+            {loading ? 'กำลังเชื่อมต่อ...' : `Sign in with ${provider.oauthProvider === 'google' ? 'Google' : provider.label}`}
+          </button>
+        </div>
+      ) : (
+        <div style={styles.inputRow}>
+          <textarea
+            style={styles.input}
+            placeholder="พิมพ์ข้อความ..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={1}
+          />
+          <button
+            style={{ ...styles.sendBtn, background: provider.color }}
+            onClick={() => handleSend(input)}
+            disabled={loading}
+          >
+            ↑
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -156,6 +231,39 @@ const styles = {
     padding: '2px 8px',
     borderRadius: 6,
     fontWeight: 600,
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: C.font,
+  },
+  providerDropdown: {
+    position: 'absolute',
+    top: 30,
+    left: 0,
+    background: C.white,
+    border: `1px solid ${C.border}`,
+    borderRadius: 8,
+    padding: 4,
+    zIndex: 100,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    minWidth: 160,
+  },
+  providerOption: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    padding: '7px 10px',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 13,
+    fontFamily: C.font,
+    textAlign: 'left',
+  },
+  authHint: {
+    marginLeft: 'auto',
+    fontSize: 10,
+    color: C.muted,
   },
   msgCount: { flex: 1, fontSize: 11, color: C.muted },
   dismissBtn: {
@@ -232,5 +340,25 @@ const styles = {
     fontSize: 16,
     cursor: 'pointer',
     fontWeight: 700,
+  },
+  signInPrompt: {
+    padding: '16px 12px',
+    textAlign: 'center',
+    borderTop: `1px solid ${C.border}`,
+  },
+  signInText: {
+    fontSize: 13,
+    color: C.sub,
+    marginBottom: 10,
+  },
+  signInBtn: {
+    padding: '8px 20px',
+    borderRadius: 8,
+    border: 'none',
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: C.font,
   },
 };
