@@ -13,7 +13,7 @@ const SECTIONS = [
 ];
 
 export default function TodoList({ searchText }) {
-  const { state, dispatch } = useApp();
+  const { state, actions } = useApp();
   const [collapsed, setCollapsed] = useState({});
   const [editingTodo, setEditingTodo] = useState(null);
   const [quickAdd, setQuickAdd] = useState('');
@@ -34,23 +34,24 @@ export default function TodoList({ searchText }) {
   };
 
   const handleToggle = (todo) => {
-    dispatch({ type: 'UPDATE_TODO', payload: { ...todo, done: !todo.done } });
+    actions.updateTodo({ ...todo, done: !todo.done }).catch(console.error);
   };
 
-  const handleQuickAdd = () => {
+  const handleQuickAdd = async () => {
     if (!quickAdd.trim()) return;
-    dispatch({
-      type: 'ADD_TODO',
-      payload: {
+    try {
+      await actions.addTodo({
         id: uuidv4(),
         title: quickAdd.trim(),
         priority: 'normal',
         done: false,
         source: 'manual',
         createdAt: new Date().toISOString(),
-      },
-    });
-    setQuickAdd('');
+      });
+      setQuickAdd('');
+    } catch (err) {
+      alert('เพิ่มไม่สำเร็จ: ' + err.message);
+    }
   };
 
   return (

@@ -11,7 +11,7 @@ const PRIORITIES = [
 ];
 
 export default function TodoEditor({ todo, onClose }) {
-  const { dispatch } = useApp();
+  const { actions } = useApp();
   const isNew = !todo?.id;
 
   const [title, setTitle] = useState(todo?.title || '');
@@ -22,7 +22,7 @@ export default function TodoEditor({ todo, onClose }) {
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState(todo?.tags || []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) return;
     const data = {
       id: todo?.id || uuidv4(),
@@ -38,12 +38,16 @@ export default function TodoEditor({ todo, onClose }) {
       createdAt: todo?.createdAt || new Date().toISOString(),
     };
 
-    if (isNew) {
-      dispatch({ type: 'ADD_TODO', payload: data });
-    } else {
-      dispatch({ type: 'UPDATE_TODO', payload: data });
+    try {
+      if (isNew) {
+        await actions.addTodo(data);
+      } else {
+        await actions.updateTodo(data);
+      }
+      onClose();
+    } catch (err) {
+      alert('บันทึกไม่สำเร็จ: ' + err.message);
     }
-    onClose();
   };
 
   return (

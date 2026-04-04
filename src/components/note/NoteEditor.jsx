@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
@@ -9,7 +9,7 @@ import AIBlock from './AIBlock';
 import { parseBlocks } from '../../utils/parseContent';
 
 export default function NoteEditor({ note, onClose }) {
-  const { state, dispatch } = useApp();
+  const { state, actions } = useApp();
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(note?.content || '');
   const [tags, setTags] = useState(note?.tags || []);
@@ -58,16 +58,24 @@ export default function NoteEditor({ note, onClose }) {
     wrapSelection(before, after);
   };
 
-  const handleAddAI = () => {
+  const handleAddAI = useCallback(() => {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? content.length;
+    const end = el?.selectionEnd ?? content.length;
+    const selected = content.slice(start, end).trim();
+
     const id = uuidv4();
     const newBlock = {
       id,
       provider: state.aiSettings?.provider || 'claude',
       messages: [],
+      wrappedContent: selected || null,
     };
-    setAiBlocks([...aiBlocks, newBlock]);
-    insertAtCursor(`[AI_BLOCK:${id}]`);
-  };
+    setAiBlocks((prev) => [...prev, newBlock]);
+
+    // Insert block marker after selection — keep the selected text intact
+    setContent(content.slice(0, end) + `\n[AI_BLOCK:${id}]` + content.slice(end));
+  }, [content, state.aiSettings]);
 
   const handleAddAccordion = () => {
     insertAtCursor('[ACCORDION:หัวข้อ]เนื้อหา[/ACCORDION]');
@@ -99,7 +107,7 @@ export default function NoteEditor({ note, onClose }) {
     setShowRefer(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date().toISOString();
     const noteData = {
       id: note?.id || uuidv4(),
@@ -134,12 +142,16 @@ export default function NoteEditor({ note, onClose }) {
       ];
     }
 
-    if (isNew) {
-      dispatch({ type: 'ADD_NOTE', payload: noteData });
-    } else {
-      dispatch({ type: 'UPDATE_NOTE', payload: noteData });
+    try {
+      if (isNew) {
+        await actions.addNote(noteData);
+      } else {
+        await actions.updateNote(noteData);
+      }
+      onClose();
+    } catch (err) {
+      alert('บันทึกไม่สำเร็จ: ' + err.message);
     }
-    onClose();
   };
 
   const handleAddTag = () => {
@@ -196,13 +208,13 @@ export default function NoteEditor({ note, onClose }) {
             <AIBlock
               key={block.id}
               block={block}
-              wrappedContent={null}
+              wrappedContent={block.wrappedContent || null}
               onUpdate={(updated) =>
                 setAiBlocks(aiBlocks.map((b) => (b.id === updated.id ? updated : b)))
               }
               onDismiss={(b) => {
                 setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
-                setContent(content.replace(`[AI_BLOCK:${b.id}]`, ''));
+                setContent((prev) => prev.replace(`\n[AI_BLOCK:${b.id}]`, '').replace(`[AI_BLOCK:${b.id}]`, ''));
               }}
             />
           ))}

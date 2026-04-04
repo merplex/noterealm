@@ -1,6 +1,7 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
 import { storage } from '../constants/storage';
 import { STORAGE_KEYS } from '../constants/providers';
+import { notesApi, todosApi } from '../utils/api';
 
 const AppContext = createContext(null);
 
@@ -76,33 +77,73 @@ function reducer(state, action) {
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // Load non-API state from local storage + fetch notes/todos from API
   useEffect(() => {
     (async () => {
+      // Load local-only settings
+      const localKeys = ['aiSettings', 'connections', 'groups', 'tags', 'activeTab'];
       const loaded = {};
-      for (const [key, storageKey] of Object.entries(STORAGE_KEYS)) {
-        const val = await storage.get(storageKey);
+      for (const key of localKeys) {
+        const val = await storage.get(STORAGE_KEYS[key]);
         if (val !== null) loaded[key] = val;
       }
       dispatch({ type: 'LOAD_STATE', payload: loaded });
+
+      // Fetch notes & todos from backend
+      try {
+        const [notes, todos] = await Promise.all([notesApi.list(), todosApi.list()]);
+        dispatch({ type: 'SET_NOTES', payload: notes });
+        dispatch({ type: 'SET_TODOS', payload: todos });
+      } catch (err) {
+        console.error('Failed to load from API:', err);
+      }
     })();
   }, []);
 
+  // Save local-only state to storage
   useEffect(() => {
     if (state === initialState) return;
-    const save = async () => {
-      await storage.set(STORAGE_KEYS.notes, state.notes);
-      await storage.set(STORAGE_KEYS.todos, state.todos);
-      await storage.set(STORAGE_KEYS.tags, state.tags);
-      await storage.set(STORAGE_KEYS.groups, state.groups);
-      await storage.set(STORAGE_KEYS.connections, state.connections);
-      await storage.set(STORAGE_KEYS.aiSettings, state.aiSettings);
-      await storage.set(STORAGE_KEYS.activeTab, state.activeTab);
-    };
-    save();
-  }, [state.notes, state.todos, state.tags, state.groups, state.connections, state.aiSettings, state.activeTab]);
+    storage.set(STORAGE_KEYS.aiSettings, state.aiSettings);
+    storage.set(STORAGE_KEYS.connections, state.connections);
+    storage.set(STORAGE_KEYS.groups, state.groups);
+    storage.set(STORAGE_KEYS.tags, state.tags);
+    storage.set(STORAGE_KEYS.activeTab, state.activeTab);
+  }, [state.aiSettings, state.connections, state.groups, state.tags, state.activeTab]);
+
+  // Async actions that call API then update local state
+  const actions = useMemo(() => ({
+    addNote: async (noteData) => {
+      const saved = await notesApi.create(noteData);
+      dispatch({ type: 'ADD_NOTE', payload: saved });
+      return saved;
+    },
+    updateNote: async (noteData) => {
+      const saved = await notesApi.update(noteData.id, noteData);
+      dispatch({ type: 'UPDATE_NOTE', payload: saved });
+      return saved;
+    },
+    deleteNote: async (id) => {
+      await notesApi.delete(id);
+      dispatch({ type: 'DELETE_NOTE', payload: id });
+    },
+    addTodo: async (todoData) => {
+      const saved = await todosApi.create(todoData);
+      dispatch({ type: 'ADD_TODO', payload: saved });
+      return saved;
+    },
+    updateTodo: async (todoData) => {
+      const saved = await todosApi.update(todoData.id, todoData);
+      dispatch({ type: 'UPDATE_TODO', payload: saved });
+      return saved;
+    },
+    deleteTodo: async (id) => {
+      await todosApi.delete(id);
+      dispatch({ type: 'DELETE_TODO', payload: id });
+    },
+  }), []);
 
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch, actions }}>
       {children}
     </AppContext.Provider>
   );
