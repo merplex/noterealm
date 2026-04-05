@@ -21,6 +21,7 @@ export default function NoteEditor({ note, onClose }) {
   const [showRefer, setShowRefer] = useState(false);
   const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
+  const [selectionMenu, setSelectionMenu] = useState(null);
   const textareaRef = useRef(null);
 
   const isNew = !note?.id;
@@ -184,10 +185,26 @@ export default function NoteEditor({ note, onClose }) {
     }
   };
 
-  const handleContextMenu = (e) => {
-    e.preventDefault();
-    // Context menu handled natively in mobile; could add custom menu later
-  };
+  // Show floating toolbar when text is selected
+  const handleSelectionCheck = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    setTimeout(() => {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      if (start !== end) {
+        const rect = el.getBoundingClientRect();
+        // Estimate position based on text lines
+        const textBefore = content.slice(0, start);
+        const lines = textBefore.split('\n').length;
+        const lineHeight = 24;
+        const top = rect.top + Math.min(lines * lineHeight, rect.height - 40) - 44;
+        setSelectionMenu({ top: Math.max(rect.top, top), left: rect.left + rect.width / 2 });
+      } else {
+        setSelectionMenu(null);
+      }
+    }, 200);
+  }, [content]);
 
 
   return (
@@ -227,11 +244,23 @@ export default function NoteEditor({ note, onClose }) {
             ref={textareaRef}
             placeholder="เขียนโน้ต..."
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onContextMenu={handleContextMenu}
+            onChange={(e) => { setContent(e.target.value); setSelectionMenu(null); }}
+            onSelect={handleSelectionCheck}
+            onBlur={() => setTimeout(() => setSelectionMenu(null), 300)}
             style={styles.textarea}
             rows={8}
           />
+
+          {/* Floating selection toolbar */}
+          {selectionMenu && (
+            <div style={{ ...styles.selectionToolbar, top: selectionMenu.top, left: selectionMenu.left }}>
+              <button style={styles.selToolBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAI(); setSelectionMenu(null); }}>✦ AI</button>
+              <button style={styles.selToolBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAccordion(); setSelectionMenu(null); }}>≡▼</button>
+              <button style={styles.selToolBtn} onPointerDown={(e) => { e.preventDefault(); handleFormat('bold'); setSelectionMenu(null); }}>B</button>
+              <button style={styles.selToolBtn} onPointerDown={(e) => { e.preventDefault(); handleFormat('italic'); setSelectionMenu(null); }}>I</button>
+              <button style={styles.selToolBtn} onPointerDown={(e) => { e.preventDefault(); handleFormat('strike'); setSelectionMenu(null); }}>S</button>
+            </div>
+          )}
 
           {/* Render AI Blocks & Accordion Blocks */}
           {aiBlocks.map((block) => {
@@ -530,6 +559,28 @@ const styles = {
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
+    fontFamily: C.font,
+  },
+  selectionToolbar: {
+    position: 'fixed',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    gap: 2,
+    background: '#1c1917',
+    borderRadius: 8,
+    padding: '4px 6px',
+    zIndex: 200,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+  },
+  selToolBtn: {
+    padding: '6px 10px',
+    border: 'none',
+    background: 'transparent',
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+    borderRadius: 4,
     fontFamily: C.font,
   },
 };
