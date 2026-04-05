@@ -143,7 +143,7 @@ export default function TodoEditor({ todo, onClose }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             style={styles.titleInput}
-            autoFocus
+            autoFocus={isNew}
           />
 
           <textarea

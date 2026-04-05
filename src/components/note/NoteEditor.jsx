@@ -34,8 +34,12 @@ export default function NoteEditor({ note, onClose }) {
     if (textareaRef.current && !initializedRef.current) {
       initializedRef.current = true;
       textareaRef.current.innerHTML = note?.content || '';
+      // Auto-focus content area when creating new note
+      if (isNew) {
+        setTimeout(() => textareaRef.current?.focus(), 100);
+      }
     }
-  }, [note?.content]);
+  }, [note?.content, isNew]);
 
   const insertAtCursor = useCallback((text) => {
     const el = textareaRef.current;
