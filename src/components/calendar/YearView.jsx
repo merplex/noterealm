@@ -1,13 +1,31 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { format, getMonth, getYear } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
+
+const STORAGE_KEY = 'yearview_collapsed';
+
+function loadCollapsed() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  } catch { return {}; }
+}
 
 export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
   const year = getYear(date);
   const currentMonth = getMonth(new Date());
   const currentYear = getYear(new Date());
   const nearestRef = useRef(null);
+  const [collapsed, setCollapsed] = useState(loadCollapsed);
+
+  const toggleMonth = useCallback((m) => {
+    setCollapsed((prev) => {
+      const key = `${year}-${m}`;
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, [year]);
 
   const monthGroups = useMemo(() => {
     const groups = [];
@@ -46,19 +64,22 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
   return (
     <div style={styles.container}>
       <div style={styles.yearHeader}>{year}</div>
-      {monthGroups.map(({ month, todos: mTodos, done, total }) => (
+      {monthGroups.map(({ month, todos: mTodos, done, total }) => {
+        const isCollapsed = collapsed[`${year}-${month}`];
+        return (
         <div
           key={month}
           ref={month === nearestMonth ? nearestRef : null}
           style={styles.monthBlock}
         >
-          <div style={styles.monthHeader}>
+          <div style={styles.monthHeader} onClick={() => toggleMonth(month)}>
+            <span style={styles.chevron}>{isCollapsed ? '▸' : '▾'}</span>
             <span style={styles.monthName}>
               {format(new Date(year, month, 1), 'MMMM', { locale: th })}
             </span>
             <span style={styles.monthCount}>{done}/{total}</span>
           </div>
-          {mTodos.map((todo) => (
+          {!isCollapsed && mTodos.map((todo) => (
             <div key={todo.id} style={styles.todoItem}>
               <button
                 style={{
@@ -88,11 +109,12 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
               </span>
             </div>
           ))}
-          {total === 0 && (
+          {!isCollapsed && total === 0 && (
             <div style={styles.emptyMonth}>ไม่มีรายการ</div>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -115,16 +137,18 @@ const styles = {
   },
   monthHeader: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 6,
     padding: '10px 14px',
     background: '#f5f5f4',
     fontSize: 14,
     fontWeight: 600,
     color: C.text,
     textTransform: 'capitalize',
+    cursor: 'pointer',
   },
-  monthName: {},
+  chevron: { fontSize: 12, color: C.muted, width: 12 },
+  monthName: { flex: 1 },
   monthCount: {
     fontSize: 12,
     color: C.sub,
