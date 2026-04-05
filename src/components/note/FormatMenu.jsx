@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { C } from '../../constants/theme';
 
 const FORMAT_COLORS = [
@@ -7,71 +7,80 @@ const FORMAT_COLORS = [
 ];
 
 export default function FormatMenu({ onFormat }) {
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
   const [showColors, setShowColors] = useState(false);
+  const ref = useRef(null);
 
-  const extraItems = [
-    { label: 'I', action: 'italic', style: { fontStyle: 'italic' } },
-    { label: 'S', action: 'strike', style: { textDecoration: 'line-through' } },
-    { label: '<>', action: 'code', style: { fontFamily: 'monospace', fontSize: 12 } },
-  ];
+  // Close on tap outside
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setShowColors(false);
+      }
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
 
   return (
-    <div style={styles.wrap}>
+    <div style={styles.wrap} ref={ref}>
       <button
-        style={{ ...styles.btn, fontWeight: 700 }}
-        onClick={() => {
-          if (expanded) {
-            onFormat('bold');
-          } else {
-            setExpanded(true);
-          }
-        }}
-        onDoubleClick={() => { onFormat('bold'); }}
+        style={{ ...styles.triggerBtn, fontWeight: 700 }}
+        onClick={() => setOpen(!open)}
       >
         B
       </button>
 
-      {expanded && (
-        <>
-          {extraItems.map((item) => (
-            <button
-              key={item.action}
-              style={{ ...styles.btn, ...item.style }}
-              onClick={() => onFormat(item.action)}
-            >
-              {item.label}
-            </button>
-          ))}
-          <div style={{ position: 'relative' }}>
-            <button
-              style={{ ...styles.btn, fontSize: 12 }}
-              onClick={() => setShowColors(!showColors)}
-            >
-              𝐀 ▾
-            </button>
-            {showColors && (
-              <div style={styles.colorGrid}>
-                {FORMAT_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    style={{ ...styles.colorDot, background: color }}
-                    onClick={() => {
-                      onFormat('color', color);
-                      setShowColors(false);
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+      {open && (
+        <div style={styles.dropdown}>
           <button
-            style={{ ...styles.btn, fontSize: 10, color: C.muted, width: 'auto', padding: '0 4px' }}
-            onClick={() => { setExpanded(false); setShowColors(false); }}
+            style={styles.dropItem}
+            onPointerDown={(e) => { e.preventDefault(); onFormat('bold'); }}
           >
-            ✕
+            <span style={{ fontWeight: 700 }}>B</span>
+            <span style={styles.dropLabel}>ตัวหนา</span>
           </button>
-        </>
+          <button
+            style={styles.dropItem}
+            onPointerDown={(e) => { e.preventDefault(); onFormat('italic'); }}
+          >
+            <span style={{ fontStyle: 'italic' }}>I</span>
+            <span style={styles.dropLabel}>ตัวเอียง</span>
+          </button>
+          <button
+            style={styles.dropItem}
+            onPointerDown={(e) => { e.preventDefault(); onFormat('underline'); }}
+          >
+            <span style={{ textDecoration: 'underline' }}>U</span>
+            <span style={styles.dropLabel}>ขีดเส้นใต้</span>
+          </button>
+          <button
+            style={styles.dropItem}
+            onPointerDown={(e) => { e.preventDefault(); setShowColors(!showColors); }}
+          >
+            <span style={styles.colorCircle} />
+            <span style={styles.dropLabel}>สีตัวอักษร</span>
+          </button>
+
+          {showColors && (
+            <div style={styles.colorGrid}>
+              {FORMAT_COLORS.map((color) => (
+                <button
+                  key={color}
+                  style={{ ...styles.colorDot, background: color }}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    onFormat('color', color);
+                    setShowColors(false);
+                    setOpen(false);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -79,11 +88,9 @@ export default function FormatMenu({ onFormat }) {
 
 const styles = {
   wrap: {
-    display: 'flex',
-    gap: 4,
-    alignItems: 'center',
+    position: 'relative',
   },
-  btn: {
+  triggerBtn: {
     width: 30,
     height: 30,
     borderRadius: 6,
@@ -96,23 +103,54 @@ const styles = {
     fontSize: 14,
     color: C.text,
   },
-  colorGrid: {
+  dropdown: {
     position: 'absolute',
     top: 34,
-    right: 0,
+    left: 0,
     background: C.white,
     border: `1px solid ${C.border}`,
-    borderRadius: 8,
-    padding: 6,
+    borderRadius: 10,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+    zIndex: 100,
+    minWidth: 150,
+    overflow: 'hidden',
+  },
+  dropItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+    padding: '10px 14px',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontSize: 14,
+    fontFamily: C.font,
+    color: C.text,
+    textAlign: 'left',
+  },
+  dropLabel: {
+    fontSize: 13,
+    color: C.sub,
+  },
+  colorCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: '50%',
+    background: 'conic-gradient(#dc2626, #f97316, #eab308, #16a34a, #3b82f6, #8b5cf6, #ec4899, #dc2626)',
+    border: '2px solid white',
+    boxShadow: '0 0 0 1px #ddd',
+  },
+  colorGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(5, 1fr)',
-    gap: 4,
-    zIndex: 100,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    gap: 6,
+    padding: '8px 14px 12px',
+    borderTop: `1px solid ${C.border}`,
   },
   colorDot: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     borderRadius: '50%',
     border: '2px solid white',
     cursor: 'pointer',

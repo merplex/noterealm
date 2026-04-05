@@ -56,6 +56,7 @@ export default function NoteEditor({ note, onClose }) {
     const cmdMap = {
       bold: 'bold',
       italic: 'italic',
+      underline: 'underline',
       strike: 'strikeThrough',
       code: null,
       color: 'foreColor',
