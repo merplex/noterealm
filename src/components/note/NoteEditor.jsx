@@ -110,7 +110,6 @@ export default function NoteEditor({ note, onClose }) {
       messages: [],
       wrappedContent: wrappedParts.length > 0 ? wrappedParts.join('\n') : null,
       wrappedImages: images.length > 0 ? images : undefined,
-      autoAnalyze: !!(text || images.length > 0),
     };
     setAiBlocks((prev) => [...prev, newBlock]);
   }, [state.aiSettings, getSelectedContent]);

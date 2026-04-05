@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { C } from '../../constants/theme';
 import { AI_PROVIDERS, getEnabledProviders } from '../../constants/providers';
 import { callAI } from '../../utils/callAI';
@@ -11,67 +11,27 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
   const [loading, setLoading] = useState(false);
   const [showProviderPicker, setShowProviderPicker] = useState(false);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
+  const [showLangPicker, setShowLangPicker] = useState(false);
 
   const providerId = block.provider || 'claude';
   const provider = AI_PROVIDERS[providerId] || AI_PROVIDERS.claude;
   const enabledProviders = getEnabledProviders();
   const messages = block.messages || [];
   const hasWrapped = !!(wrappedContent || (wrappedImages && wrappedImages.length > 0));
-  const autoSentRef = useRef(false);
-
-  // Auto-analyze: เมื่อเลือกข้อความแล้วกด AI → ให้ AI วิเคราะห์และตอบเลย
-  useEffect(() => {
-    if (block.autoAnalyze && !autoSentRef.current && messages.length === 0 && (wrappedContent || (wrappedImages && wrappedImages.length > 0))) {
-      autoSentRef.current = true;
-      handleAutoAnalyze();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleAutoAnalyze = async () => {
-    setLoading(true);
-    try {
-      const contentForAI = wrappedContent || (wrappedImages?.length ? 'วิเคราะห์รูปภาพนี้' : '');
-      const aiResponse = await callAI({
-        provider: providerId,
-        messages: [{ role: 'user', content: contentForAI }],
-        wrappedContent: contentForAI,
-        wrappedImages,
-        settings: state.aiSettings,
-        autoAnalyze: true,
-      });
-      onUpdate({
-        ...block,
-        messages: [{ role: 'assistant', content: aiResponse }],
-      });
-    } catch (err) {
-      onUpdate({
-        ...block,
-        messages: [{ role: 'assistant', content: `⚠️ Error: ${err.message}` }],
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Get the last AI response text
   const lastAiResponse = [...messages].reverse().find((m) => m.role === 'assistant')?.content || '';
 
-  const quickActions = hasWrapped
-    ? [
-        { label: 'สรุป', prompt: 'สรุปข้อความนี้ให้กระชับ' },
-        { label: 'แปลอังกฤษ', prompt: 'แปลเป็นภาษาอังกฤษ' },
-        { label: 'ตรวจภาษา', prompt: 'ตรวจสอบและแก้ไขภาษาให้ถูกต้อง' },
-        { label: '🔍 สอบถาม', prompt: null, mode: 'inquiry' },
-        { label: '✅ เช็ค', prompt: null, mode: 'check' },
-      ]
-    : [
-        { label: 'ช่วยเขียน', prompt: 'ช่วยเขียนเนื้อหาเกี่ยวกับ' },
-        { label: 'ไอเดีย', prompt: 'ช่วยคิดไอเดียเกี่ยวกับ' },
-        { label: 'อธิบาย', prompt: 'ช่วยอธิบายเรื่อง' },
-        { label: '🔍 สอบถาม', prompt: null, mode: 'inquiry' },
-        { label: '✅ เช็ค', prompt: null, mode: 'check' },
-      ];
+  const LANGUAGES = [
+    { label: '🇹🇭 ไทย', code: 'ไทย' },
+    { label: '🇬🇧 อังกฤษ', code: 'อังกฤษ' },
+    { label: '🇨🇳 จีน', code: 'จีน' },
+    { label: '🇯🇵 ญี่ปุ่น', code: 'ญี่ปุ่น' },
+    { label: '🇰🇷 เกาหลี', code: 'เกาหลี' },
+    { label: '🇻🇳 เวียดนาม', code: 'เวียดนาม' },
+    { label: '🇫🇷 ฝรั่งเศส', code: 'ฝรั่งเศส' },
+    { label: '🇪🇸 สเปน', code: 'สเปน' },
+  ];
 
   const needsAuth = provider.authType === 'oauth' && !state.aiSettings?.[`${providerId}Token`];
 
@@ -258,36 +218,64 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
       </div>
 
       {/* Quick actions */}
-      {messages.length === 0 && (
-        <div style={styles.quickActions}>
-          {quickActions.map((qa) => (
-            <button
-              key={qa.label}
-              style={styles.quickBtn}
-              onClick={() => {
-                if (qa.mode) {
-                  // สอบถาม/เช็ค: ต้องพิมพ์คำถามก่อน
-                  setInput('');
-                  onUpdate({ ...block, activeMode: qa.mode });
-                } else {
-                  handleSend(qa.prompt);
-                }
-              }}
-            >
-              {qa.label}
-            </button>
-          ))}
+      <div style={styles.quickActions}>
+        <button
+          style={styles.quickBtn}
+          onClick={() => handleSend(
+            hasWrapped
+              ? 'สรุปข้อความนี้ให้กระชับ และตรวจสอบความถูกต้องของภาษา'
+              : 'สรุปเนื้อหาทั้งหมดให้กระชับ',
+            null
+          )}
+          disabled={loading}
+        >
+          📝 สรุป
+        </button>
+        <div style={{ position: 'relative' }}>
+          <button
+            style={styles.quickBtn}
+            onClick={() => setShowLangPicker(!showLangPicker)}
+            disabled={loading}
+          >
+            🌐 แปล
+          </button>
+          {showLangPicker && (
+            <>
+              <div style={styles.backdrop} onClick={() => setShowLangPicker(false)} />
+              <div style={styles.langPicker}>
+                {LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    style={styles.langOption}
+                    onClick={() => {
+                      setShowLangPicker(false);
+                      handleSend(`แปลเป็นภาษา${lang.code}`, null);
+                    }}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-      )}
+        <button
+          style={styles.quickBtn}
+          onClick={() => {
+            onUpdate({ ...block, activeMode: 'inquiry' });
+          }}
+          disabled={loading}
+        >
+          🔍 สอบถาม
+        </button>
+      </div>
 
       {/* Mode indicator */}
-      {block.activeMode && messages.length === 0 && (
+      {block.activeMode && (
         <div style={styles.modeIndicator}>
-          <span>{block.activeMode === 'inquiry' ? '🔍 โหมดสอบถาม' : '✅ โหมดเช็ค'}</span>
+          <span>🔍 โหมดสอบถาม</span>
           <span style={{ fontSize: 11, color: C.muted }}>
-            {block.activeMode === 'inquiry'
-              ? 'ค้นหาจากโน้ตก่อน ถ้าไม่มีจะถาม AI'
-              : 'ตรวจสอบข้อมูลจากโน้ต/todo/ปฏิทิน'}
+            ค้นหาข้อมูลพร้อมแหล่งที่มา
           </span>
           <button style={styles.modeCancelBtn} onClick={() => onUpdate({ ...block, activeMode: null })}>✕</button>
         </div>
@@ -431,6 +419,32 @@ const styles = {
     fontSize: 12,
     cursor: 'pointer',
     fontFamily: C.font,
+  },
+  langPicker: {
+    position: 'absolute',
+    bottom: 32,
+    left: 0,
+    background: C.white,
+    border: `1px solid ${C.border}`,
+    borderRadius: 10,
+    padding: 6,
+    zIndex: 100,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 4,
+    minWidth: 200,
+  },
+  langOption: {
+    padding: '7px 10px',
+    border: 'none',
+    borderRadius: 6,
+    background: 'transparent',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontFamily: C.font,
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
   },
   inputRow: {
     display: 'flex',

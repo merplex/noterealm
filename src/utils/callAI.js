@@ -28,7 +28,7 @@ export async function callAI({ provider, messages, wrappedContent, wrappedImages
     systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n\n` +
       `โน้ตของผู้ใช้:\n${extraContext.notes || '(ไม่มีโน้ต)'}\n\n` +
       `Todo ของผู้ใช้:\n${extraContext.todos || '(ไม่มี todo)'}\n\n` +
-      `คำสั่ง: ค้นหาคำตอบจากโน้ตและ todo ของผู้ใช้ก่อน ถ้าพบข้อมูลที่เกี่ยวข้องให้ตอบจากข้อมูลนั้น ถ้าไม่พบให้ตอบจากความรู้ทั่วไป โดยระบุว่าไม่พบในโน้ต` +
+      `คำสั่ง: ค้นหาคำตอบจากโน้ตและ todo ของผู้ใช้ก่อน ถ้าพบข้อมูลที่เกี่ยวข้องให้ตอบจากข้อมูลนั้น ถ้าไม่พบให้ค้นหาจากเว็บและตอบจากความรู้ทั่วไป ทุกคำตอบต้องมีลิงก์แหล่งที่มา (ถ้ามี) ในรูปแบบ [ชื่อแหล่ง](URL)` +
       (wrappedContent ? `\n\nข้อความที่คลุมไว้:\n${wrappedContent}` : '');
   } else if (extraContext?.mode === 'check') {
     systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n\n` +
