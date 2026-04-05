@@ -52,7 +52,7 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
         <span style={styles.avatarText}>N</span>
       </button>
 
-      {/* Center: search + view + sort — fills remaining space */}
+      {/* Center: search + view + sort — 3:1:1 ratio */}
       <div style={styles.center}>
         <div style={styles.searchWrap}>
           <span style={styles.searchIcon}>🔍</span>
@@ -69,9 +69,9 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
         </div>
 
         {/* View toggle */}
-        <button style={styles.smallBtn} onClick={toggleView}>
+        <button style={styles.iconBtn} onClick={toggleView}>
           {state.viewMode === 'grid' ? (
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
               <circle cx="3" cy="4" r="1.8" fill={C.sub}/>
               <rect x="7" y="2.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
               <circle cx="3" cy="9" r="1.8" fill={C.sub}/>
@@ -80,19 +80,19 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
               <rect x="7" y="12.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
             </svg>
           ) : (
-            <span style={{ fontSize: 15, color: C.sub }}>⊞</span>
+            <span style={{ fontSize: 20, color: C.sub }}>⊞</span>
           )}
         </button>
 
         {/* Sort button */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
           <button
-            style={styles.smallBtn}
+            style={styles.iconBtn}
             onPointerDown={handleSortDown}
             onPointerUp={handleSortUp}
             onPointerLeave={() => { clearTimeout(holdTimer.current); holdTimer.current = null; }}
           >
-            <span style={{ fontSize: 15, color: C.sub }}>{state.sortDir === 'desc' ? '↓' : '↑'}</span>
+            <span style={{ fontSize: 20, color: C.sub }}>{state.sortDir === 'desc' ? '↓' : '↑'}</span>
           </button>
 
           {showSortMenu && (
@@ -142,21 +142,20 @@ const styles = {
     flex: 1,
     display: 'flex',
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
     margin: '0 6px',
     minWidth: 0,
   },
-  smallBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
+  iconBtn: {
+    flex: 1,
+    height: 36,
+    borderRadius: 8,
     border: 'none',
     background: 'transparent',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
     padding: 0,
   },
   hamburgerBtn: {
@@ -173,7 +172,7 @@ const styles = {
     padding: 0,
   },
   searchWrap: {
-    flex: 1,
+    flex: 3,
     display: 'flex',
     alignItems: 'center',
     background: C.white,
