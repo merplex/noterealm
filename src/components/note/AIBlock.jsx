@@ -34,7 +34,7 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
     try {
       const aiResponse = await callAI({
         provider: providerId,
-        messages: [],
+        messages: [{ role: 'user', content: wrappedContent }],
         wrappedContent,
         settings: state.aiSettings,
         autoAnalyze: true,
