@@ -412,9 +412,15 @@ export default function NoteEditor({ note, onClose }) {
           <button style={styles.toolBtn} onClick={() => setShowRefer(true)}>🔗</button>
           <button style={styles.toolBtn} onClick={handleAddAccordion}>≡▼</button>
           <FormatMenu onFormat={handleFormat} />
+          <button
+            style={{ ...styles.toolBtn, marginLeft: 'auto', color: pinned ? C.amber : C.muted }}
+            onClick={() => setPinned(!pinned)}
+          >
+            📌
+          </button>
           {!isNew && (
             <button
-              style={{ ...styles.toolBtn, marginLeft: 'auto', fontSize: 11, color: C.sub }}
+              style={{ ...styles.toolBtn, fontSize: 11, color: C.sub }}
               onClick={() => setHistoryNote(note)}
             >
               history
@@ -573,12 +579,6 @@ export default function NoteEditor({ note, onClose }) {
             />
           </div>
 
-          <button
-            style={{ ...styles.pinBtn, color: pinned ? C.amber : C.muted }}
-            onClick={() => setPinned(!pinned)}
-          >
-            📌
-          </button>
           {!isNew && (
             <button style={styles.deleteBtn} onClick={() => {
               if (confirm('ลบโน้ตนี้?')) {
@@ -737,7 +737,8 @@ const styles = {
     background: C.bg,
     position: 'sticky',
     bottom: 0,
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
+    overflow: 'hidden',
   },
   groupSelect: {
     padding: '5px 8px',
@@ -750,9 +751,11 @@ const styles = {
   tagsWrap: {
     flex: 1,
     display: 'flex',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: 4,
     alignItems: 'center',
+    overflow: 'hidden',
+    minWidth: 0,
   },
   tag: {
     display: 'inline-flex',
@@ -796,6 +799,7 @@ const styles = {
     cursor: 'pointer',
     fontFamily: C.font,
     color: '#dc2626',
+    flexShrink: 0,
   },
   cancelBtn: {
     padding: '6px 14px',
@@ -806,6 +810,7 @@ const styles = {
     cursor: 'pointer',
     fontFamily: C.font,
     color: C.sub,
+    flexShrink: 0,
   },
   saveBtn: {
     padding: '6px 14px',
