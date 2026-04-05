@@ -210,7 +210,7 @@ export default function NoteEditor({ note, onClose }) {
         const wrap = document.createElement('span');
         wrap.contentEditable = 'false';
         wrap.className = 'inline-img-wrap';
-        wrap.style.cssText = 'display:inline;position:relative;margin:0 2px;vertical-align:middle;';
+        wrap.style.cssText = 'display:inline-block;position:relative;margin:0 2px;vertical-align:middle;overflow:hidden;';
         wrap.dataset.size = '10%';
 
         const img = document.createElement('img');
@@ -224,8 +224,10 @@ export default function NoteEditor({ note, onClose }) {
         removeBtn.contentEditable = 'false';
         removeBtn.onclick = (ev) => {
           ev.stopPropagation();
-          wrap.remove();
-          syncContent();
+          if (confirm('ลบรูปนี้?')) {
+            wrap.remove();
+            syncContent();
+          }
         };
 
         // Size label — hidden at 5%
@@ -253,12 +255,7 @@ export default function NoteEditor({ note, onClose }) {
             sizeLabel.textContent = nextSize;
           }
 
-          // Block display for larger sizes
-          if (nextSize === '10%') {
-            wrap.style.display = 'inline';
-          } else {
-            wrap.style.display = 'inline-block';
-          }
+          wrap.style.display = 'inline-block';
           syncContent();
         };
 
