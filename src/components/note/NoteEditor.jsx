@@ -23,8 +23,6 @@ export default function NoteEditor({ note, onClose }) {
   const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
-  const hasSelectionRef = useRef(false);
-  const savedSelectionRef = useRef(null);
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
@@ -347,41 +345,6 @@ export default function NoteEditor({ note, onClose }) {
     }
   };
 
-  // Track selection changes in the editor
-  const handleSelect = useCallback(() => {
-    const sel = window.getSelection();
-    if (sel && sel.toString().trim()) {
-      hasSelectionRef.current = true;
-      // Save the selection range
-      if (sel.rangeCount) {
-        savedSelectionRef.current = sel.getRangeAt(0).cloneRange();
-      }
-    } else {
-      hasSelectionRef.current = false;
-      savedSelectionRef.current = null;
-    }
-  }, []);
-
-  // First tap outside selection: let browser dismiss system menu, then restore selection
-  // Second tap: allow normal behavior (selection clears)
-  const handleBodyPointerDown = useCallback(() => {
-    if (!hasSelectionRef.current || !savedSelectionRef.current) return;
-
-    // Clone the saved range before browser clears it
-    const savedRange = savedSelectionRef.current.cloneRange();
-
-    // Mark as handled so next tap goes through normally
-    hasSelectionRef.current = false;
-
-    // Let browser dismiss the system menu naturally,
-    // then restore selection after it processes the event
-    setTimeout(() => {
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(savedRange);
-    }, 50);
-  }, []);
-
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -406,7 +369,7 @@ export default function NoteEditor({ note, onClose }) {
         </div>
 
         {/* Scrollable body */}
-        <div style={styles.body} onPointerDown={handleBodyPointerDown}>
+        <div style={styles.body}>
           <input
             type="text"
             placeholder="หัวข้อ..."
@@ -421,7 +384,6 @@ export default function NoteEditor({ note, onClose }) {
             suppressContentEditableWarning
             data-placeholder="เขียนโน้ต..."
             onInput={(e) => { setContent(e.currentTarget.innerHTML); }}
-            onSelect={handleSelect}
             style={styles.textarea}
           />
 
