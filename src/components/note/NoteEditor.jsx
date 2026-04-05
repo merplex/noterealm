@@ -612,6 +612,7 @@ export default function NoteEditor({ note, onClose }) {
 
         {showRefer && (
           <ReferModal
+            noteId={note?.id}
             onSelect={handleRefer}
             onClose={() => setShowRefer(false)}
           />

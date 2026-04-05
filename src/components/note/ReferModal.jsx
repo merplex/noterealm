@@ -1,18 +1,20 @@
 import { useState, useMemo } from 'react';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
+import { stripHtml } from '../../utils/diff';
 
-export default function ReferModal({ onSelect, onClose }) {
+export default function ReferModal({ noteId, onSelect, onClose }) {
   const { state } = useApp();
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
-    if (!search) return state.notes.slice(0, 20);
+    const others = state.notes.filter((n) => n.id !== noteId);
+    if (!search) return others.slice(0, 20);
     const q = search.toLowerCase();
-    return state.notes.filter(
-      (n) => n.title?.toLowerCase().includes(q) || n.content?.toLowerCase().includes(q)
+    return others.filter(
+      (n) => n.title?.toLowerCase().includes(q) || stripHtml(n.content).toLowerCase().includes(q)
     );
-  }, [state.notes, search]);
+  }, [state.notes, search, noteId]);
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -38,7 +40,7 @@ export default function ReferModal({ onSelect, onClose }) {
             >
               <span style={styles.itemTitle}>{note.title || 'Untitled'}</span>
               <span style={styles.itemPreview}>
-                {note.content?.slice(0, 50)}
+                {stripHtml(note.content).slice(0, 60)}
               </span>
             </button>
           ))}
