@@ -200,36 +200,33 @@ export default function NoteEditor({ note, onClose }) {
       el.focus();
 
       for (const file of files) {
-        // Read file as base64 first
-        const rawDataUrl = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-
-        // Compress image: resize to max 1200px and use JPEG quality 0.7
-        const dataUrl = await new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            const MAX = 1200;
-            let w = img.width, h = img.height;
-            if (w > MAX || h > MAX) {
-              if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-              else { w = Math.round(w * MAX / h); h = MAX; }
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            // Fill white background (prevents black for transparent PNGs)
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, w, h);
-            ctx.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-          };
-          img.onerror = () => resolve(rawDataUrl);
-          img.src = rawDataUrl;
-        });
+        // Compress image using createImageBitmap (reliable decode)
+        let dataUrl;
+        try {
+          const bitmap = await createImageBitmap(file);
+          const MAX = 1200;
+          let w = bitmap.width, h = bitmap.height;
+          if (w > MAX || h > MAX) {
+            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+            else { w = Math.round(w * MAX / h); h = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(bitmap, 0, 0, w, h);
+          bitmap.close();
+          dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        } catch {
+          // Fallback: read as base64 directly
+          dataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          });
+        }
 
         // Create inline image wrapper — width on wrap, not img
         const wrap = document.createElement('span');
