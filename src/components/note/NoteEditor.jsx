@@ -23,7 +23,7 @@ export default function NoteEditor({ note, onClose }) {
   const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
-  const dismissMenuRef = useRef(false);
+  const fakeHighlightRef = useRef(null); // stored range for visual-only highlight
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
@@ -346,16 +346,34 @@ export default function NoteEditor({ note, onClose }) {
     }
   };
 
-  // Tap on editor body: dismiss system menu but keep selection
-  // Uses blur/refocus trick to dismiss Android ActionMode
+  // Remove fake highlight marks from the editor
+  const clearFakeHighlight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.querySelectorAll('mark.fake-sel').forEach((mark) => {
+      const parent = mark.parentNode;
+      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+      parent.removeChild(mark);
+    });
+    fakeHighlightRef.current = null;
+  }, []);
+
+  // Tap on editor body: dismiss system menu but keep visual highlight
   const handleDismissMenu = useCallback((e) => {
     const el = textareaRef.current;
     if (!el) return;
 
+    // If there's already a fake highlight, clear it and let tap through
+    if (fakeHighlightRef.current) {
+      clearFakeHighlight();
+      syncContent();
+      return;
+    }
+
     const sel = window.getSelection();
     if (!sel || !sel.toString().trim() || !sel.rangeCount) return;
 
-    // Don't dismiss if tapping inside the selected text itself
+    // Don't intercept taps inside the selected text
     const range = sel.getRangeAt(0);
     const rects = range.getClientRects();
     for (let i = 0; i < rects.length; i++) {
@@ -365,25 +383,23 @@ export default function NoteEditor({ note, onClose }) {
       }
     }
 
-    if (!dismissMenuRef.current) {
-      // First tap outside selection: dismiss menu, keep selection
-      dismissMenuRef.current = true;
-      const savedRange = range.cloneRange();
-
-      el.blur();
-      setTimeout(() => {
-        el.focus({ preventScroll: true });
-        const newSel = window.getSelection();
-        newSel.removeAllRanges();
-        newSel.addRange(savedRange);
-      }, 10);
-
-      e.preventDefault();
-    } else {
-      // Second tap: clear selection normally
-      dismissMenuRef.current = false;
+    // Wrap selected text in <mark> for visual highlight
+    const savedRange = range.cloneRange();
+    const mark = document.createElement('mark');
+    mark.className = 'fake-sel';
+    mark.style.cssText = 'background:#b3d4fc;border-radius:2px;color:inherit;';
+    try {
+      savedRange.surroundContents(mark);
+    } catch {
+      // surroundContents fails if selection crosses element boundaries
+      return;
     }
-  }, []);
+    fakeHighlightRef.current = savedRange;
+
+    // Clear native selection → ActionMode dismissed
+    sel.removeAllRanges();
+    e.preventDefault();
+  }, [clearFakeHighlight, syncContent]);
 
   return (
     <div style={styles.overlay}>
@@ -424,7 +440,7 @@ export default function NoteEditor({ note, onClose }) {
             suppressContentEditableWarning
             data-placeholder="เขียนโน้ต..."
             onInput={(e) => { setContent(e.currentTarget.innerHTML); }}
-            onSelect={() => { dismissMenuRef.current = false; }}
+            onSelect={() => { if (fakeHighlightRef.current) { clearFakeHighlight(); syncContent(); } }}
             style={styles.textarea}
           />
 
