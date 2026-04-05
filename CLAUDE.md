@@ -64,3 +64,11 @@ git checkout main && git merge <feature-branch> && git push origin main && git c
 
 ## ชื่อแอป
 ชื่อคือ **NoteRealm** (ไม่ใช่ NoteKeep)
+
+## Inline Image (สำคัญ — ห้ามแก้ให้พัง)
+ปุ่มลบรูป (✕) แสดงถูกต้องแล้ว ณ commit `bd410bb`:
+- **width กำหนดที่ wrap** ไม่ใช่ img → `wrap.style.width = '10%'`, `img.style.width = '100%'`
+- wrap ใช้ `display:inline-block; position:relative` — **ห้ามใช้ `overflow:hidden`**
+- img ใช้ `display:block` ภายใน wrap
+- ปุ่มลบใช้ `position:absolute; top:0; right:0` อยู่ในกรอบรูปทุกขนาด
+- Compress รูปด้วย canvas: fill white ก่อน draw เพื่อป้องกัน PNG โปร่งใสกลายเป็นดำ
