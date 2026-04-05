@@ -116,7 +116,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    padding: '8px 10px',
+    padding: '8px 14px 8px 10px',
     background: C.bg,
     borderBottom: `1px solid ${C.border}`,
     position: 'sticky',
