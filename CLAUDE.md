@@ -72,3 +72,4 @@ git checkout main && git merge <feature-branch> && git push origin main && git c
 - img ใช้ `display:block` ภายใน wrap
 - ปุ่มลบใช้ `position:absolute; top:0; right:0` อยู่ในกรอบรูปทุกขนาด
 - Compress รูปด้วย canvas: fill white ก่อน draw เพื่อป้องกัน PNG โปร่งใสกลายเป็นดำ
+- **ใช้ `createImageBitmap(file)`** สำหรับ decode รูป — ห้ามใช้ `new Image()` + `onload` เพราะ decode ไม่ทัน ทำให้ภาพขาว (commit `bcf06ef`)
