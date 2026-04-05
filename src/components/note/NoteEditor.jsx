@@ -366,36 +366,24 @@ export default function NoteEditor({ note, onClose }) {
     }
   }, []);
 
-  // First tap outside selection: keep selection, just dismiss system menu
-  // Second tap: allow normal behavior
-  const handleBodyPointerDown = useCallback((e) => {
-    const el = textareaRef.current;
-    if (!el || !hasSelectionRef.current || !savedSelectionRef.current) return;
+  // First tap outside selection: let browser dismiss system menu, then restore selection
+  // Second tap: allow normal behavior (selection clears)
+  const handleBodyPointerDown = useCallback(() => {
+    if (!hasSelectionRef.current || !savedSelectionRef.current) return;
 
-    // Only intercept touch events on the editor area, not system gestures
-    if (e.pointerType !== 'touch') return;
+    // Clone the saved range before browser clears it
+    const savedRange = savedSelectionRef.current.cloneRange();
 
-    // Check if tap is inside the editor body
-    const rect = el.getBoundingClientRect();
-    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+    // Mark as handled so next tap goes through normally
+    hasSelectionRef.current = false;
 
-    const sel = window.getSelection();
-    const selText = sel ? sel.toString().trim() : '';
-
-    if (selText) {
-      // There's still a visible selection — intercept first tap to preserve it
-      e.preventDefault();
-
-      // Restore the selection (system menu will close since we prevented default)
-      setTimeout(() => {
-        const newSel = window.getSelection();
-        newSel.removeAllRanges();
-        newSel.addRange(savedSelectionRef.current);
-      }, 0);
-
-      // Clear the saved selection so next tap goes through normally
-      hasSelectionRef.current = false;
-    }
+    // Let browser dismiss the system menu naturally,
+    // then restore selection after it processes the event
+    setTimeout(() => {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }, 50);
   }, []);
 
   return (
