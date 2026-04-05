@@ -579,6 +579,14 @@ export default function NoteEditor({ note, onClose }) {
           >
             📌
           </button>
+          {!isNew && (
+            <button style={styles.deleteBtn} onClick={() => {
+              if (confirm('ลบโน้ตนี้?')) {
+                actions.deleteNote(note.id);
+                onClose();
+              }
+            }}>🗑</button>
+          )}
           <button style={styles.cancelBtn} onClick={onClose}>ยกเลิก</button>
           <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
         </div>
@@ -778,6 +786,14 @@ const styles = {
     border: 'none',
     fontSize: 18,
     cursor: 'pointer',
+  },
+  deleteBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: 16,
+    cursor: 'pointer',
+    color: '#dc2626',
+    padding: '4px 6px',
   },
   cancelBtn: {
     padding: '6px 14px',
