@@ -262,7 +262,12 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
         <button
           style={styles.quickBtn}
           onClick={() => {
-            onUpdate({ ...block, activeMode: 'inquiry' });
+            const query = wrappedContent || (wrappedImages?.length ? 'วิเคราะห์รูปภาพนี้' : '');
+            if (query) {
+              handleSend(query, 'inquiry');
+            } else {
+              onUpdate({ ...block, activeMode: 'inquiry' });
+            }
           }}
           disabled={loading}
         >
