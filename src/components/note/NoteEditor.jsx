@@ -90,12 +90,12 @@ export default function NoteEditor({ note, onClose }) {
     const newBlock = {
       id,
       type: 'accordion',
-      title: selected || '',
-      content: '',
+      title: '',
+      content: selected || '',  // selected text → content
       open: true,
+      autoTitle: !!selected,    // trigger AI title gen if there's content
     };
     setAiBlocks((prev) => [...prev, newBlock]);
-    // Replace selection with marker
     setContent(content.slice(0, start) + `[AI_BLOCK:${id}]` + content.slice(end));
   }, [content]);
 
