@@ -9,6 +9,7 @@ import HistorySidebar from './HistorySidebar';
 import AIBlock from './AIBlock';
 import AccordionBlock from './AccordionBlock';
 import { callAI } from '../../utils/callAI';
+import { stripHtml } from '../../utils/diff';
 
 export default function NoteEditor({ note, onClose }) {
   const { state, actions } = useApp();
@@ -319,9 +320,29 @@ export default function NoteEditor({ note, onClose }) {
       onClose();
       return;
     }
+    // Auto-generate title if empty
+    let finalTitle = title.trim();
+    if (!finalTitle && textOnly) {
+      try {
+        const providerId = state.aiSettings?.provider || 'claude';
+        const aiTitle = await callAI({
+          provider: providerId,
+          messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${textOnly.slice(0, 300)}` }],
+          settings: state.aiSettings,
+        });
+        finalTitle = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
+      } catch {
+        // AI failed — use first line of content
+      }
+      if (!finalTitle) {
+        const stripped = stripHtml(cleanContent);
+        finalTitle = stripped.split('\n')[0].trim().slice(0, 50) || 'Untitled';
+      }
+    }
+
     const noteData = {
       id: note?.id || uuidv4(),
-      title,
+      title: finalTitle,
       content: cleanContent,
       tags,
       pinned,
