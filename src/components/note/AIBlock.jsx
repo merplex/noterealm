@@ -399,7 +399,7 @@ const styles = {
     flexDirection: 'column',
     gap: 6,
     padding: '8px 12px',
-    maxHeight: 300,
+    maxHeight: 400,
     overflowY: 'auto',
   },
   msg: {
@@ -408,6 +408,8 @@ const styles = {
     borderRadius: 10,
     maxWidth: '85%',
     whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    overflowWrap: 'break-word',
     lineHeight: 1.5,
   },
   quickActions: {
@@ -505,7 +507,8 @@ const styles = {
     gap: 8,
     padding: '6px 12px',
     background: '#f0fdf4',
-    borderBottom: '1px solid #bbf7d0',
+    borderRadius: 6,
+    margin: '4px 12px',
     fontSize: 12,
     fontFamily: C.font,
   },
