@@ -85,7 +85,7 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
         </button>
 
         {/* Sort button */}
-        <div style={{ position: 'relative', flex: 1 }}>
+        <div style={{ position: 'relative' }}>
           <button
             style={styles.iconBtn}
             onPointerDown={handleSortDown}
@@ -140,14 +140,15 @@ const styles = {
   },
   center: {
     flex: 1,
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: '3fr 1fr 1fr',
     alignItems: 'center',
     gap: 4,
     margin: '0 6px',
     minWidth: 0,
   },
   iconBtn: {
-    flex: 1,
+    width: '100%',
     height: 36,
     borderRadius: 8,
     border: 'none',
@@ -172,7 +173,6 @@ const styles = {
     padding: 0,
   },
   searchWrap: {
-    flex: 3,
     display: 'flex',
     alignItems: 'center',
     background: C.white,
