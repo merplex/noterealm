@@ -140,15 +140,15 @@ const styles = {
   },
   center: {
     flex: 1,
-    display: 'grid',
-    gridTemplateColumns: '3fr 1fr 1fr',
+    display: 'flex',
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
     margin: '0 6px',
     minWidth: 0,
+    overflow: 'hidden',
   },
   iconBtn: {
-    width: '100%',
+    width: 36,
     height: 36,
     borderRadius: 8,
     border: 'none',
@@ -158,6 +158,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
+    flexShrink: 0,
   },
   hamburgerBtn: {
     width: 34,
@@ -173,6 +174,8 @@ const styles = {
     padding: 0,
   },
   searchWrap: {
+    flex: 1,
+    minWidth: 0,
     display: 'flex',
     alignItems: 'center',
     background: C.white,

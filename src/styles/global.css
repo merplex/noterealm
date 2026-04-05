@@ -12,9 +12,6 @@ html, body, #root {
   overflow: hidden;
 }
 
-#root {
-  zoom: 1.15;
-}
 
 body {
   font-family: 'Noto Sans Thai', 'Sarabun', system-ui, sans-serif;
