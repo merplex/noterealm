@@ -254,11 +254,10 @@ export default function TodoEditor({ todo, onClose }) {
               }}
             />
           </div>
-        </div>
 
-        {/* Linked Note section */}
-        {linkedNote && (
-          <div style={styles.linkedBlock}>
+          {/* Linked Note section */}
+          {linkedNote && (
+            <div style={styles.linkedBlock}>
             <div
               style={styles.linkedHeader}
               onClick={() => setLinkedNoteExpanded(!linkedNoteExpanded)}
@@ -281,7 +280,8 @@ export default function TodoEditor({ todo, onClose }) {
               />
             )}
           </div>
-        )}
+          )}
+        </div>
 
         <div style={styles.footer}>
           <button style={styles.cancelBtn} onClick={onClose}>ยกเลิก</button>
@@ -484,7 +484,7 @@ const styles = {
   tagRemove: { background: 'none', border: 'none', cursor: 'pointer', color: C.amberDark, fontSize: 14, padding: 0 },
   tagInput: { border: 'none', outline: 'none', fontSize: 12, fontFamily: C.font, width: 60, background: 'transparent' },
   linkedBlock: {
-    margin: '0 16px 10px',
+    margin: '10px 0',
     background: C.white,
     borderRadius: 10,
     border: `1px solid ${C.border}`,
@@ -518,7 +518,7 @@ const styles = {
     fontSize: 13,
     color: C.text,
     lineHeight: 1.5,
-    maxHeight: 200,
+    maxHeight: 300,
     overflowY: 'auto',
     borderTop: `1px solid ${C.border}`,
   },
