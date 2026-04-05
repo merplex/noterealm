@@ -26,7 +26,14 @@ export default function TodoEditor({ todo, onClose }) {
   const [tags, setTags] = useState(todo?.tags || []);
   const [showNoteConfirm, setShowNoteConfirm] = useState(false);
   const [showLinkNote, setShowLinkNote] = useState(false);
+  const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
+  const [linkedNoteExpanded, setLinkedNoteExpanded] = useState(false);
   const [noteSearch, setNoteSearch] = useState('');
+
+  const linkedNote = useMemo(() => {
+    if (!todo?.linkedNoteId) return null;
+    return state.notes.find((n) => n.id === todo.linkedNoteId) || null;
+  }, [todo?.linkedNoteId, state.notes]);
 
   const filteredNotes = useMemo(() => {
     if (!showLinkNote) return [];
@@ -69,6 +76,18 @@ export default function TodoEditor({ todo, onClose }) {
       }
     }
     setShowLinkNote(false);
+  };
+
+  const handleUnlink = async () => {
+    if (todo?.id) {
+      try {
+        await actions.updateTodo({ ...todo, linkedNoteId: undefined });
+      } catch (err) {
+        alert('ยกเลิกไม่สำเร็จ: ' + err.message);
+      }
+    }
+    setShowUnlinkConfirm(false);
+    setLinkedNoteExpanded(false);
   };
 
   const handleSave = async () => {
@@ -237,11 +256,52 @@ export default function TodoEditor({ todo, onClose }) {
           </div>
         </div>
 
+        {/* Linked Note section */}
+        {linkedNote && (
+          <div style={styles.linkedBlock}>
+            <div
+              style={styles.linkedHeader}
+              onClick={() => setLinkedNoteExpanded(!linkedNoteExpanded)}
+            >
+              <span style={styles.linkedChevron}>{linkedNoteExpanded ? '▾' : '▸'}</span>
+              <span style={styles.linkedIcon}>🔗</span>
+              <span style={styles.linkedTitle}>{linkedNote.title || 'ไม่มีชื่อ'}</span>
+              <button
+                style={styles.unlinkBtn}
+                onClick={(e) => { e.stopPropagation(); setShowUnlinkConfirm(true); }}
+                title="ยกเลิกการเชื่อมต่อ"
+              >
+                ✕
+              </button>
+            </div>
+            {linkedNoteExpanded && (
+              <div
+                style={styles.linkedContent}
+                dangerouslySetInnerHTML={{ __html: linkedNote.content || '<p style="color:#a8a29e">ไม่มีเนื้อหา</p>' }}
+              />
+            )}
+          </div>
+        )}
+
         <div style={styles.footer}>
           <button style={styles.cancelBtn} onClick={onClose}>ยกเลิก</button>
           <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
         </div>
       </div>
+
+      {/* Confirm unlink */}
+      {showUnlinkConfirm && (
+        <div style={styles.subOverlay} onClick={() => setShowUnlinkConfirm(false)}>
+          <div style={styles.subPopup} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.subTitle}>ยกเลิกการเชื่อมต่อ?</div>
+            <p style={styles.subText}>ยกเลิกการเชื่อมต่อ Note "{linkedNote?.title || 'ไม่มีชื่อ'}" ออกจาก Todo นี้</p>
+            <div style={styles.subFooter}>
+              <button style={styles.cancelBtn} onClick={() => setShowUnlinkConfirm(false)}>ยกเลิก</button>
+              <button style={styles.saveBtn} onClick={handleUnlink}>ยืนยัน</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm add to note */}
       {showNoteConfirm && (
@@ -423,6 +483,45 @@ const styles = {
   },
   tagRemove: { background: 'none', border: 'none', cursor: 'pointer', color: C.amberDark, fontSize: 14, padding: 0 },
   tagInput: { border: 'none', outline: 'none', fontSize: 12, fontFamily: C.font, width: 60, background: 'transparent' },
+  linkedBlock: {
+    margin: '0 16px 10px',
+    background: C.white,
+    borderRadius: 10,
+    border: `1px solid ${C.border}`,
+    overflow: 'hidden',
+  },
+  linkedHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '10px 12px',
+    background: '#f5f5f4',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 600,
+    color: C.text,
+  },
+  linkedChevron: { fontSize: 12, color: C.muted, width: 12 },
+  linkedIcon: { fontSize: 14 },
+  linkedTitle: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  unlinkBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: 14,
+    color: C.muted,
+    padding: '0 4px',
+    flexShrink: 0,
+  },
+  linkedContent: {
+    padding: '10px 14px',
+    fontSize: 13,
+    color: C.text,
+    lineHeight: 1.5,
+    maxHeight: 200,
+    overflowY: 'auto',
+    borderTop: `1px solid ${C.border}`,
+  },
   footer: {
     display: 'flex',
     justifyContent: 'flex-end',
