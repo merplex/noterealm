@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { C } from '../../constants/theme';
 import { AI_PROVIDERS, getEnabledProviders } from '../../constants/providers';
 import { callAI } from '../../utils/callAI';
@@ -16,6 +16,16 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
   const enabledProviders = getEnabledProviders();
   const messages = block.messages || [];
   const hasWrapped = !!wrappedContent;
+  const autoSentRef = useRef(false);
+
+  // Auto-send if the selected text was a question
+  useEffect(() => {
+    if (block.autoSend && !autoSentRef.current && messages.length === 0) {
+      autoSentRef.current = true;
+      handleSend(block.autoSend);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const quickActions = hasWrapped
     ? [
