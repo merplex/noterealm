@@ -102,6 +102,7 @@ const styles = {
     fontSize: 15,
     fontWeight: 500,
     color: C.text,
+    textTransform: 'none',
   },
   dropdown: {
     position: 'absolute',

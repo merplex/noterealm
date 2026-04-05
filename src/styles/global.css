@@ -25,6 +25,10 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+button {
+  text-transform: none;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
