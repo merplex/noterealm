@@ -25,48 +25,62 @@ export default function NoteEditor({ note, onClose }) {
   const textareaRef = useRef(null);
 
   const isNew = !note?.id;
+  const initializedRef = useRef(false);
+
+  // Set initial content in contentEditable div
+  useEffect(() => {
+    if (textareaRef.current && !initializedRef.current) {
+      initializedRef.current = true;
+      textareaRef.current.innerHTML = note?.content || '';
+    }
+  }, [note?.content]);
 
   const insertAtCursor = useCallback((text) => {
     const el = textareaRef.current;
     if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const newContent = content.slice(0, start) + text + content.slice(end);
-    setContent(newContent);
-    setTimeout(() => {
-      el.selectionStart = el.selectionEnd = start + text.length;
-      el.focus();
-    }, 0);
-  }, [content]);
+    el.focus();
+    document.execCommand('insertText', false, text);
+  }, []);
 
-  const wrapSelection = useCallback((before, after) => {
+  const syncContent = useCallback(() => {
     const el = textareaRef.current;
-    if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const selected = content.slice(start, end);
-    const newContent = content.slice(0, start) + before + selected + after + content.slice(end);
-    setContent(newContent);
-  }, [content]);
+    if (el) setContent(el.innerHTML);
+  }, []);
 
   const handleFormat = (action, value) => {
-    const map = {
-      bold: ['**', '**'],
-      italic: ['*', '*'],
-      strike: ['~~', '~~'],
-      code: ['`', '`'],
-      color: [`[c:${value}]`, '[/c]'],
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    const cmdMap = {
+      bold: 'bold',
+      italic: 'italic',
+      strike: 'strikeThrough',
+      code: null,
+      color: 'foreColor',
     };
-    const [before, after] = map[action] || ['', ''];
-    wrapSelection(before, after);
+    const cmd = cmdMap[action];
+    if (cmd) {
+      document.execCommand(cmd, false, action === 'color' ? value : null);
+    } else if (action === 'code') {
+      // Wrap selection in <code>
+      const sel = window.getSelection();
+      if (sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        const code = document.createElement('code');
+        code.style.cssText = 'background:#f5f5f4;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:12px';
+        range.surroundContents(code);
+      }
+    }
+    syncContent();
   };
 
-  const handleAddAI = useCallback(() => {
-    const el = textareaRef.current;
-    const start = el?.selectionStart ?? content.length;
-    const end = el?.selectionEnd ?? content.length;
-    const selected = content.slice(start, end).trim();
+  const getSelectedText = useCallback(() => {
+    const sel = window.getSelection();
+    return sel ? sel.toString().trim() : '';
+  }, []);
 
+  const handleAddAI = useCallback(() => {
+    const selected = getSelectedText();
     const id = uuidv4();
     const newBlock = {
       id,
@@ -74,18 +88,12 @@ export default function NoteEditor({ note, onClose }) {
       messages: [],
       wrappedContent: selected || null,
       autoAnalyze: !!selected,
-      insertPos: end,
     };
     setAiBlocks((prev) => [...prev, newBlock]);
-    // ไม่ใส่ marker ใน content
-  }, [content, state.aiSettings]);
+  }, [state.aiSettings, getSelectedText]);
 
   const handleAddAccordion = useCallback(() => {
-    const el = textareaRef.current;
-    const start = el?.selectionStart ?? content.length;
-    const end = el?.selectionEnd ?? content.length;
-    const selected = content.slice(start, end).trim();
-
+    const selected = getSelectedText();
     const id = uuidv4();
     const newBlock = {
       id,
@@ -94,14 +102,14 @@ export default function NoteEditor({ note, onClose }) {
       content: selected || '',
       open: true,
       autoTitle: !!selected,
-      insertPos: start,
     };
     setAiBlocks((prev) => [...prev, newBlock]);
-    // ลบข้อความที่เลือกออกจาก content (ย้ายไป accordion แล้ว)
+    // ลบข้อความที่เลือกออก
     if (selected) {
-      setContent(content.slice(0, start) + content.slice(end));
+      document.execCommand('delete');
+      syncContent();
     }
-  }, [content]);
+  }, [getSelectedText, syncContent]);
 
   const handleImageUpload = () => {
     const input = document.createElement('input');
@@ -187,24 +195,20 @@ export default function NoteEditor({ note, onClose }) {
 
   // Show floating toolbar when text is selected
   const handleSelectionCheck = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
     setTimeout(() => {
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      if (start !== end) {
-        const rect = el.getBoundingClientRect();
-        // Estimate position based on text lines
-        const textBefore = content.slice(0, start);
-        const lines = textBefore.split('\n').length;
-        const lineHeight = 24;
-        const top = rect.top + Math.min(lines * lineHeight, rect.height - 40) - 44;
-        setSelectionMenu({ top: Math.max(rect.top, top), left: rect.left + rect.width / 2 });
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim()) {
+        const range = sel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        setSelectionMenu({
+          top: rect.top - 44,
+          left: rect.left + rect.width / 2,
+        });
       } else {
         setSelectionMenu(null);
       }
     }, 200);
-  }, [content]);
+  }, []);
 
 
   return (
@@ -240,15 +244,15 @@ export default function NoteEditor({ note, onClose }) {
             style={styles.titleInput}
           />
 
-          <textarea
+          <div
             ref={textareaRef}
-            placeholder="เขียนโน้ต..."
-            value={content}
-            onChange={(e) => { setContent(e.target.value); setSelectionMenu(null); }}
+            contentEditable
+            suppressContentEditableWarning
+            data-placeholder="เขียนโน้ต..."
+            onInput={(e) => { setContent(e.currentTarget.innerHTML); setSelectionMenu(null); }}
             onSelect={handleSelectionCheck}
             onBlur={() => setTimeout(() => setSelectionMenu(null), 300)}
             style={styles.textarea}
-            rows={8}
           />
 
           {/* Floating selection toolbar */}
@@ -450,8 +454,9 @@ const styles = {
     fontFamily: C.font,
     color: C.text,
     background: 'transparent',
-    resize: 'vertical',
     minHeight: 200,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
     lineHeight: 1.7,
   },
   imageGrid: {

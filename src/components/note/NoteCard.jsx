@@ -18,9 +18,12 @@ export default function NoteCard({ note, onClick }) {
       {note.title && <h3 style={styles.title}>{note.title}</h3>}
 
       {note.content && (
-        <p style={styles.content}>
-          {note.content.replace(/\[.*?\]/g, '').slice(0, 120)}
-        </p>
+        <p
+          style={styles.content}
+          dangerouslySetInnerHTML={{
+            __html: note.content.replace(/\[.*?\]/g, '').slice(0, 200),
+          }}
+        />
       )}
 
       {note.images?.length > 0 && (
