@@ -501,7 +501,7 @@ export default function NoteEditor({ note, onClose }) {
               style={styles.toolBtn}
               onClick={() => setHistoryNote(note)}
             >
-              history
+              HISTORY
             </button>
           )}
         </div>

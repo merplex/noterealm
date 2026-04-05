@@ -30,7 +30,7 @@ export default function FormatMenu({ onFormat }) {
         style={styles.triggerBtn}
         onClick={() => setOpen(!open)}
       >
-        Style
+        STYLE
       </button>
 
       {open && (
