@@ -1,6 +1,6 @@
 /**
  * Simple word-level diff between two strings.
- * Returns array of { type: 'same'|'add'|'del', text: string }
+ * Returns array of { type: 'same'|'add'|'del'|'mod', text: string, oldText?: string }
  */
 export function diffWords(oldStr, newStr) {
   const oldWords = tokenize(oldStr);
@@ -21,7 +21,6 @@ export function diffWords(oldStr, newStr) {
   }
 
   // Backtrack to get diff
-  const result = [];
   let i = m, j = n;
   const stack = [];
   while (i > 0 || j > 0) {
@@ -39,11 +38,23 @@ export function diffWords(oldStr, newStr) {
   stack.reverse();
 
   // Merge consecutive same-type tokens
+  const merged = [];
   for (const item of stack) {
-    if (result.length > 0 && result[result.length - 1].type === item.type) {
-      result[result.length - 1].text += item.text;
+    if (merged.length > 0 && merged[merged.length - 1].type === item.type) {
+      merged[merged.length - 1].text += item.text;
     } else {
-      result.push({ ...item });
+      merged.push({ ...item });
+    }
+  }
+
+  // Convert adjacent del+add pairs into 'mod' (modified) segments
+  const result = [];
+  for (let k = 0; k < merged.length; k++) {
+    if (merged[k].type === 'del' && k + 1 < merged.length && merged[k + 1].type === 'add') {
+      result.push({ type: 'mod', text: merged[k + 1].text, oldText: merged[k].text });
+      k++; // skip the add
+    } else {
+      result.push(merged[k]);
     }
   }
 

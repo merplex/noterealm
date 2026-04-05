@@ -151,6 +151,15 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
                   </span>
                 );
               }
+              if (seg.type === 'mod') {
+                // Modified: text changed from oldText to text
+                return (
+                  <span key={i} style={styles.modWrap}>
+                    <sup style={styles.verBubbleMod}>{prevLabel}→{selLabel}</sup>
+                    <span style={styles.modText}>{seg.text}</span>
+                  </span>
+                );
+              }
               return null;
             })}
           </div>
@@ -283,6 +292,26 @@ const styles = {
     fontSize: 8,
     color: '#16a34a',
     background: '#f0fdf4',
+    borderRadius: 3,
+    padding: '0 3px',
+    marginRight: 1,
+    lineHeight: 1,
+    fontWeight: 600,
+  },
+  modWrap: {
+    display: 'inline',
+  },
+  modText: {
+    background: '#f3e8ff',
+    borderRadius: 2,
+    padding: '1px 2px',
+    color: '#7c3aed',
+    fontWeight: 500,
+  },
+  verBubbleMod: {
+    fontSize: 8,
+    color: '#7c3aed',
+    background: '#f3e8ff',
     borderRadius: 3,
     padding: '0 3px',
     marginRight: 1,
