@@ -23,6 +23,7 @@ export default function NoteEditor({ note, onClose }) {
   const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
+  const dismissMenuRef = useRef(false);
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
@@ -345,6 +346,45 @@ export default function NoteEditor({ note, onClose }) {
     }
   };
 
+  // Tap on editor body: dismiss system menu but keep selection
+  // Uses blur/refocus trick to dismiss Android ActionMode
+  const handleDismissMenu = useCallback((e) => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    const sel = window.getSelection();
+    if (!sel || !sel.toString().trim() || !sel.rangeCount) return;
+
+    // Don't dismiss if tapping inside the selected text itself
+    const range = sel.getRangeAt(0);
+    const rects = range.getClientRects();
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i];
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        return;
+      }
+    }
+
+    if (!dismissMenuRef.current) {
+      // First tap outside selection: dismiss menu, keep selection
+      dismissMenuRef.current = true;
+      const savedRange = range.cloneRange();
+
+      el.blur();
+      setTimeout(() => {
+        el.focus({ preventScroll: true });
+        const newSel = window.getSelection();
+        newSel.removeAllRanges();
+        newSel.addRange(savedRange);
+      }, 10);
+
+      e.preventDefault();
+    } else {
+      // Second tap: clear selection normally
+      dismissMenuRef.current = false;
+    }
+  }, []);
+
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -369,7 +409,7 @@ export default function NoteEditor({ note, onClose }) {
         </div>
 
         {/* Scrollable body */}
-        <div style={styles.body}>
+        <div style={styles.body} onPointerDown={handleDismissMenu}>
           <input
             type="text"
             placeholder="หัวข้อ..."
@@ -384,6 +424,7 @@ export default function NoteEditor({ note, onClose }) {
             suppressContentEditableWarning
             data-placeholder="เขียนโน้ต..."
             onInput={(e) => { setContent(e.currentTarget.innerHTML); }}
+            onSelect={() => { dismissMenuRef.current = false; }}
             style={styles.textarea}
           />
 
