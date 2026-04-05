@@ -47,9 +47,9 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
 
   return (
     <header style={styles.header}>
-      {/* Hamburger */}
-      <button style={styles.iconBtn} onClick={onSidebar}>
-        <span style={styles.hamburger}>☰</span>
+      {/* Profile / Settings — ซ้ายสุด */}
+      <button style={styles.avatar} onClick={onSettings}>
+        <span style={styles.avatarText}>N</span>
       </button>
 
       {/* Search bar */}
@@ -103,9 +103,9 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
         )}
       </div>
 
-      {/* Profile / Settings */}
-      <button style={styles.avatar} onClick={onSettings}>
-        <span style={styles.avatarText}>N</span>
+      {/* Hamburger — ขวาสุด */}
+      <button style={styles.iconBtn} onClick={onSidebar}>
+        <span style={styles.hamburger}>☰</span>
       </button>
     </header>
   );
@@ -116,7 +116,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    padding: '8px 14px 8px 10px',
+    padding: '8px 10px',
     background: C.bg,
     borderBottom: `1px solid ${C.border}`,
     position: 'sticky',
