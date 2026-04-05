@@ -57,11 +57,29 @@ function tokenize(str) {
 }
 
 /**
- * Strip HTML tags to get plain text for diff comparison
+ * Strip HTML tags to get plain text for diff comparison.
+ * Preserves line breaks from <br>, <div>, <p> tags.
  */
 export function stripHtml(html) {
   if (!html) return '';
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.textContent || div.innerText || '';
+  let text = html;
+  // Convert block elements and <br> to newlines
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  text = text.replace(/<\/div>/gi, '\n');
+  text = text.replace(/<\/p>/gi, '\n');
+  text = text.replace(/<div[^>]*>/gi, '');
+  text = text.replace(/<p[^>]*>/gi, '');
+  // Strip remaining tags
+  text = text.replace(/<[^>]+>/g, '');
+  // Decode HTML entities
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&nbsp;/g, ' ');
+  text = text.replace(/&quot;/g, '"');
+  // Clean up multiple consecutive newlines to max 2
+  text = text.replace(/\n{3,}/g, '\n\n');
+  // Trim trailing whitespace
+  text = text.replace(/\n+$/, '');
+  return text;
 }
