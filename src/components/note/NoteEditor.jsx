@@ -111,6 +111,8 @@ export default function NoteEditor({ note, onClose }) {
       wrappedContent: wrappedParts.length > 0 ? wrappedParts.join('\n') : null,
       wrappedImages: images.length > 0 ? images : undefined,
     };
+    // Blur active element to dismiss keyboard on mobile
+    document.activeElement?.blur();
     setAiBlocks((prev) => [...prev, newBlock]);
   }, [state.aiSettings, getSelectedContent]);
 
@@ -515,8 +517,8 @@ export default function NoteEditor({ note, onClose }) {
 
           {/* Render AI Blocks as popup overlay */}
           {aiBlocks.filter((b) => b.type !== 'accordion').length > 0 && (
-            <div style={styles.aiOverlay}>
-              <div style={styles.aiPopup}>
+            <div style={styles.aiOverlay} onTouchStart={() => document.activeElement?.blur()}>
+              <div style={styles.aiPopup} onClick={(e) => e.stopPropagation()}>
                 {aiBlocks.filter((b) => b.type !== 'accordion').map((block) => {
                   const updateBlock = (updated) =>
                     setAiBlocks(aiBlocks.map((b) => (b.id === updated.id ? updated : b)));

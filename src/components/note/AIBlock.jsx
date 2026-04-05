@@ -312,6 +312,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            autoFocus={false}
             rows={1}
           />
           <button
