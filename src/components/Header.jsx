@@ -69,7 +69,18 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
 
       {/* View toggle */}
       <button style={styles.iconBtn} onClick={toggleView} title={state.viewMode === 'grid' ? 'สลับเป็น List' : 'สลับเป็น Grid'}>
-        <span style={styles.iconText}>{state.viewMode === 'grid' ? '☰' : '⊞'}</span>
+        {state.viewMode === 'grid' ? (
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="3" cy="4" r="1.8" fill={C.sub}/>
+            <rect x="7" y="2.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
+            <circle cx="3" cy="9" r="1.8" fill={C.sub}/>
+            <rect x="7" y="7.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
+            <circle cx="3" cy="14" r="1.8" fill={C.sub}/>
+            <rect x="7" y="12.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
+          </svg>
+        ) : (
+          <span style={styles.iconText}>⊞</span>
+        )}
       </button>
 
       {/* Sort button */}
@@ -104,8 +115,12 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
       </div>
 
       {/* Hamburger — ขวาสุด */}
-      <button style={styles.iconBtn} onClick={onSidebar}>
-        <span style={styles.hamburger}>☰</span>
+      <button style={{ ...styles.iconBtn, marginRight: 2 }} onClick={onSidebar}>
+        <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+          <rect y="0" width="20" height="3" rx="1.5" fill={C.text}/>
+          <rect y="6.5" width="20" height="3" rx="1.5" fill={C.text}/>
+          <rect y="13" width="20" height="3" rx="1.5" fill={C.text}/>
+        </svg>
       </button>
     </header>
   );
@@ -116,7 +131,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    padding: '8px 10px',
+    padding: '8px 14px',
     background: C.bg,
     borderBottom: `1px solid ${C.border}`,
     position: 'sticky',
