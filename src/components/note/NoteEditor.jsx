@@ -295,7 +295,7 @@ export default function NoteEditor({ note, onClose }) {
     // Clean any leftover AI_BLOCK markers from content
     const cleanContent = content.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
     // Don't save empty notes
-    const textOnly = cleanContent.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const textOnly = cleanContent.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, '').trim();
     if (!title.trim() && !textOnly) {
       onClose();
       return;
