@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
  * authType: 'server' — uses server-side ANTHROPIC_API_KEY
  * Supports web search via Claude's built-in web_search tool
  */
-export default async function claude({ messages, systemPrompt }) {
+export default async function claude({ messages, systemPrompt, images }) {
   const client = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
@@ -18,6 +18,27 @@ export default async function claude({ messages, systemPrompt }) {
   }
   if (cleanMsgs.length === 0) {
     cleanMsgs = [{ role: 'user', content: systemPrompt || 'สวัสดี' }];
+  }
+
+  // If images are provided, attach them to the first user message
+  if (images && images.length > 0 && cleanMsgs.length > 0) {
+    const firstUserIdx = cleanMsgs.findIndex((m) => m.role === 'user');
+    if (firstUserIdx >= 0) {
+      const textContent = cleanMsgs[firstUserIdx].content;
+      const contentParts = [];
+      for (const img of images) {
+        // Handle base64 data URLs
+        const match = img.match(/^data:(image\/[^;]+);base64,(.+)$/);
+        if (match) {
+          contentParts.push({
+            type: 'image',
+            source: { type: 'base64', media_type: match[1], data: match[2] },
+          });
+        }
+      }
+      contentParts.push({ type: 'text', text: textContent || 'วิเคราะห์รูปภาพนี้' });
+      cleanMsgs[firstUserIdx].content = contentParts;
+    }
   }
 
   const response = await client.messages.create({

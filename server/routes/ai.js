@@ -11,11 +11,11 @@ const router = Router();
  * แค่ forward ไปให้ handler ใน providers/ จัดการ
  */
 router.post('/chat', async (req, res) => {
-  const { provider, messages, systemPrompt, accessToken, apiKey } = req.body;
+  const { provider, messages, systemPrompt, accessToken, apiKey, images } = req.body;
 
   try {
     const handler = getProvider(provider);
-    const content = await handler({ messages, systemPrompt, accessToken, apiKey });
+    const content = await handler({ messages, systemPrompt, accessToken, apiKey, images });
     res.json({ content });
   } catch (err) {
     console.error(`AI error [${provider}]:`, err.message);

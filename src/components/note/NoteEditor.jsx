@@ -86,18 +86,34 @@ export default function NoteEditor({ note, onClose }) {
     return sel ? sel.toString().trim() : '';
   }, []);
 
+  const getSelectedContent = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return { text: '', images: [] };
+    const range = sel.getRangeAt(0);
+    const fragment = range.cloneContents();
+    const images = [];
+    fragment.querySelectorAll('img').forEach((img) => {
+      if (img.src) images.push(img.src);
+    });
+    const text = sel.toString().trim();
+    return { text, images };
+  }, []);
+
   const handleAddAI = useCallback(() => {
-    const selected = getSelectedText();
+    const { text, images } = getSelectedContent();
     const id = uuidv4();
+    const wrappedParts = [];
+    if (text) wrappedParts.push(text);
     const newBlock = {
       id,
       provider: state.aiSettings?.provider || 'claude',
       messages: [],
-      wrappedContent: selected || null,
-      autoAnalyze: !!selected,
+      wrappedContent: wrappedParts.length > 0 ? wrappedParts.join('\n') : null,
+      wrappedImages: images.length > 0 ? images : undefined,
+      autoAnalyze: !!(text || images.length > 0),
     };
     setAiBlocks((prev) => [...prev, newBlock]);
-  }, [state.aiSettings, getSelectedText]);
+  }, [state.aiSettings, getSelectedContent]);
 
   const handleAddAccordion = useCallback(() => {
     const el = textareaRef.current;
@@ -545,6 +561,7 @@ export default function NoteEditor({ note, onClose }) {
                       key={block.id}
                       block={block}
                       wrappedContent={block.wrappedContent || null}
+                      wrappedImages={block.wrappedImages || null}
                       onUpdate={updateBlock}
                       onDismiss={dismissBlock}
                     />

@@ -9,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? '';
  *   'oauth'   → sends OAuth access token from settings
  *   'apikey'  → sends API key from settings
  */
-export async function callAI({ provider, messages, wrappedContent, settings, extraContext, autoAnalyze }) {
+export async function callAI({ provider, messages, wrappedContent, wrappedImages, settings, extraContext, autoAnalyze }) {
   const providerConfig = AI_PROVIDERS[provider];
   if (!providerConfig) throw new Error(`Unknown provider: ${provider}`);
 
@@ -55,10 +55,16 @@ export async function callAI({ provider, messages, wrappedContent, settings, ext
   }
   // authType === 'server' → no client credentials
 
+  // If images are provided, add description to system prompt
+  if (wrappedImages && wrappedImages.length > 0) {
+    systemPrompt = (systemPrompt || '') + '\n\nผู้ใช้แนบรูปภาพมาด้วย กรุณาวิเคราะห์รูปภาพและตอบ';
+  }
+
   const body = {
     provider,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     systemPrompt,
+    images: wrappedImages || undefined,
     ...auth,
   };
 

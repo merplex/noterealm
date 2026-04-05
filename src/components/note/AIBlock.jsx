@@ -5,7 +5,7 @@ import { callAI } from '../../utils/callAI';
 import { startOAuth, getOAuthProvider } from '../../utils/oauth';
 import { useApp } from '../../context/AppContext';
 
-export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) {
+export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate, onDismiss }) {
   const { state, dispatch } = useApp();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,14 +16,13 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
   const provider = AI_PROVIDERS[providerId] || AI_PROVIDERS.claude;
   const enabledProviders = getEnabledProviders();
   const messages = block.messages || [];
-  const hasWrapped = !!wrappedContent;
+  const hasWrapped = !!(wrappedContent || (wrappedImages && wrappedImages.length > 0));
   const autoSentRef = useRef(false);
 
   // Auto-analyze: เมื่อเลือกข้อความแล้วกด AI → ให้ AI วิเคราะห์และตอบเลย
   useEffect(() => {
-    if (block.autoAnalyze && !autoSentRef.current && messages.length === 0 && wrappedContent) {
+    if (block.autoAnalyze && !autoSentRef.current && messages.length === 0 && (wrappedContent || (wrappedImages && wrappedImages.length > 0))) {
       autoSentRef.current = true;
-      // Send as auto-analyze (no visible user message)
       handleAutoAnalyze();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -32,10 +31,12 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
   const handleAutoAnalyze = async () => {
     setLoading(true);
     try {
+      const contentForAI = wrappedContent || (wrappedImages?.length ? 'วิเคราะห์รูปภาพนี้' : '');
       const aiResponse = await callAI({
         provider: providerId,
-        messages: [{ role: 'user', content: wrappedContent }],
-        wrappedContent,
+        messages: [{ role: 'user', content: contentForAI }],
+        wrappedContent: contentForAI,
+        wrappedImages,
         settings: state.aiSettings,
         autoAnalyze: true,
       });
@@ -124,6 +125,7 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
         provider: providerId,
         messages: updatedMsgs,
         wrappedContent,
+        wrappedImages,
         settings: state.aiSettings,
         extraContext,
       });
@@ -224,10 +226,17 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
       </div>
 
       {/* Wrapped content */}
-      {wrappedContent && (
+      {(wrappedContent || (wrappedImages && wrappedImages.length > 0)) && (
         <div style={styles.wrapped}>
-          <div style={styles.wrappedLabel}>📎 ข้อความที่คลุม</div>
-          <p style={styles.wrappedText}>{wrappedContent}</p>
+          <div style={styles.wrappedLabel}>📎 {wrappedImages?.length ? 'เนื้อหาที่เลือก' : 'ข้อความที่คลุม'}</div>
+          {wrappedContent && <p style={styles.wrappedText}>{wrappedContent}</p>}
+          {wrappedImages && wrappedImages.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+              {wrappedImages.map((img, i) => (
+                <img key={i} src={img} alt="" style={{ maxWidth: 80, maxHeight: 80, borderRadius: 6, border: `1px solid ${C.border}` }} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
