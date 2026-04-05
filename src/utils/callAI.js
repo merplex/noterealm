@@ -15,7 +15,7 @@ export async function callAI({ provider, messages, wrappedContent, settings }) {
 
   const systemPrompt = wrappedContent
     ? `ข้อความที่ผู้ใช้คลุมไว้:\n${wrappedContent}\n\nช่วยตอบเกี่ยวกับข้อความข้างต้น`
-    : 'คุณเป็นผู้ช่วย AI สำหรับแอป NoteKeep ตอบเป็นภาษาไทยหรือตามภาษาที่ผู้ใช้ถาม';
+    : 'คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm ตอบเป็นภาษาไทยหรือตามภาษาที่ผู้ใช้ถาม';
 
   // Resolve credentials based on authType
   const auth = {};

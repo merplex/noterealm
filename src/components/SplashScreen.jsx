@@ -17,7 +17,7 @@ export default function SplashScreen() {
   return (
     <div style={styles.overlay} onClick={handleOutsideClick}>
       <div style={styles.container}>
-        <h1 style={styles.title}>NoteKeep</h1>
+        <h1 style={styles.title}>NoteRealm</h1>
         <p style={styles.subtitle}>จดบันทึก & จัดการงาน</p>
         <div style={styles.cards}>
           <button style={styles.card} onClick={() => handleSelect('note')}>

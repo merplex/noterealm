@@ -1,4 +1,4 @@
-# NoteKeep (NoteRealm)
+# NoteRealm
 
 PWA cross-platform note-taking & todo app with AI integration.
 
