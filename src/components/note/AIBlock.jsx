@@ -19,11 +19,11 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
   const hasWrapped = !!wrappedContent;
   const autoSentRef = useRef(false);
 
-  // Auto-send if the selected text was a question
+  // Auto-analyze: เมื่อเลือกข้อความแล้วกด AI → ให้ AI วิเคราะห์และตอบเลย
   useEffect(() => {
-    if (block.autoSend && !autoSentRef.current && messages.length === 0) {
+    if (block.autoAnalyze && !autoSentRef.current && messages.length === 0 && wrappedContent) {
       autoSentRef.current = true;
-      handleSend(block.autoSend);
+      handleSend('วิเคราะห์ข้อความนี้แล้วทำสิ่งที่เหมาะสมที่สุด: ถ้าเป็นคำถามให้ตอบ, ถ้าเป็นภาษาต่างประเทศให้แปลเป็นไทย, ถ้าเป็นข้อความยาวให้สรุป, ถ้าเป็นข้อความที่มีข้อผิดพลาดให้แก้ไข');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -277,7 +277,7 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
         <div style={styles.inputRow}>
           <textarea
             style={styles.input}
-            placeholder="พิมพ์ข้อความ..."
+            placeholder={lastAiResponse && hasWrapped ? 'ต้องการอะไรเพิ่มเติม สั่งได้เลย...' : 'พิมพ์ข้อความ...'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

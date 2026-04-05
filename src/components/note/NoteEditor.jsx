@@ -64,17 +64,14 @@ export default function NoteEditor({ note, onClose }) {
     const end = el?.selectionEnd ?? content.length;
     const selected = content.slice(start, end).trim();
 
-    const isQuestion = selected
-      ? /[?？]$/.test(selected) || /^(ทำไม|อะไร|ใคร|ที่ไหน|เมื่อไหร่|อย่างไร|ยังไง|เพราะ|คืออะไร|หมายความว่า|how|what|why|when|where|who|is |are |do |does |can |could |should |would )/i.test(selected)
-      : false;
-
     const id = uuidv4();
     const newBlock = {
       id,
       provider: state.aiSettings?.provider || 'claude',
       messages: [],
       wrappedContent: selected || null,
-      autoSend: isQuestion ? selected : null,
+      // ถ้ามีข้อความที่เลือก → auto-analyze เสมอ, ถ้าไม่มี → chat ปกติ
+      autoAnalyze: !!selected,
     };
     setAiBlocks((prev) => [...prev, newBlock]);
     setContent(content.slice(0, end) + `\n[AI_BLOCK:${id}]` + content.slice(end));
