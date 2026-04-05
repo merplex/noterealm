@@ -83,13 +83,31 @@ export default function App() {
         )}
       </main>
 
-      {/* FAB buttons */}
-      <div style={styles.fabs}>
-        <button style={{ ...styles.fab, ...styles.fabTodo }} onClick={handleAddTodo} title="เพิ่ม Todo">
-          ✅
+      {/* Bottom nav - left */}
+      <div style={styles.bottomNav}>
+        <button
+          style={{ ...styles.navBtn, background: isNote ? C.amber : 'rgba(255,255,255,0.85)' }}
+          onClick={() => dispatch({ type: 'SET_TAB', payload: 'note' })}
+          title="โน้ต"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={isNote ? '#fff' : C.sub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </button>
+        <button
+          style={{ ...styles.navBtn, background: !isNote ? C.amber : 'rgba(255,255,255,0.85)' }}
+          onClick={() => dispatch({ type: 'SET_TAB', payload: 'todo' })}
+          title="ปฏิทิน"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={!isNote ? '#fff' : C.sub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </button>
+      </div>
+
+      {/* FAB buttons - right */}
+      <div style={styles.fabs}>
         <button style={{ ...styles.fab, ...styles.fabNote }} onClick={handleAddNote} title="เพิ่ม Note">
-          +
+          <span style={{ fontSize: 16, fontWeight: 700 }}>+Note</span>
+        </button>
+        <button style={{ ...styles.fab, ...styles.fabTodo }} onClick={handleAddTodo} title="เพิ่ม Todo">
+          <span style={{ fontSize: 16, fontWeight: 700 }}>+Todo</span>
         </button>
       </div>
 
@@ -160,8 +178,29 @@ const styles = {
     fontSize: 22,
     fontWeight: 300,
   },
-  fabNote: { background: C.amber, color: C.white, fontSize: 28 },
-  fabTodo: { background: C.white, color: C.text, fontSize: 20, width: 44, height: 44 },
+  fabNote: { background: C.amber, color: C.text, minWidth: 80, borderRadius: 26, width: 'auto', padding: '0 16px' },
+  fabTodo: { background: '#1e3a5f', color: C.white, minWidth: 80, borderRadius: 26, width: 'auto', padding: '0 16px' },
+  bottomNav: {
+    position: 'fixed',
+    bottom: 24,
+    left: 'max(16px, calc((100vw - 480px) / 2 + 16px))',
+    display: 'flex',
+    gap: 8,
+    alignItems: 'center',
+    zIndex: 60,
+    paddingBottom: 'env(safe-area-inset-bottom)',
+  },
+  navBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: '50%',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+  },
   todoToggle: {
     display: 'flex',
     gap: 4,
