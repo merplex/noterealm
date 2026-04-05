@@ -4,8 +4,13 @@
 
 function extractKeywords(text) {
   if (!text) return [];
-  // Remove block syntax and special chars
+  // Remove inline images (base64 data), accordions, block syntax
   const cleaned = text
+    .replace(/<span[^>]*inline-img-wrap[^>]*>[\s\S]*?<\/span>/gi, '')
+    .replace(/<div[^>]*inline-accordion[^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<img[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/data:[^"'\s]+/g, '')
     .replace(/\[(CODE|ACCORDION|AI_BLOCK)[^\]]*\][\s\S]*?\[\/\1\]/g, '')
     .replace(/\[\[([^\]]+)\]\]/g, '')
     .replace(/[*~`\[\]#]/g, '')
