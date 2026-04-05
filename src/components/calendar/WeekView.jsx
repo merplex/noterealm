@@ -92,7 +92,7 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
         <div style={styles.noDateSection}>
           <div style={styles.noDateHeader}>ไม่ระบุวัน</div>
           {noDateTodos.map((todo) => (
-            <div key={todo.id} style={styles.todoItem}>
+            <div key={todo.id} style={styles.noDateItem}>
               <button
                 style={{
                   ...styles.checkbox,
@@ -205,6 +205,14 @@ const styles = {
     borderRadius: 8,
     border: `1px solid ${C.border}`,
     overflow: 'hidden',
+    paddingBottom: 8,
+  },
+  noDateItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 12px',
+    borderBottom: `1px solid ${C.border}`,
   },
   noDateHeader: {
     padding: '8px 12px',
