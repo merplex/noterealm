@@ -294,6 +294,12 @@ export default function NoteEditor({ note, onClose }) {
     const now = new Date().toISOString();
     // Clean any leftover AI_BLOCK markers from content
     const cleanContent = content.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
+    // Don't save empty notes
+    const textOnly = cleanContent.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    if (!title.trim() && !textOnly) {
+      onClose();
+      return;
+    }
     const noteData = {
       id: note?.id || uuidv4(),
       title,
@@ -605,6 +611,9 @@ export default function NoteEditor({ note, onClose }) {
             onRestore={(version) => {
               if (version) {
                 setContent(version.content);
+                if (textareaRef.current) {
+                  textareaRef.current.innerHTML = version.content;
+                }
               }
               setHistoryNote(null);
             }}
