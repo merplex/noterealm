@@ -1,11 +1,4 @@
-import { C, PRIORITY_COLORS } from '../../constants/theme';
-
-const PRIORITY_ICONS = {
-  urgent: '🔴',
-  high: '🟠',
-  normal: '🟡',
-  low: '⚪',
-};
+import { C } from '../../constants/theme';
 
 const SOURCE_ICONS = {
   manual: '',
@@ -14,13 +7,22 @@ const SOURCE_ICONS = {
   telegram: '🤖',
 };
 
-export default function TodoItem({ todo, onToggle, onEdit, onDelete }) {
+export default function TodoItem({ todo, onToggle, onEdit, onDateClick }) {
   const isOverdue = todo.dueDate && (() => {
     const due = new Date(todo.dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return due < today && !todo.done;
   })();
+
+  const dateLabel = todo.dueDate
+    ? new Date(todo.dueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) +
+      (todo.dueTime ? ` ${todo.dueTime}` : '')
+    : 'ไม่ระบุ';
+
+  const dateBadgeStyle = todo.dueDate
+    ? (isOverdue ? styles.overdueBadge : styles.dueBadge)
+    : styles.noDateBadge;
 
   return (
     <div style={{ ...styles.item, opacity: todo.done ? 0.5 : 1 }}>
@@ -48,15 +50,12 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }) {
       </div>
 
       <div style={styles.badges}>
-        {todo.dueDate && (
-          <span style={isOverdue ? styles.overdueBadge : styles.dueBadge}>
-            {new Date(todo.dueDate).toLocaleDateString('th-TH', {
-              day: 'numeric',
-              month: 'short',
-            })}
-            {todo.dueTime && ` ${todo.dueTime}`}
-          </span>
-        )}
+        <span
+          style={dateBadgeStyle}
+          onClick={(e) => { e.stopPropagation(); onDateClick?.(todo); }}
+        >
+          {dateLabel}
+        </span>
         {todo.source && todo.source !== 'manual' && (
           <span style={styles.sourceBadge}>{SOURCE_ICONS[todo.source]}</span>
         )}
@@ -121,6 +120,7 @@ const styles = {
     background: '#f5f5f4',
     padding: '2px 6px',
     borderRadius: 4,
+    cursor: 'pointer',
   },
   overdueBadge: {
     fontSize: 11,
@@ -129,6 +129,16 @@ const styles = {
     padding: '2px 8px',
     borderRadius: 10,
     fontWeight: 600,
+    cursor: 'pointer',
+  },
+  noDateBadge: {
+    fontSize: 11,
+    color: C.muted,
+    background: '#f0f0f0',
+    padding: '2px 6px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontStyle: 'italic',
   },
   sourceBadge: { fontSize: 14 },
   linkBadge: { fontSize: 12 },

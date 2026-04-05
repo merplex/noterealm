@@ -4,6 +4,7 @@ import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import TodoItem from './TodoItem';
 import TodoEditor from './TodoEditor';
+import DatePickerPopup from './DatePickerPopup';
 
 const SECTIONS = [
   { key: 'urgent', label: '🔴 เร่งด่วน' },
@@ -16,6 +17,7 @@ export default function TodoList({ searchText }) {
   const { state, actions } = useApp();
   const [collapsed, setCollapsed] = useState({});
   const [editingTodo, setEditingTodo] = useState(null);
+  const [datePickTodo, setDatePickTodo] = useState(null);
   const [quickAdd, setQuickAdd] = useState('');
 
   const filteredTodos = useMemo(() => {
@@ -113,6 +115,7 @@ export default function TodoList({ searchText }) {
                     todo={todo}
                     onToggle={handleToggle}
                     onEdit={setEditingTodo}
+                    onDateClick={setDatePickTodo}
                   />
                 ))}
             </div>
@@ -125,6 +128,18 @@ export default function TodoList({ searchText }) {
           </div>
         )}
       </div>
+
+      {datePickTodo && (
+        <DatePickerPopup
+          dueDate={datePickTodo.dueDate}
+          dueTime={datePickTodo.dueTime}
+          onSave={(date, time) => {
+            actions.updateTodo({ ...datePickTodo, dueDate: date, dueTime: time }).catch(console.error);
+            setDatePickTodo(null);
+          }}
+          onCancel={() => setDatePickTodo(null)}
+        />
+      )}
 
       {editingTodo && (
         <TodoEditor todo={editingTodo} onClose={() => setEditingTodo(null)} />

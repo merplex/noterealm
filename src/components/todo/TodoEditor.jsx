@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
+import { QUICK_PICKS, calcDate } from './DatePickerPopup';
 
 const PRIORITIES = [
   { key: 'urgent', label: '🔴 เร่งด่วน' },
@@ -92,6 +93,39 @@ export default function TodoEditor({ todo, onClose }) {
                 {p.label}
               </button>
             ))}
+          </div>
+
+          {/* Quick pick dates */}
+          <label style={styles.label}>ครบกำหนด</label>
+          <div style={styles.quickPickRow}>
+            {QUICK_PICKS.map((pick) => {
+              const d = calcDate(pick);
+              return (
+                <button
+                  key={pick.label}
+                  style={{
+                    ...styles.quickPickBtn,
+                    background: dueDate === d ? C.amber : C.white,
+                    color: dueDate === d ? C.white : C.text,
+                    borderColor: dueDate === d ? C.amber : C.border,
+                  }}
+                  onClick={() => setDueDate(d)}
+                >
+                  {pick.label}
+                </button>
+              );
+            })}
+            <button
+              style={{
+                ...styles.quickPickBtn,
+                background: !dueDate ? '#f0f0f0' : C.white,
+                color: C.sub,
+                borderColor: C.border,
+              }}
+              onClick={() => { setDueDate(''); setDueTime(''); }}
+            >
+              ไม่ระบุ
+            </button>
           </div>
 
           {/* Due date/time */}
@@ -217,6 +251,16 @@ const styles = {
     cursor: 'pointer',
     fontFamily: C.font,
     background: C.white,
+  },
+  quickPickRow: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  quickPickBtn: {
+    padding: '5px 10px',
+    borderRadius: 14,
+    border: '1px solid',
+    fontSize: 11,
+    cursor: 'pointer',
+    fontFamily: C.font,
+    fontWeight: 500,
   },
   row: { display: 'flex', gap: 12, marginBottom: 14 },
   field: { flex: 1 },
