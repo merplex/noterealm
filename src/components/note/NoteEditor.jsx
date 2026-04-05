@@ -6,7 +6,7 @@ import RelatePanel from './RelatePanel';
 import FormatMenu from './FormatMenu';
 import ReferModal from './ReferModal';
 import AIBlock from './AIBlock';
-import { parseBlocks } from '../../utils/parseContent';
+import AccordionBlock from './AccordionBlock';
 
 export default function NoteEditor({ note, onClose }) {
   const { state, actions } = useApp();
@@ -80,9 +80,24 @@ export default function NoteEditor({ note, onClose }) {
     setContent(content.slice(0, end) + `\n[AI_BLOCK:${id}]` + content.slice(end));
   }, [content, state.aiSettings]);
 
-  const handleAddAccordion = () => {
-    insertAtCursor('[ACCORDION:หัวข้อ]เนื้อหา[/ACCORDION]');
-  };
+  const handleAddAccordion = useCallback(() => {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? content.length;
+    const end = el?.selectionEnd ?? content.length;
+    const selected = content.slice(start, end).trim();
+
+    const id = uuidv4();
+    const newBlock = {
+      id,
+      type: 'accordion',
+      title: selected || '',
+      content: '',
+      open: true,
+    };
+    setAiBlocks((prev) => [...prev, newBlock]);
+    // Replace selection with marker
+    setContent(content.slice(0, start) + `[AI_BLOCK:${id}]` + content.slice(end));
+  }, [content]);
 
   const handleImageUpload = () => {
     const input = document.createElement('input');
@@ -169,7 +184,6 @@ export default function NoteEditor({ note, onClose }) {
     // Context menu handled natively in mobile; could add custom menu later
   };
 
-  const blocks = parseBlocks(content);
 
   return (
     <div style={styles.overlay}>
@@ -206,21 +220,35 @@ export default function NoteEditor({ note, onClose }) {
             rows={8}
           />
 
-          {/* Render AI Blocks */}
-          {aiBlocks.map((block) => (
-            <AIBlock
-              key={block.id}
-              block={block}
-              wrappedContent={block.wrappedContent || null}
-              onUpdate={(updated) =>
-                setAiBlocks(aiBlocks.map((b) => (b.id === updated.id ? updated : b)))
-              }
-              onDismiss={(b) => {
-                setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
-                setContent((prev) => prev.replace(`\n[AI_BLOCK:${b.id}]`, '').replace(`[AI_BLOCK:${b.id}]`, ''));
-              }}
-            />
-          ))}
+          {/* Render AI Blocks & Accordion Blocks */}
+          {aiBlocks.map((block) => {
+            const updateBlock = (updated) =>
+              setAiBlocks(aiBlocks.map((b) => (b.id === updated.id ? updated : b)));
+            const dismissBlock = (b) => {
+              setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
+              setContent((prev) => prev.replace(`\n[AI_BLOCK:${b.id}]`, '').replace(`[AI_BLOCK:${b.id}]`, ''));
+            };
+
+            if (block.type === 'accordion') {
+              return (
+                <AccordionBlock
+                  key={block.id}
+                  block={block}
+                  onUpdate={updateBlock}
+                  onDismiss={dismissBlock}
+                />
+              );
+            }
+            return (
+              <AIBlock
+                key={block.id}
+                block={block}
+                wrappedContent={block.wrappedContent || null}
+                onUpdate={updateBlock}
+                onDismiss={dismissBlock}
+              />
+            );
+          })}
 
           {/* Images */}
           {images.length > 0 && (
