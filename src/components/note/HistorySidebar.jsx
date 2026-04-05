@@ -130,33 +130,40 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
           )}
           <div style={styles.diffBody}>
             {segments.map((seg, i) => {
+              // Render text with [box] and [img] placeholders as bubbles
+              const renderText = (text) => {
+                const parts = text.split(/(\[box\]|\[img\])/g);
+                return parts.map((part, j) => {
+                  if (part === '[box]') return <span key={j} style={styles.boxBubble}>box</span>;
+                  if (part === '[img]') return <span key={j} style={styles.imgBubble}>img</span>;
+                  return part;
+                });
+              };
+
               if (seg.type === 'same') {
-                return <span key={i}>{seg.text}</span>;
+                return <span key={i}>{renderText(seg.text)}</span>;
               }
               if (seg.type === 'del') {
-                // Deleted: existed in prev but not in selected
                 return (
                   <span key={i} style={styles.delWrap}>
                     <sup style={styles.verBubbleDel}>{prevLabel}</sup>
-                    <span style={styles.delText}>{seg.text}</span>
+                    <span style={styles.delText}>{renderText(seg.text)}</span>
                   </span>
                 );
               }
               if (seg.type === 'add') {
-                // Added in selected version
                 return (
                   <span key={i} style={styles.addWrap}>
                     <sup style={styles.verBubbleAdd}>{selLabel}</sup>
-                    <span style={styles.addText}>{seg.text}</span>
+                    <span style={styles.addText}>{renderText(seg.text)}</span>
                   </span>
                 );
               }
               if (seg.type === 'mod') {
-                // Modified: text changed from oldText to text
                 return (
                   <span key={i} style={styles.modWrap}>
                     <sup style={styles.verBubbleMod}>{prevLabel}→{selLabel}</sup>
-                    <span style={styles.modText}>{seg.text}</span>
+                    <span style={styles.modText}>{renderText(seg.text)}</span>
                   </span>
                 );
               }
@@ -317,5 +324,29 @@ const styles = {
     marginRight: 1,
     lineHeight: 1,
     fontWeight: 600,
+  },
+  boxBubble: {
+    display: 'inline-block',
+    fontSize: 10,
+    color: '#92400e',
+    background: '#fef3c7',
+    border: '1px solid #f59e0b',
+    borderRadius: 4,
+    padding: '1px 6px',
+    fontWeight: 600,
+    verticalAlign: 'middle',
+    lineHeight: 1.4,
+  },
+  imgBubble: {
+    display: 'inline-block',
+    fontSize: 10,
+    color: '#1e40af',
+    background: '#dbeafe',
+    border: '1px solid #60a5fa',
+    borderRadius: 4,
+    padding: '1px 6px',
+    fontWeight: 600,
+    verticalAlign: 'middle',
+    lineHeight: 1.4,
   },
 };

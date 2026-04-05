@@ -74,6 +74,9 @@ function tokenize(str) {
 export function stripHtml(html) {
   if (!html) return '';
   let text = html;
+  // Replace special contentEditable=false blocks with placeholders
+  text = replaceNestedBlock(text, 'inline-accordion', '\n[box]\n');
+  text = text.replace(/<span[^>]*inline-img-wrap[^>]*>[\s\S]*?<\/span>/gi, '[img]');
   // Convert <br> to newlines
   text = text.replace(/<br\s*\/?>/gi, '\n');
   // Opening block tags represent a new block — add newline before content
@@ -95,5 +98,37 @@ export function stripHtml(html) {
   // Trim leading/trailing newlines
   text = text.replace(/^\n+/, '');
   text = text.replace(/\n+$/, '');
+  return text;
+}
+
+/** Replace nested block elements (like accordions) by class name with a placeholder */
+function replaceNestedBlock(html, className, placeholder) {
+  let text = html;
+  while (true) {
+    const idx = text.indexOf(className);
+    if (idx === -1) break;
+    // Find the opening <div before this class
+    const divStart = text.lastIndexOf('<div', idx);
+    if (divStart === -1) break;
+    // Count nested divs to find matching close
+    let depth = 0;
+    let pos = divStart;
+    let found = false;
+    while (pos < text.length) {
+      if (text.slice(pos, pos + 4) === '<div') {
+        depth++;
+        const gt = text.indexOf('>', pos);
+        pos = gt === -1 ? text.length : gt + 1;
+      } else if (text.slice(pos, pos + 6) === '</div>') {
+        depth--;
+        pos += 6;
+        if (depth === 0) { found = true; break; }
+      } else {
+        pos++;
+      }
+    }
+    if (!found) break;
+    text = text.substring(0, divStart) + placeholder + text.substring(pos);
+  }
   return text;
 }
