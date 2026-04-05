@@ -139,14 +139,14 @@ export default function NoteEditor({ note, onClose }) {
       toggleBtn.textContent = isOpen ? '+' : '−';
     };
 
-    // Dismiss: restore content back to editor
+    // Dismiss: restore content back to editor at accordion's position
     dismissBtn.onclick = () => {
       const text = contentArea.textContent || '';
-      wrapper.remove();
       if (text) {
-        el.focus();
-        document.execCommand('insertText', false, text);
+        const textNode = document.createTextNode(text);
+        wrapper.parentNode.insertBefore(textNode, wrapper);
       }
+      wrapper.remove();
       syncContent();
     };
 
@@ -157,18 +157,14 @@ export default function NoteEditor({ note, onClose }) {
     wrapper.appendChild(header);
     wrapper.appendChild(body);
 
-    // Insert at cursor: delete selection first, then insert accordion + line break after
+    // Insert at cursor: delete selection first, then insert accordion
     if (sel && sel.rangeCount) {
       const range = sel.getRangeAt(0);
       range.deleteContents();
-
-      // Insert line break after accordion so text continues below
-      const br = document.createElement('br');
-      range.insertNode(br);
       range.insertNode(wrapper);
 
       // Move cursor after the accordion
-      range.setStartAfter(br);
+      range.setStartAfter(wrapper);
       range.collapse(true);
       sel.removeAllRanges();
       sel.addRange(range);
