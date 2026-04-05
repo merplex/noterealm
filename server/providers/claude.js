@@ -15,7 +15,7 @@ export default async function claude({ messages, systemPrompt }) {
     max_tokens: 4096,
     system: systemPrompt || '',
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    tools: [{ type: 'web_search', name: 'web_search', max_uses: 3 }],
+    tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
   });
 
   // Extract text from response, including after tool use
