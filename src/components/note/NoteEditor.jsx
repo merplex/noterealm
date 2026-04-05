@@ -93,7 +93,16 @@ export default function NoteEditor({ note, onClose }) {
   }, [state.aiSettings, getSelectedText]);
 
   const handleAddAccordion = useCallback(() => {
-    const selected = getSelectedText();
+    const sel = window.getSelection();
+    const selected = sel ? sel.toString().trim() : '';
+
+    // ลบ selected text จาก contentEditable ก่อนสร้าง block
+    if (selected && sel.rangeCount) {
+      sel.getRangeAt(0).deleteContents();
+      const el = textareaRef.current;
+      if (el) setContent(el.innerHTML);
+    }
+
     const id = uuidv4();
     const newBlock = {
       id,
@@ -104,12 +113,7 @@ export default function NoteEditor({ note, onClose }) {
       autoTitle: !!selected,
     };
     setAiBlocks((prev) => [...prev, newBlock]);
-    // ลบข้อความที่เลือกออก
-    if (selected) {
-      document.execCommand('delete');
-      syncContent();
-    }
-  }, [getSelectedText, syncContent]);
+  }, []);
 
   const handleImageUpload = () => {
     const input = document.createElement('input');
@@ -271,16 +275,56 @@ export default function NoteEditor({ note, onClose }) {
             const updateBlock = (updated) =>
               setAiBlocks(aiBlocks.map((b) => (b.id === updated.id ? updated : b)));
             const dismissBlock = (b, action) => {
+              if (b.type === 'accordion') {
+                // Accordion dismiss: คืนข้อความกลับเข้า content
+                if (b.content) {
+                  const el = textareaRef.current;
+                  if (el) {
+                    el.focus();
+                    document.execCommand('insertText', false, b.content);
+                    setContent(el.innerHTML);
+                  } else {
+                    setContent((prev) => prev + b.content);
+                  }
+                }
+                setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
+                return;
+              }
+
+              // AI block dismiss
               const lastAiMsg = [...(b.messages || [])].reverse().find((m) => m.role === 'assistant');
               const aiText = lastAiMsg?.content || '';
 
               if (action === 'append' && aiText) {
-                setContent((prev) => prev.trimEnd() + '\n\n' + aiText);
+                const el = textareaRef.current;
+                if (el) {
+                  // Move cursor to end and insert
+                  const range = document.createRange();
+                  const sel = window.getSelection();
+                  range.selectNodeContents(el);
+                  range.collapse(false);
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                  document.execCommand('insertText', false, '\n\n' + aiText);
+                  setContent(el.innerHTML);
+                } else {
+                  setContent((prev) => prev.trimEnd() + '\n\n' + aiText);
+                }
               } else if (action === 'replace' && aiText) {
-                const pos = b.insertPos ?? content.length;
-                setContent((prev) => prev.slice(0, pos) + '\n' + aiText + prev.slice(pos));
+                const el = textareaRef.current;
+                if (el) {
+                  const range = document.createRange();
+                  const sel = window.getSelection();
+                  range.selectNodeContents(el);
+                  range.collapse(false);
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                  document.execCommand('insertText', false, '\n' + aiText);
+                  setContent(el.innerHTML);
+                } else {
+                  setContent((prev) => prev + '\n' + aiText);
+                }
               }
-              // 'close' หรือไม่มี action → ไม่แก้ content
               setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
             };
 
