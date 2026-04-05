@@ -20,7 +20,12 @@ export default function CalendarView({ onSelectTodo }) {
   const [date, setDate] = useState(new Date());
 
   const handleToggleTodo = (todo) => {
-    actions.updateTodo({ ...todo, done: !todo.done }).catch(console.error);
+    const newDone = !todo.done;
+    actions.updateTodo({
+      ...todo,
+      done: newDone,
+      completedAt: newDone ? new Date().toISOString() : undefined,
+    }).catch(console.error);
   };
 
   const navigate = (dir) => {

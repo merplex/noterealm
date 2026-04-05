@@ -1,7 +1,10 @@
+import { useMemo } from 'react';
 import { format, isSameDay } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
+
+const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 
 export default function DayView({ date, todos, onSelectTodo, onReschedule, onLinkNote, onToggleTodo }) {
   const { dispatch } = useApp();
@@ -10,13 +13,71 @@ export default function DayView({ date, todos, onSelectTodo, onReschedule, onLin
     .filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), date))
     .sort((a, b) => (a.dueTime || '').localeCompare(b.dueTime || ''));
 
+  const noDateTodos = useMemo(() =>
+    todos.filter((t) => !t.dueDate).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+    [todos]
+  );
+
   const handleToggle = (todo) => {
     if (onToggleTodo) {
       onToggleTodo(todo);
     } else {
-      dispatch({ type: 'UPDATE_TODO', payload: { ...todo, done: !todo.done } });
+      const newDone = !todo.done;
+      dispatch({ type: 'UPDATE_TODO', payload: { ...todo, done: newDone, completedAt: newDone ? new Date().toISOString() : undefined } });
     }
   };
+
+  const renderTodo = (todo) => (
+    <div key={todo.id} style={styles.card}>
+      <div style={styles.cardHeader}>
+        <button
+          style={{
+            ...styles.checkbox,
+            background: todo.done ? C.amber : 'transparent',
+            borderColor: todo.done ? C.amber : C.border,
+          }}
+          onClick={() => handleToggle(todo)}
+        >
+          {todo.done && <span style={styles.checkMark}>✓</span>}
+        </button>
+        <span
+          style={{
+            ...styles.title,
+            textDecoration: todo.done ? 'line-through' : 'none',
+          }}
+          onClick={() => onSelectTodo?.(todo)}
+        >
+          {todo.title}
+        </span>
+        <span style={{
+          ...styles.priorityTag,
+          background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+          color: PRIORITY_COLORS[todo.priority] || C.muted,
+          borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
+        }}>
+          {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+        </span>
+        {todo.dueTime && <span style={styles.time}>{todo.dueTime}</span>}
+      </div>
+
+      {todo.note && <p style={styles.note}>{todo.note}</p>}
+
+      <div style={styles.actions}>
+        <button style={styles.actionBtn} onClick={() => handleToggle(todo)}>
+          {todo.done ? '↩ ยกเลิก' : '✅ เสร็จ'}
+        </button>
+        <button style={styles.actionBtn} onClick={() => onLinkNote?.(todo)}>
+          📝 เพิ่มใน Note
+        </button>
+        <button style={styles.actionBtn} onClick={() => onReschedule?.(todo)}>
+          🗓 เลื่อน
+        </button>
+        <button style={styles.actionBtn} onClick={() => onSelectTodo?.(todo)}>
+          🔗 Link Note
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div style={styles.container}>
@@ -27,65 +88,14 @@ export default function DayView({ date, todos, onSelectTodo, onReschedule, onLin
       {dayTodos.length === 0 ? (
         <p style={styles.empty}>ไม่มีรายการในวันนี้</p>
       ) : (
-        dayTodos.map((todo) => (
-          <div key={todo.id} style={styles.card}>
-            <div style={styles.cardHeader}>
-              <button
-                style={{
-                  ...styles.checkbox,
-                  background: todo.done ? C.amber : 'transparent',
-                  borderColor: todo.done ? C.amber : C.border,
-                }}
-                onClick={() => handleToggle(todo)}
-              >
-                {todo.done && <span style={styles.checkMark}>✓</span>}
-              </button>
-              <span style={{
-                ...styles.priorityDot,
-                background: PRIORITY_COLORS[todo.priority],
-              }} />
-              <span
-                style={{
-                  ...styles.title,
-                  textDecoration: todo.done ? 'line-through' : 'none',
-                }}
-                onClick={() => onSelectTodo?.(todo)}
-              >
-                {todo.title}
-              </span>
-              {todo.dueTime && <span style={styles.time}>{todo.dueTime}</span>}
-            </div>
+        dayTodos.map(renderTodo)
+      )}
 
-            {todo.note && <p style={styles.note}>{todo.note}</p>}
-
-            <div style={styles.actions}>
-              <button
-                style={styles.actionBtn}
-                onClick={() => handleToggle(todo)}
-              >
-                {todo.done ? '↩ ยกเลิก' : '✅ เสร็จ'}
-              </button>
-              <button
-                style={styles.actionBtn}
-                onClick={() => onLinkNote?.(todo)}
-              >
-                📝 เพิ่มใน Note
-              </button>
-              <button
-                style={styles.actionBtn}
-                onClick={() => onReschedule?.(todo)}
-              >
-                🗓 เลื่อน
-              </button>
-              <button
-                style={styles.actionBtn}
-                onClick={() => onSelectTodo?.(todo)}
-              >
-                🔗 Link Note
-              </button>
-            </div>
-          </div>
-        ))
+      {noDateTodos.length > 0 && (
+        <>
+          <div style={styles.noDateHeader}>ไม่ระบุวัน</div>
+          {noDateTodos.map(renderTodo)}
+        </>
       )}
     </div>
   );
@@ -113,12 +123,6 @@ const styles = {
     alignItems: 'center',
     gap: 8,
   },
-  priorityDot: {
-    width: 10,
-    height: 10,
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
   checkbox: {
     width: 20,
     height: 20,
@@ -133,6 +137,15 @@ const styles = {
   },
   checkMark: { color: 'white', fontSize: 12, fontWeight: 700 },
   title: { flex: 1, fontSize: 15, fontWeight: 500, color: C.text, cursor: 'pointer' },
+  priorityTag: {
+    fontSize: 10,
+    padding: '1px 6px',
+    borderRadius: 8,
+    border: '1px solid',
+    fontWeight: 600,
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
+  },
   time: { fontSize: 12, color: C.sub },
   note: { fontSize: 13, color: C.sub, marginTop: 6, lineHeight: 1.4 },
   actions: {
@@ -150,5 +163,12 @@ const styles = {
     cursor: 'pointer',
     fontFamily: C.font,
     color: C.text,
+  },
+  noDateHeader: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: C.muted,
+    padding: '12px 0 6px',
+    fontStyle: 'italic',
   },
 };

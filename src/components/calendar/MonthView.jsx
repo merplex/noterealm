@@ -7,9 +7,13 @@ import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 
 const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
+const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 
 export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onToggleTodo }) {
-  const [selectedDay, setSelectedDay] = useState(null);
+  const today = new Date();
+  const [selectedDay, setSelectedDay] = useState(
+    isSameMonth(today, date) ? today : null
+  );
 
   const weeks = useMemo(() => {
     const monthStart = startOfMonth(date);
@@ -33,12 +37,16 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
   const getTodosForDay = (day) =>
     todos.filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), day));
 
+  const noDateTodos = useMemo(() =>
+    todos.filter((t) => !t.dueDate).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+    [todos]
+  );
+
   const handleDayClick = (day) => {
     setSelectedDay(day);
     onSelectDay?.(day);
   };
 
-  const today = new Date();
   const dayTodos = selectedDay ? getTodosForDay(selectedDay) : [];
 
   return (
@@ -47,14 +55,12 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
         {format(date, 'MMMM yyyy', { locale: th })}
       </div>
 
-      {/* Day labels */}
       <div style={styles.grid}>
         {DAY_LABELS.map((d) => (
           <div key={d} style={styles.dayLabel}>{d}</div>
         ))}
       </div>
 
-      {/* Calendar grid */}
       {weeks.map((week, wi) => (
         <div key={wi} style={styles.grid}>
           {week.map((day) => {
@@ -120,10 +126,6 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                 >
                   {todo.done && <span style={styles.cbCheck}>✓</span>}
                 </button>
-                <span style={{
-                  ...styles.dot,
-                  background: PRIORITY_COLORS[todo.priority],
-                }} />
                 <span
                   style={{
                     ...styles.dayTodoTitle,
@@ -133,10 +135,53 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                 >
                   {todo.title}
                 </span>
+                <span style={{
+                  ...styles.priorityTag,
+                  background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+                  color: PRIORITY_COLORS[todo.priority] || C.muted,
+                  borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
+                }}>
+                  {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+                </span>
                 {todo.dueTime && <span style={styles.timeLabel}>{todo.dueTime}</span>}
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* No-date todos */}
+      {noDateTodos.length > 0 && (
+        <div style={styles.dayPanel}>
+          <div style={styles.dayPanelHeader}>ไม่ระบุวัน</div>
+          {noDateTodos.map((todo) => (
+            <div key={todo.id} style={styles.dayTodoItem}>
+              <button
+                style={{
+                  ...styles.cb,
+                  background: todo.done ? C.amber : 'transparent',
+                  borderColor: todo.done ? C.amber : C.border,
+                }}
+                onClick={() => onToggleTodo?.(todo)}
+              >
+                {todo.done && <span style={styles.cbCheck}>✓</span>}
+              </button>
+              <span
+                style={{ ...styles.dayTodoTitle, textDecoration: todo.done ? 'line-through' : 'none' }}
+                onClick={() => onSelectTodo?.(todo)}
+              >
+                {todo.title}
+              </span>
+              <span style={{
+                ...styles.priorityTag,
+                background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+                color: PRIORITY_COLORS[todo.priority] || C.muted,
+                borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
+              }}>
+                {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -215,11 +260,19 @@ const styles = {
     alignItems: 'center',
     gap: 8,
     padding: '6px 0',
-    cursor: 'pointer',
     borderBottom: `1px solid ${C.border}`,
   },
   dayTodoTitle: { flex: 1, fontSize: 13, color: C.text, cursor: 'pointer' },
   timeLabel: { fontSize: 11, color: C.sub },
+  priorityTag: {
+    fontSize: 10,
+    padding: '1px 6px',
+    borderRadius: 8,
+    border: '1px solid',
+    fontWeight: 600,
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
+  },
   cb: {
     width: 18,
     height: 18,

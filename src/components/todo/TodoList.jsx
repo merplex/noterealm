@@ -54,7 +54,12 @@ export default function TodoList({ searchText }) {
   };
 
   const handleToggle = (todo) => {
-    actions.updateTodo({ ...todo, done: !todo.done }).catch(console.error);
+    const newDone = !todo.done;
+    actions.updateTodo({
+      ...todo,
+      done: newDone,
+      completedAt: newDone ? new Date().toISOString() : undefined,
+    }).catch(console.error);
   };
 
   const handleQuickAdd = async () => {

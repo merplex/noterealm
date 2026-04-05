@@ -4,6 +4,7 @@ import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 
 const STORAGE_KEY = 'yearview_collapsed';
+const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 
 function loadCollapsed() {
   try {
@@ -41,14 +42,16 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
     return groups;
   }, [todos, year]);
 
-  // Find nearest month with todos to scroll to
+  const noDateTodos = useMemo(() =>
+    todos.filter((t) => !t.dueDate).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+    [todos]
+  );
+
   const nearestMonth = useMemo(() => {
     if (year !== currentYear) return 0;
-    // Find first month >= current month that has todos
     for (let m = currentMonth; m < 12; m++) {
       if (monthGroups[m].total > 0) return m;
     }
-    // Fallback: find last month before current with todos
     for (let m = currentMonth - 1; m >= 0; m--) {
       if (monthGroups[m].total > 0) return m;
     }
@@ -91,10 +94,6 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
               >
                 {todo.done && <span style={styles.check}>✓</span>}
               </button>
-              <span style={{
-                ...styles.dot,
-                background: PRIORITY_COLORS[todo.priority] || C.muted,
-              }} />
               <span
                 style={{
                   ...styles.todoTitle,
@@ -104,8 +103,17 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
               >
                 {todo.title}
               </span>
+              <span style={{
+                ...styles.priorityTag,
+                background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+                color: PRIORITY_COLORS[todo.priority] || C.muted,
+                borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
+              }}>
+                {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+              </span>
               <span style={styles.dateLabel}>
                 {format(new Date(todo.dueDate), 'd MMM', { locale: th })}
+                {todo.dueTime && ` ${todo.dueTime}`}
               </span>
             </div>
           ))}
@@ -115,6 +123,46 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
         </div>
         );
       })}
+
+      {/* No-date todos */}
+      {noDateTodos.length > 0 && (
+        <div style={styles.monthBlock}>
+          <div style={styles.monthHeader}>
+            <span style={styles.monthName}>ไม่ระบุวัน</span>
+            <span style={styles.monthCount}>
+              {noDateTodos.filter((t) => t.done).length}/{noDateTodos.length}
+            </span>
+          </div>
+          {noDateTodos.map((todo) => (
+            <div key={todo.id} style={styles.todoItem}>
+              <button
+                style={{
+                  ...styles.checkbox,
+                  background: todo.done ? C.amber : 'transparent',
+                  borderColor: todo.done ? C.amber : C.border,
+                }}
+                onClick={() => onToggleTodo?.(todo)}
+              >
+                {todo.done && <span style={styles.check}>✓</span>}
+              </button>
+              <span
+                style={{ ...styles.todoTitle, textDecoration: todo.done ? 'line-through' : 'none' }}
+                onClick={() => onSelectTodo?.(todo)}
+              >
+                {todo.title}
+              </span>
+              <span style={{
+                ...styles.priorityTag,
+                background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+                color: PRIORITY_COLORS[todo.priority] || C.muted,
+                borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
+              }}>
+                {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -177,9 +225,17 @@ const styles = {
     background: 'transparent',
   },
   check: { color: 'white', fontSize: 11, fontWeight: 700 },
-  dot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
   todoTitle: { flex: 1, fontSize: 13, color: C.text, cursor: 'pointer' },
-  dateLabel: { fontSize: 11, color: C.sub },
+  priorityTag: {
+    fontSize: 10,
+    padding: '1px 6px',
+    borderRadius: 8,
+    border: '1px solid',
+    fontWeight: 600,
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
+  },
+  dateLabel: { fontSize: 11, color: C.sub, flexShrink: 0 },
   emptyMonth: {
     padding: '12px 14px',
     fontSize: 12,

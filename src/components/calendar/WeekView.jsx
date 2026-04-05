@@ -3,6 +3,8 @@ import { startOfWeek, addDays, isSameDay, format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 
+const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
+
 export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const today = new Date();
@@ -16,6 +18,11 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
       return { day, todos: dayTodos };
     });
   }, [weekStart, todos]);
+
+  const noDateTodos = useMemo(() =>
+    todos.filter((t) => !t.dueDate).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+    [todos]
+  );
 
   return (
     <div style={styles.container}>
@@ -56,18 +63,20 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
                       </button>
                       <span
                         style={{
-                          ...styles.priorityBar,
-                          background: PRIORITY_COLORS[todo.priority] || C.muted,
-                        }}
-                      />
-                      <span
-                        style={{
                           ...styles.title,
                           textDecoration: todo.done ? 'line-through' : 'none',
                         }}
                         onClick={() => onSelectTodo?.(todo)}
                       >
                         {todo.title}
+                      </span>
+                      <span style={{
+                        ...styles.priorityTag,
+                        background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+                        color: PRIORITY_COLORS[todo.priority] || C.muted,
+                        borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
+                      }}>
+                        {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
                       </span>
                       {todo.dueTime && <span style={styles.time}>{todo.dueTime}</span>}
                     </div>
@@ -78,6 +87,40 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
           );
         })}
       </div>
+
+      {noDateTodos.length > 0 && (
+        <div style={styles.noDateSection}>
+          <div style={styles.noDateHeader}>ไม่ระบุวัน</div>
+          {noDateTodos.map((todo) => (
+            <div key={todo.id} style={styles.todoItem}>
+              <button
+                style={{
+                  ...styles.checkbox,
+                  background: todo.done ? C.amber : 'transparent',
+                  borderColor: todo.done ? C.amber : C.border,
+                }}
+                onClick={() => onToggleTodo?.(todo)}
+              >
+                {todo.done && <span style={styles.check}>✓</span>}
+              </button>
+              <span
+                style={{ ...styles.title, textDecoration: todo.done ? 'line-through' : 'none' }}
+                onClick={() => onSelectTodo?.(todo)}
+              >
+                {todo.title}
+              </span>
+              <span style={{
+                ...styles.priorityTag,
+                background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+                color: PRIORITY_COLORS[todo.priority] || C.muted,
+                borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
+              }}>
+                {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -144,12 +187,30 @@ const styles = {
     background: 'transparent',
   },
   check: { color: 'white', fontSize: 11, fontWeight: 700 },
-  priorityBar: {
-    width: 3,
-    height: 16,
-    borderRadius: 2,
-    flexShrink: 0,
-  },
   title: { flex: 1, fontSize: 13, color: C.text, cursor: 'pointer' },
+  priorityTag: {
+    fontSize: 10,
+    padding: '1px 6px',
+    borderRadius: 8,
+    border: '1px solid',
+    fontWeight: 600,
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
+  },
   time: { fontSize: 11, color: C.sub, flexShrink: 0 },
+  noDateSection: {
+    marginTop: 8,
+    background: C.white,
+    borderRadius: 8,
+    border: `1px solid ${C.border}`,
+    overflow: 'hidden',
+  },
+  noDateHeader: {
+    padding: '8px 12px',
+    background: '#f5f5f4',
+    fontSize: 12,
+    fontWeight: 600,
+    color: C.muted,
+    fontStyle: 'italic',
+  },
 };
