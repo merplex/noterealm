@@ -138,12 +138,13 @@ const styles = {
   },
   main: { flex: 1, overflowY: 'auto', paddingBottom: 80 },
   fabs: {
-    position: 'absolute',
+    position: 'fixed',
     bottom: 24,
-    right: 16,
+    right: 'max(16px, calc((100vw - 480px) / 2 + 16px))',
     display: 'flex',
     gap: 10,
     alignItems: 'center',
+    zIndex: 60,
     paddingBottom: 'env(safe-area-inset-bottom)',
   },
   fab: {
