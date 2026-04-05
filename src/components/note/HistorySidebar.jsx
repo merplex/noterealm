@@ -2,47 +2,115 @@ import { useState, useMemo } from 'react';
 import { C } from '../../constants/theme';
 import { diffWords, stripHtml } from '../../utils/diff';
 
+/**
+ * Build cumulative annotated segments showing which version introduced each piece of text.
+ * Returns array of { text, version, type: 'text'|'del' }
+ * - version = number (1 = oldest, n = current)
+ * - type 'text' = present in the target version
+ * - type 'del' = was deleted at this version
+ */
+function buildCumulativeDiff(versions, upToIdx) {
+  // versions: array of content strings, chronological (oldest first)
+  // upToIdx: show up to this index (0-based, where last = current)
+  if (versions.length === 0) return [];
+  if (versions.length === 1) return [{ text: versions[0], version: 1, type: 'text' }];
+
+  // Start from oldest
+  let segments = [{ text: versions[0], version: 1, type: 'text' }];
+
+  for (let i = 1; i <= upToIdx; i++) {
+    const prevText = segments.filter(s => s.type === 'text').map(s => s.text).join('');
+    const nextText = versions[i];
+    const diff = diffWords(prevText, nextText);
+
+    const newSegments = [];
+    // Keep all previous 'del' segments
+    for (const s of segments) {
+      if (s.type === 'del') newSegments.push(s);
+    }
+
+    // Walk through diff and the old 'text' segments to assign versions
+    let oldTextPos = 0;
+    const oldTextSegments = segments.filter(s => s.type === 'text');
+    let oldSegIdx = 0;
+    let oldSegCharPos = 0;
+
+    for (const d of diff) {
+      if (d.type === 'same') {
+        // This text existed before — find which version(s) it came from
+        let remaining = d.text.length;
+        while (remaining > 0 && oldSegIdx < oldTextSegments.length) {
+          const seg = oldTextSegments[oldSegIdx];
+          const avail = seg.text.length - oldSegCharPos;
+          const take = Math.min(remaining, avail);
+          newSegments.push({ text: seg.text.slice(oldSegCharPos, oldSegCharPos + take), version: seg.version, type: 'text' });
+          oldSegCharPos += take;
+          remaining -= take;
+          oldTextPos += take;
+          if (oldSegCharPos >= seg.text.length) {
+            oldSegIdx++;
+            oldSegCharPos = 0;
+          }
+        }
+      } else if (d.type === 'del') {
+        // Text was deleted at version i+1
+        let remaining = d.text.length;
+        while (remaining > 0 && oldSegIdx < oldTextSegments.length) {
+          const seg = oldTextSegments[oldSegIdx];
+          const avail = seg.text.length - oldSegCharPos;
+          const take = Math.min(remaining, avail);
+          newSegments.push({ text: seg.text.slice(oldSegCharPos, oldSegCharPos + take), version: i + 1, type: 'del' });
+          oldSegCharPos += take;
+          remaining -= take;
+          oldTextPos += take;
+          if (oldSegCharPos >= seg.text.length) {
+            oldSegIdx++;
+            oldSegCharPos = 0;
+          }
+        }
+      } else if (d.type === 'add') {
+        // New text added at version i+1
+        newSegments.push({ text: d.text, version: i + 1, type: 'text' });
+      }
+    }
+
+    segments = newSegments;
+  }
+
+  return segments;
+}
+
 export default function HistorySidebar({ note, onRestore, onClose }) {
   const history = note?.history || [];
   const currentContent = stripHtml(note?.content || '');
   const [selectedIdx, setSelectedIdx] = useState(-1); // -1 = current version
 
-  // Build version entries: current + history
-  const allVersions = useMemo(() => {
-    const versions = [
-      { label: 'ปัจจุบัน', timestamp: note?.updatedAt, content: currentContent, isCurrent: true },
-    ];
-    for (const ver of history) {
-      versions.push({
-        label: null,
-        timestamp: ver.timestamp,
-        content: stripHtml(ver.content || ''),
-        isCurrent: false,
-        original: ver,
-      });
+  // Chronological versions: oldest first → current last
+  const chronoVersions = useMemo(() => {
+    const vers = [];
+    for (let i = history.length - 1; i >= 0; i--) {
+      vers.push(stripHtml(history[i].content || ''));
     }
-    return versions;
-  }, [history, currentContent, note?.updatedAt]);
+    vers.push(currentContent); // current = last
+    return vers;
+  }, [history, currentContent]);
 
-  // Compute diff segments based on selected version
-  const diffSegments = useMemo(() => {
-    const selVer = allVersions[selectedIdx === -1 ? 0 : selectedIdx];
-    if (!selVer) return [];
+  // Total number of versions
+  const totalVersions = chronoVersions.length;
 
-    // Find the version right before the selected one
-    const prevIdx = selectedIdx === -1 ? 1 : selectedIdx + 1;
-    const prevVer = allVersions[prevIdx];
+  // Map selectedIdx to chronological index
+  // selectedIdx -1 = current = chronoVersions[totalVersions-1]
+  // selectedIdx 1 = history[0] = chronoVersions[totalVersions-2]
+  // selectedIdx N = history[N-1] = chronoVersions[totalVersions-1-N]
+  const chronoIdx = selectedIdx === -1 ? totalVersions - 1 : totalVersions - 1 - selectedIdx;
 
-    if (!prevVer) {
-      // No previous version — everything in selected version is "new" (plain text)
-      return [{ type: 'same', text: selVer.content }];
-    }
+  // Build cumulative diff up to selected version
+  const segments = useMemo(() => {
+    return buildCumulativeDiff(chronoVersions, chronoIdx);
+  }, [chronoVersions, chronoIdx]);
 
-    return diffWords(prevVer.content, selVer.content);
-  }, [allVersions, selectedIdx]);
-
-  const selectedVersion = allVersions[selectedIdx === -1 ? 0 : selectedIdx];
-  const prevVersion = allVersions[(selectedIdx === -1 ? 1 : selectedIdx + 1)];
+  // The selected version's "own" version number
+  const selectedVerNum = chronoIdx + 1;
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -54,9 +122,33 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
 
         {/* Version list */}
         <div style={styles.versionList}>
-          {allVersions.map((ver, i) => {
-            const idx = i === 0 ? -1 : i;
+          {/* Current */}
+          <div
+            style={{
+              ...styles.versionItem,
+              background: selectedIdx === -1 ? C.amberLight : 'transparent',
+              borderRadius: 6,
+            }}
+            onClick={() => setSelectedIdx(-1)}
+          >
+            <span style={{
+              ...styles.versionDot,
+              background: selectedIdx === -1 ? C.amber : C.border,
+            }} />
+            <span style={{
+              ...styles.versionTime,
+              color: selectedIdx === -1 ? C.amber : C.sub,
+              fontWeight: selectedIdx === -1 ? 600 : 400,
+            }}>
+              ปัจจุบัน
+            </span>
+          </div>
+
+          {/* History versions */}
+          {history.map((ver, i) => {
+            const idx = i + 1;
             const isSelected = selectedIdx === idx;
+            const verNum = totalVersions - idx;
             return (
               <div
                 key={i}
@@ -76,16 +168,14 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
                   color: isSelected ? C.amber : C.sub,
                   fontWeight: isSelected ? 600 : 400,
                 }}>
-                  {ver.isCurrent ? '● ปัจจุบัน' : new Date(ver.timestamp).toLocaleString('th-TH')}
+                  {new Date(ver.timestamp).toLocaleString('th-TH')}
                 </span>
-                {!ver.isCurrent && (
-                  <button
-                    style={styles.restoreBtn}
-                    onClick={(e) => { e.stopPropagation(); onRestore?.(ver.original); }}
-                  >
-                    ↩ กู้คืน
-                  </button>
-                )}
+                <button
+                  style={styles.restoreBtn}
+                  onClick={(e) => { e.stopPropagation(); onRestore?.(ver); }}
+                >
+                  ↩ กู้คืน
+                </button>
               </div>
             );
           })}
@@ -96,33 +186,33 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
 
         {/* Diff content view */}
         <div style={styles.diffContent}>
-          {prevVersion && (
-            <div style={styles.diffLabel}>
-              เปรียบเทียบกับ: {new Date(prevVersion.timestamp).toLocaleString('th-TH')}
-            </div>
-          )}
           <div style={styles.diffBody}>
-            {diffSegments.map((seg, i) => {
-              if (seg.type === 'same') {
+            {segments.map((seg, i) => {
+              const isOwnVersion = seg.version === selectedVerNum;
+              const verLabel = seg.version < totalVersions ? `ver${seg.version}` : 'ปัจจุบัน';
+
+              if (seg.type === 'del') {
+                // Deleted text: red strikethrough + red bubble
+                return (
+                  <span key={i} style={styles.diffDelWrap}>
+                    <span style={styles.verBubbleDel}>{verLabel}</span>
+                    <span style={styles.diffDel}>{seg.text}</span>
+                  </span>
+                );
+              }
+
+              if (isOwnVersion) {
+                // Selected version's own text: plain black, no highlight
                 return <span key={i}>{seg.text}</span>;
               }
-              if (seg.type === 'del') {
-                return (
-                  <span key={i} style={styles.diffDel}>
-                    {seg.text}
-                  </span>
-                );
-              }
-              if (seg.type === 'add') {
-                // ถ้าเป็น current version → ข้อความใหม่ = ดำปกติไม่มี highlight
-                // ถ้าเป็น version เก่า → ข้อความใหม่ของ version นั้น = ดำปกติไม่มี highlight
-                return (
-                  <span key={i} style={selectedIdx === -1 ? undefined : undefined}>
-                    {seg.text}
-                  </span>
-                );
-              }
-              return null;
+
+              // Older version's text: gray highlight + bubble
+              return (
+                <span key={i} style={styles.diffOldWrap}>
+                  <span style={styles.verBubble}>{verLabel}</span>
+                  <span style={styles.diffOld}>{seg.text}</span>
+                </span>
+              );
             })}
           </div>
         </div>
@@ -205,25 +295,56 @@ const styles = {
     overflowY: 'auto',
     padding: '12px 16px',
   },
-  diffLabel: {
-    fontSize: 11,
-    color: C.muted,
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
   diffBody: {
     fontSize: 14,
-    lineHeight: 1.8,
+    lineHeight: 2.2,
     fontFamily: C.font,
     color: C.text,
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
+  },
+  diffOldWrap: {
+    position: 'relative',
+    display: 'inline',
+  },
+  diffOld: {
+    background: '#e8e4dd',
+    borderRadius: 2,
+    padding: '1px 2px',
+  },
+  verBubble: {
+    position: 'relative',
+    top: -8,
+    fontSize: 8,
+    color: C.sub,
+    background: '#e8e4dd',
+    borderRadius: 3,
+    padding: '0 3px',
+    marginRight: 1,
+    verticalAlign: 'super',
+    lineHeight: 1,
+  },
+  diffDelWrap: {
+    position: 'relative',
+    display: 'inline',
   },
   diffDel: {
     color: '#dc2626',
     textDecoration: 'line-through',
     background: '#fef2f2',
     borderRadius: 2,
-    padding: '0 2px',
+    padding: '1px 2px',
+  },
+  verBubbleDel: {
+    position: 'relative',
+    top: -8,
+    fontSize: 8,
+    color: '#dc2626',
+    background: '#fef2f2',
+    borderRadius: 3,
+    padding: '0 3px',
+    marginRight: 1,
+    verticalAlign: 'super',
+    lineHeight: 1,
   },
 };
