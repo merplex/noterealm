@@ -408,7 +408,12 @@ export default function NoteEditor({ note, onClose }) {
     }
     const range = sel.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    setSelMenu({ x: rect.left + rect.width / 2, y: rect.top });
+    // Clamp x so menu doesn't overflow left/right edges
+    const menuWidth = 240; // approximate menu width
+    const half = menuWidth / 2;
+    const rawX = rect.left + rect.width / 2;
+    const x = Math.max(half + 8, Math.min(rawX, window.innerWidth - half - 8));
+    setSelMenu({ x, y: rect.top });
   }, []);
 
   // Listen for selectionchange globally
