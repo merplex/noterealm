@@ -60,6 +60,10 @@ export const STORAGE_KEYS = {
   aiSettings: 'nk_ai_settings',
   connections: 'nk_connections',
   activeTab: 'nk_active_tab',
+  viewMode: 'nk_view_mode',
+  sortBy: 'nk_sort_by',
+  sortDir: 'nk_sort_dir',
+  defaultTab: 'nk_default_tab',
 };
 
 export const CONNECTION_TYPES = ['email', 'line', 'telegram', 'wechat'];

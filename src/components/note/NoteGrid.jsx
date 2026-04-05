@@ -1,20 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import NoteCard from './NoteCard';
 import DynamicFilters from './DynamicFilters';
 
-export default function NoteGrid({ searchText, onEdit, onHistory }) {
+export default function NoteGrid({ searchText, activeFilter, onEdit, onHistory }) {
   const { state } = useApp();
-  const [filter, setFilter] = useState('all');
 
   const filteredNotes = useMemo(() => {
     let notes = [...state.notes];
 
-    // Filter
-    if (filter === 'pinned') notes = notes.filter((n) => n.pinned);
-    else if (filter === 'archived') notes = notes.filter((n) => n.archived);
-    else if (filter !== 'all') notes = notes.filter((n) => n.source === filter);
-    else notes = notes.filter((n) => !n.archived);
+    // Sidebar filter
+    if (activeFilter === 'pinned') {
+      notes = notes.filter((n) => n.pinned);
+    } else if (activeFilter === 'archived') {
+      notes = notes.filter((n) => n.archived);
+    } else if (activeFilter?.startsWith('tag:')) {
+      const tag = activeFilter.slice(4);
+      notes = notes.filter((n) => n.tags?.includes(tag));
+    } else if (activeFilter?.startsWith('group:')) {
+      const groupId = activeFilter.slice(6);
+      notes = notes.filter((n) => n.group === groupId);
+    } else {
+      notes = notes.filter((n) => !n.archived);
+    }
 
     // Search
     if (searchText) {
@@ -27,30 +35,44 @@ export default function NoteGrid({ searchText, onEdit, onHistory }) {
       );
     }
 
-    // Sort: pinned first, then by updatedAt desc
+    // Sort
+    const dir = state.sortDir === 'asc' ? 1 : -1;
     notes.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      return new Date(b.updatedAt) - new Date(a.updatedAt);
+
+      switch (state.sortBy) {
+        case 'alpha':
+          return dir * (a.title || '').localeCompare(b.title || '', 'th');
+        case 'created':
+          return dir * (new Date(a.createdAt) - new Date(b.createdAt));
+        case 'hasImage':
+          return dir * ((b.images?.length || 0) - (a.images?.length || 0));
+        default: // updated
+          return dir * (new Date(a.updatedAt) - new Date(b.updatedAt));
+      }
     });
 
     return notes;
-  }, [state.notes, filter, searchText]);
+  }, [state.notes, state.sortBy, state.sortDir, activeFilter, searchText]);
+
+  const isList = state.viewMode === 'list';
 
   return (
     <div>
-      <DynamicFilters activeFilter={filter} onFilter={setFilter} />
-      <div className="masonry-grid">
+      <DynamicFilters />
+      <div className={isList ? '' : 'masonry-grid'} style={isList ? styles.list : undefined}>
         {filteredNotes.map((note) => (
           <NoteCard
             key={note.id}
             note={note}
             onClick={onEdit}
             onHistory={onHistory}
+            listMode={isList}
           />
         ))}
         {filteredNotes.length === 0 && (
-          <div style={{ padding: 40, textAlign: 'center', color: '#a8a29e', gridColumn: '1/-1' }}>
+          <div style={{ ...styles.empty, gridColumn: isList ? undefined : '1/-1' }}>
             {searchText ? 'ไม่พบโน้ตที่ค้นหา' : 'ยังไม่มีโน้ต — กด + เพื่อสร้าง'}
           </div>
         )}
@@ -58,3 +80,8 @@ export default function NoteGrid({ searchText, onEdit, onHistory }) {
     </div>
   );
 }
+
+const styles = {
+  list: { display: 'flex', flexDirection: 'column', padding: '8px 12px', gap: 8 },
+  empty: { padding: 40, textAlign: 'center', color: '#a8a29e' },
+};
