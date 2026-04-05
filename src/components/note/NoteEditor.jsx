@@ -477,14 +477,14 @@ export default function NoteEditor({ note, onClose }) {
         <div style={styles.toolbar}>
           <button style={styles.toolBtn} onClick={handleAddAI}>✦ AI</button>
           <div style={{ position: 'relative' }}>
-            <button style={styles.toolBtn} onClick={() => setShowInsertMenu(!showInsertMenu)}>＋</button>
+            <button style={{ ...styles.toolBtn, fontSize: 18 }} onClick={() => setShowInsertMenu(!showInsertMenu)}>+</button>
             {showInsertMenu && (
               <>
                 <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowInsertMenu(false)} />
                 <div style={styles.insertMenu}>
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleImageUpload(); }}>🖼️ รูปภาพ</button>
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); setShowRefer(true); }}>🔗 อ้างอิง</button>
-                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleAddAccordion(); }}>≡ หีบข้อความ</button>
+                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleAddAccordion(); }}>≡ กล่องข้อความ</button>
                 </div>
               </>
             )}

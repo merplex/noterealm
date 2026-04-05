@@ -27,10 +27,10 @@ export default function FormatMenu({ onFormat }) {
   return (
     <div style={styles.wrap} ref={ref}>
       <button
-        style={{ ...styles.triggerBtn, fontWeight: 700 }}
+        style={styles.triggerBtn}
         onClick={() => setOpen(!open)}
       >
-        B
+        Style
       </button>
 
       {open && (
