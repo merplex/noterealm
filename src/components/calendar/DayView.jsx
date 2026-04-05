@@ -3,7 +3,7 @@ import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 
-export default function DayView({ date, todos, onSelectTodo, onReschedule, onLinkNote }) {
+export default function DayView({ date, todos, onSelectTodo, onReschedule, onLinkNote, onToggleTodo }) {
   const { dispatch } = useApp();
 
   const dayTodos = todos
@@ -11,7 +11,11 @@ export default function DayView({ date, todos, onSelectTodo, onReschedule, onLin
     .sort((a, b) => (a.dueTime || '').localeCompare(b.dueTime || ''));
 
   const handleToggle = (todo) => {
-    dispatch({ type: 'UPDATE_TODO', payload: { ...todo, done: !todo.done } });
+    if (onToggleTodo) {
+      onToggleTodo(todo);
+    } else {
+      dispatch({ type: 'UPDATE_TODO', payload: { ...todo, done: !todo.done } });
+    }
   };
 
   return (
@@ -26,14 +30,27 @@ export default function DayView({ date, todos, onSelectTodo, onReschedule, onLin
         dayTodos.map((todo) => (
           <div key={todo.id} style={styles.card}>
             <div style={styles.cardHeader}>
+              <button
+                style={{
+                  ...styles.checkbox,
+                  background: todo.done ? C.amber : 'transparent',
+                  borderColor: todo.done ? C.amber : C.border,
+                }}
+                onClick={() => handleToggle(todo)}
+              >
+                {todo.done && <span style={styles.checkMark}>✓</span>}
+              </button>
               <span style={{
                 ...styles.priorityDot,
                 background: PRIORITY_COLORS[todo.priority],
               }} />
-              <span style={{
-                ...styles.title,
-                textDecoration: todo.done ? 'line-through' : 'none',
-              }}>
+              <span
+                style={{
+                  ...styles.title,
+                  textDecoration: todo.done ? 'line-through' : 'none',
+                }}
+                onClick={() => onSelectTodo?.(todo)}
+              >
                 {todo.title}
               </span>
               {todo.dueTime && <span style={styles.time}>{todo.dueTime}</span>}
@@ -102,7 +119,20 @@ const styles = {
     borderRadius: '50%',
     flexShrink: 0,
   },
-  title: { flex: 1, fontSize: 15, fontWeight: 500, color: C.text },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    border: '2px solid',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    background: 'transparent',
+  },
+  checkMark: { color: 'white', fontSize: 12, fontWeight: 700 },
+  title: { flex: 1, fontSize: 15, fontWeight: 500, color: C.text, cursor: 'pointer' },
   time: { fontSize: 12, color: C.sub },
   note: { fontSize: 13, color: C.sub, marginTop: 6, lineHeight: 1.4 },
   actions: {

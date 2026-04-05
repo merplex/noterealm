@@ -15,9 +15,13 @@ const VIEWS = [
 ];
 
 export default function CalendarView({ onSelectTodo }) {
-  const { state } = useApp();
+  const { state, actions } = useApp();
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());
+
+  const handleToggleTodo = (todo) => {
+    actions.updateTodo({ ...todo, done: !todo.done }).catch(console.error);
+  };
 
   const navigate = (dir) => {
     const fn = dir === 1
@@ -30,6 +34,7 @@ export default function CalendarView({ onSelectTodo }) {
     date,
     todos: state.todos,
     onSelectTodo,
+    onToggleTodo: handleToggleTodo,
   };
 
   return (

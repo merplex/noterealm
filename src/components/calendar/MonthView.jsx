@@ -8,7 +8,7 @@ import { C, PRIORITY_COLORS } from '../../constants/theme';
 
 const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
 
-export default function MonthView({ date, todos, onSelectDay, onSelectTodo }) {
+export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onToggleTodo }) {
   const [selectedDay, setSelectedDay] = useState(null);
 
   const weeks = useMemo(() => {
@@ -109,19 +109,28 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo }) {
             <p style={styles.noTodos}>ไม่มีรายการ</p>
           ) : (
             dayTodos.map((todo) => (
-              <div
-                key={todo.id}
-                style={styles.dayTodoItem}
-                onClick={() => onSelectTodo?.(todo)}
-              >
+              <div key={todo.id} style={styles.dayTodoItem}>
+                <button
+                  style={{
+                    ...styles.cb,
+                    background: todo.done ? C.amber : 'transparent',
+                    borderColor: todo.done ? C.amber : C.border,
+                  }}
+                  onClick={() => onToggleTodo?.(todo)}
+                >
+                  {todo.done && <span style={styles.cbCheck}>✓</span>}
+                </button>
                 <span style={{
                   ...styles.dot,
                   background: PRIORITY_COLORS[todo.priority],
                 }} />
-                <span style={{
-                  ...styles.dayTodoTitle,
-                  textDecoration: todo.done ? 'line-through' : 'none',
-                }}>
+                <span
+                  style={{
+                    ...styles.dayTodoTitle,
+                    textDecoration: todo.done ? 'line-through' : 'none',
+                  }}
+                  onClick={() => onSelectTodo?.(todo)}
+                >
                   {todo.title}
                 </span>
                 {todo.dueTime && <span style={styles.timeLabel}>{todo.dueTime}</span>}
@@ -209,6 +218,19 @@ const styles = {
     cursor: 'pointer',
     borderBottom: `1px solid ${C.border}`,
   },
-  dayTodoTitle: { flex: 1, fontSize: 13, color: C.text },
+  dayTodoTitle: { flex: 1, fontSize: 13, color: C.text, cursor: 'pointer' },
   timeLabel: { fontSize: 11, color: C.sub },
+  cb: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    border: '2px solid',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    background: 'transparent',
+  },
+  cbCheck: { color: 'white', fontSize: 11, fontWeight: 700 },
 };
