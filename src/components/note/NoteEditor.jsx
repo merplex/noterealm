@@ -191,13 +191,13 @@ export default function NoteEditor({ note, onClose }) {
     }
   }, [syncContent, state.aiSettings]);
 
-  const IMAGE_SIZES = ['25%', '50%', '75%', '100%'];
+  const IMAGE_SIZES = ['5%', '25%', '50%', '75%', '100%'];
 
   const handleImageUpload = () => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.multiple = true;
+    fileInput.multiple = false;
     fileInput.onchange = async (e) => {
       const files = Array.from(e.target.files);
       const el = textareaRef.current;
@@ -211,47 +211,69 @@ export default function NoteEditor({ note, onClose }) {
           reader.readAsDataURL(file);
         });
 
-        // Create inline image wrapper with resize button
+        // Create inline image wrapper
         const wrap = document.createElement('span');
         wrap.contentEditable = 'false';
         wrap.className = 'inline-img-wrap';
-        wrap.style.cssText = 'display:inline-block;position:relative;margin:4px 2px;vertical-align:top;';
-        wrap.dataset.size = '50%';
+        wrap.style.cssText = 'display:inline;position:relative;margin:0 2px;vertical-align:middle;';
+        wrap.dataset.size = '5%';
 
         const img = document.createElement('img');
         img.src = dataUrl;
-        img.style.cssText = 'width:50%;border-radius:8px;display:block;';
+        img.style.cssText = 'width:5%;border-radius:4px;vertical-align:middle;cursor:pointer;';
 
-        const sizeBtn = document.createElement('button');
-        sizeBtn.textContent = '50%';
-        sizeBtn.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;z-index:2;';
-        sizeBtn.contentEditable = 'false';
-        sizeBtn.onclick = () => {
+        // Remove button — on the image, top-right corner, sized to fit
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '✕';
+        removeBtn.style.cssText = 'position:absolute;top:0;right:0;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;z-index:2;border-radius:50%;width:14px;height:14px;font-size:8px;line-height:1;display:flex;align-items:center;justify-content:center;';
+        removeBtn.contentEditable = 'false';
+        removeBtn.onclick = (ev) => {
+          ev.stopPropagation();
+          wrap.remove();
+          syncContent();
+        };
+
+        // Size label — hidden at 5%
+        const sizeLabel = document.createElement('span');
+        sizeLabel.style.cssText = 'position:absolute;top:0;left:0;background:rgba(0,0,0,0.6);color:#fff;border-radius:4px;padding:1px 4px;font-size:9px;z-index:2;display:none;pointer-events:none;';
+
+        // Click image to cycle size
+        img.onclick = (ev) => {
+          ev.stopPropagation();
           const curIdx = IMAGE_SIZES.indexOf(wrap.dataset.size);
           const nextIdx = (curIdx + 1) % IMAGE_SIZES.length;
           const nextSize = IMAGE_SIZES[nextIdx];
           wrap.dataset.size = nextSize;
           img.style.width = nextSize;
-          sizeBtn.textContent = nextSize;
+
+          // Adjust remove button size based on image size
+          if (nextSize === '5%') {
+            removeBtn.style.cssText = 'position:absolute;top:0;right:0;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;z-index:2;border-radius:50%;width:14px;height:14px;font-size:8px;line-height:1;display:flex;align-items:center;justify-content:center;';
+            img.style.borderRadius = '4px';
+            sizeLabel.style.display = 'none';
+          } else {
+            removeBtn.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;z-index:2;border-radius:50%;width:22px;height:22px;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;';
+            img.style.borderRadius = '8px';
+            sizeLabel.style.display = 'block';
+            sizeLabel.textContent = nextSize;
+          }
+
+          // Block display for larger sizes
+          if (nextSize === '5%') {
+            wrap.style.display = 'inline';
+          } else {
+            wrap.style.display = 'inline-block';
+          }
           syncContent();
         };
 
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = '✕';
-        removeBtn.style.cssText = 'position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;z-index:2;';
-        removeBtn.contentEditable = 'false';
-        removeBtn.onclick = () => {
-          wrap.remove();
-          syncContent();
-        };
-
-        wrap.appendChild(sizeBtn);
         wrap.appendChild(removeBtn);
+        wrap.appendChild(sizeLabel);
         wrap.appendChild(img);
 
-        // Insert at cursor position
+        // Insert at cursor position — truly inline
         const sel = window.getSelection();
-        if (sel.rangeCount) {
+        if (sel && sel.rangeCount) {
           const range = sel.getRangeAt(0);
           range.deleteContents();
           range.insertNode(wrap);
