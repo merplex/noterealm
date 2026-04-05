@@ -56,5 +56,11 @@ VITE_API_URL=https://noterealm-production.up.railway.app
 - **Gemini** (authType: oauth) — user กด Sign in with Google
 - เพิ่ม AI ใหม่: สร้าง `server/providers/xxx.js` + เพิ่มใน `src/constants/providers.js`
 
+## Git Workflow (สำคัญมาก)
+ทุกครั้งที่ commit + push feature branch **ต้อง merge เข้า main แล้ว push main ด้วยเสมอ** เพื่อให้ Railway deploy อัตโนมัติ ห้ามถามซ้ำ ทำเลย:
+```bash
+git checkout main && git merge <feature-branch> && git push origin main && git checkout <feature-branch>
+```
+
 ## ชื่อแอป
 ชื่อคือ **NoteRealm** (ไม่ใช่ NoteKeep)
