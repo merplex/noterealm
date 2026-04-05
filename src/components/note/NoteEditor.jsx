@@ -23,7 +23,7 @@ export default function NoteEditor({ note, onClose }) {
   const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
-  const fakeHighlightRef = useRef(null); // stored range for visual-only highlight
+  const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
@@ -346,60 +346,52 @@ export default function NoteEditor({ note, onClose }) {
     }
   };
 
-  // Remove fake highlight marks from the editor
-  const clearFakeHighlight = useCallback(() => {
+  // Show custom selection menu when text is selected
+  const handleSelectionChange = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || !sel.toString().trim() || !sel.rangeCount) {
+      setSelMenu(null);
+      return;
+    }
+    // Check selection is inside our editor
     const el = textareaRef.current;
-    if (!el) return;
-    el.querySelectorAll('mark.fake-sel').forEach((mark) => {
-      const parent = mark.parentNode;
-      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
-      parent.removeChild(mark);
-    });
-    fakeHighlightRef.current = null;
+    if (!el || !el.contains(sel.anchorNode)) {
+      setSelMenu(null);
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    setSelMenu({ x: rect.left + rect.width / 2, y: rect.top });
   }, []);
 
-  // Tap on editor body: dismiss system menu but keep visual highlight
-  const handleDismissMenu = useCallback((e) => {
-    const el = textareaRef.current;
-    if (!el) return;
+  // Listen for selectionchange globally
+  useEffect(() => {
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, [handleSelectionChange]);
 
-    // If there's already a fake highlight, clear it and let tap through
-    if (fakeHighlightRef.current) {
-      clearFakeHighlight();
-      syncContent();
-      return;
-    }
+  const handleCustomCut = useCallback(() => {
+    document.execCommand('cut');
+    setSelMenu(null);
+    syncContent();
+  }, [syncContent]);
 
-    const sel = window.getSelection();
-    if (!sel || !sel.toString().trim() || !sel.rangeCount) return;
+  const handleCustomCopy = useCallback(() => {
+    document.execCommand('copy');
+    setSelMenu(null);
+  }, []);
 
-    // Don't intercept taps inside the selected text
-    const range = sel.getRangeAt(0);
-    const rects = range.getClientRects();
-    for (let i = 0; i < rects.length; i++) {
-      const r = rects[i];
-      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
-        return;
-      }
-    }
-
-    // Wrap selected text in <mark> for visual highlight
-    const savedRange = range.cloneRange();
-    const mark = document.createElement('mark');
-    mark.className = 'fake-sel';
-    mark.style.cssText = 'background:#b3d4fc;border-radius:2px;color:inherit;';
+  const handleCustomPaste = useCallback(async () => {
     try {
-      savedRange.surroundContents(mark);
+      const text = await navigator.clipboard.readText();
+      document.execCommand('insertText', false, text);
+      syncContent();
     } catch {
-      // surroundContents fails if selection crosses element boundaries
-      return;
+      document.execCommand('paste');
+      syncContent();
     }
-    fakeHighlightRef.current = savedRange;
-
-    // Clear native selection → ActionMode dismissed
-    sel.removeAllRanges();
-    e.preventDefault();
-  }, [clearFakeHighlight, syncContent]);
+    setSelMenu(null);
+  }, [syncContent]);
 
   return (
     <div style={styles.overlay}>
@@ -425,7 +417,7 @@ export default function NoteEditor({ note, onClose }) {
         </div>
 
         {/* Scrollable body */}
-        <div style={styles.body} onPointerDown={handleDismissMenu}>
+        <div style={styles.body}>
           <input
             type="text"
             placeholder="หัวข้อ..."
@@ -440,8 +432,8 @@ export default function NoteEditor({ note, onClose }) {
             suppressContentEditableWarning
             data-placeholder="เขียนโน้ต..."
             onInput={(e) => { setContent(e.currentTarget.innerHTML); }}
-            onSelect={() => { if (fakeHighlightRef.current) { clearFakeHighlight(); syncContent(); } }}
-            style={styles.textarea}
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ ...styles.textarea, WebkitUserSelect: 'text', WebkitTouchCallout: 'none' }}
           />
 
           {/* Render AI Blocks & Accordion Blocks */}
@@ -590,6 +582,21 @@ export default function NoteEditor({ note, onClose }) {
             onSelect={handleRefer}
             onClose={() => setShowRefer(false)}
           />
+        )}
+
+        {/* Custom selection menu */}
+        {selMenu && (
+          <div style={{
+            ...styles.selMenuBar,
+            left: selMenu.x,
+            top: selMenu.y,
+          }}>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomCut(); }}>ตัด</button>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomCopy(); }}>คัดลอก</button>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomPaste(); }}>วาง</button>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAI(); setSelMenu(null); }}>✦ AI</button>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAccordion(); setSelMenu(null); }}>≡▼</button>
+          </div>
         )}
 
         {historyNote && (
@@ -783,5 +790,27 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     fontFamily: C.font,
+  },
+  selMenuBar: {
+    position: 'fixed',
+    transform: 'translate(-50%, -110%)',
+    display: 'flex',
+    gap: 2,
+    background: '#1f1f1f',
+    borderRadius: 8,
+    padding: '4px 2px',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+    zIndex: 200,
+  },
+  selMenuBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#fff',
+    fontSize: 12,
+    padding: '6px 10px',
+    cursor: 'pointer',
+    fontFamily: C.font,
+    whiteSpace: 'nowrap',
+    borderRadius: 6,
   },
 };
