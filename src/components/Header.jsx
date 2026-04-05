@@ -47,75 +47,76 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
 
   return (
     <header style={styles.header}>
-      {/* Profile / Settings — ซ้ายสุด */}
+      {/* Left edge: Avatar */}
       <button style={styles.avatar} onClick={onSettings}>
         <span style={styles.avatarText}>N</span>
       </button>
 
-      {/* Search bar */}
-      <div style={styles.searchWrap}>
-        <span style={styles.searchIcon}>🔍</span>
-        <input
-          type="text"
-          placeholder="ค้นหา NoteRealm..."
-          value={searchText}
-          onChange={handleSearch}
-          style={styles.searchInput}
-        />
-        {searchText && (
-          <button style={styles.clearBtn} onClick={() => { setSearchText(''); onSearch?.(''); }}>✕</button>
-        )}
-      </div>
+      {/* Center: search + view + sort — fills remaining space */}
+      <div style={styles.center}>
+        <div style={styles.searchWrap}>
+          <span style={styles.searchIcon}>🔍</span>
+          <input
+            type="text"
+            placeholder="ค้นหา NoteRealm..."
+            value={searchText}
+            onChange={handleSearch}
+            style={styles.searchInput}
+          />
+          {searchText && (
+            <button style={styles.clearBtn} onClick={() => { setSearchText(''); onSearch?.(''); }}>✕</button>
+          )}
+        </div>
 
-      {/* View toggle */}
-      <button style={styles.iconBtn} onClick={toggleView} title={state.viewMode === 'grid' ? 'สลับเป็น List' : 'สลับเป็น Grid'}>
-        {state.viewMode === 'grid' ? (
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <circle cx="3" cy="4" r="1.8" fill={C.sub}/>
-            <rect x="7" y="2.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
-            <circle cx="3" cy="9" r="1.8" fill={C.sub}/>
-            <rect x="7" y="7.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
-            <circle cx="3" cy="14" r="1.8" fill={C.sub}/>
-            <rect x="7" y="12.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
-          </svg>
-        ) : (
-          <span style={styles.iconText}>⊞</span>
-        )}
-      </button>
-
-      {/* Sort button */}
-      <div style={{ position: 'relative' }}>
-        <button
-          style={styles.iconBtn}
-          onPointerDown={handleSortDown}
-          onPointerUp={handleSortUp}
-          onPointerLeave={() => { clearTimeout(holdTimer.current); holdTimer.current = null; }}
-          title="เรียงลำดับ (กดค้างเพื่อเลือก)"
-        >
-          <span style={styles.iconText}>{state.sortDir === 'desc' ? '↓' : '↑'}</span>
+        {/* View toggle */}
+        <button style={styles.smallBtn} onClick={toggleView}>
+          {state.viewMode === 'grid' ? (
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+              <circle cx="3" cy="4" r="1.8" fill={C.sub}/>
+              <rect x="7" y="2.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
+              <circle cx="3" cy="9" r="1.8" fill={C.sub}/>
+              <rect x="7" y="7.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
+              <circle cx="3" cy="14" r="1.8" fill={C.sub}/>
+              <rect x="7" y="12.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
+            </svg>
+          ) : (
+            <span style={{ fontSize: 15, color: C.sub }}>⊞</span>
+          )}
         </button>
 
-        {showSortMenu && (
-          <>
-            <div style={styles.backdrop} onClick={() => setShowSortMenu(false)} />
-            <div style={styles.sortMenu}>
-              {SORT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.key}
-                  style={{ ...styles.sortOption, background: state.sortBy === opt.key ? C.amberLight : 'transparent' }}
-                  onClick={() => selectSort(opt.key)}
-                >
-                  {opt.label}
-                  {state.sortBy === opt.key && <span style={{ color: C.amber }}>✓</span>}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+        {/* Sort button */}
+        <div style={{ position: 'relative' }}>
+          <button
+            style={styles.smallBtn}
+            onPointerDown={handleSortDown}
+            onPointerUp={handleSortUp}
+            onPointerLeave={() => { clearTimeout(holdTimer.current); holdTimer.current = null; }}
+          >
+            <span style={{ fontSize: 15, color: C.sub }}>{state.sortDir === 'desc' ? '↓' : '↑'}</span>
+          </button>
+
+          {showSortMenu && (
+            <>
+              <div style={styles.backdrop} onClick={() => setShowSortMenu(false)} />
+              <div style={styles.sortMenu}>
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    style={{ ...styles.sortOption, background: state.sortBy === opt.key ? C.amberLight : 'transparent' }}
+                    onClick={() => selectSort(opt.key)}
+                  >
+                    {opt.label}
+                    {state.sortBy === opt.key && <span style={{ color: C.amber }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Hamburger — ขวาสุด */}
-      <button style={{ ...styles.iconBtn, marginRight: 2 }} onClick={onSidebar}>
+      {/* Right edge: Hamburger */}
+      <button style={styles.hamburgerBtn} onClick={onSidebar}>
         <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
           <rect y="0" width="20" height="3" rx="1.5" fill={C.text}/>
           <rect y="6.5" width="20" height="3" rx="1.5" fill={C.text}/>
@@ -130,17 +131,37 @@ const styles = {
   header: {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
-    padding: '8px 14px',
+    gap: 0,
+    padding: '8px 12px',
     background: C.bg,
     borderBottom: `1px solid ${C.border}`,
     position: 'sticky',
     top: 0,
     zIndex: 50,
   },
-  iconBtn: {
-    width: 36,
-    height: 36,
+  center: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    margin: '0 8px',
+    minWidth: 0,
+  },
+  smallBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 6,
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  hamburgerBtn: {
+    width: 34,
+    height: 34,
     borderRadius: 8,
     border: 'none',
     background: 'transparent',
@@ -150,8 +171,6 @@ const styles = {
     justifyContent: 'center',
     flexShrink: 0,
   },
-  hamburger: { fontSize: 18, color: C.sub },
-  iconText: { fontSize: 16, color: C.sub },
   searchWrap: {
     flex: 1,
     display: 'flex',
