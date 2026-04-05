@@ -131,26 +131,25 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
           <div style={styles.diffBody}>
             {segments.map((seg, i) => {
               if (seg.type === 'same') {
-                // Unchanged text — belongs to previous version, show with bubble
-                return (
-                  <span key={i} style={styles.oldTextWrap}>
-                    <sup style={styles.verBubble}>{prevLabel}</sup>
-                    <span style={styles.oldText}>{seg.text}</span>
-                  </span>
-                );
+                return <span key={i}>{seg.text}</span>;
               }
               if (seg.type === 'del') {
-                // Deleted in selected version
+                // Deleted: existed in prev but not in selected
                 return (
                   <span key={i} style={styles.delWrap}>
-                    <sup style={styles.verBubbleDel}>{selLabel}</sup>
+                    <sup style={styles.verBubbleDel}>{prevLabel}</sup>
                     <span style={styles.delText}>{seg.text}</span>
                   </span>
                 );
               }
               if (seg.type === 'add') {
-                // Added in selected version — plain black, no highlight
-                return <span key={i}>{seg.text}</span>;
+                // Added in selected version
+                return (
+                  <span key={i} style={styles.addWrap}>
+                    <sup style={styles.verBubbleAdd}>{selLabel}</sup>
+                    <span style={styles.addText}>{seg.text}</span>
+                  </span>
+                );
               }
               return null;
             })}
@@ -250,24 +249,6 @@ const styles = {
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
   },
-  oldTextWrap: {
-    display: 'inline',
-  },
-  oldText: {
-    background: '#eae6e0',
-    borderRadius: 2,
-    padding: '1px 2px',
-  },
-  verBubble: {
-    fontSize: 8,
-    color: C.sub,
-    background: '#eae6e0',
-    borderRadius: 3,
-    padding: '0 3px',
-    marginRight: 1,
-    lineHeight: 1,
-    fontWeight: 600,
-  },
   delWrap: {
     display: 'inline',
   },
@@ -282,6 +263,26 @@ const styles = {
     fontSize: 8,
     color: '#dc2626',
     background: '#fef2f2',
+    borderRadius: 3,
+    padding: '0 3px',
+    marginRight: 1,
+    lineHeight: 1,
+    fontWeight: 600,
+  },
+  addWrap: {
+    display: 'inline',
+  },
+  addText: {
+    background: '#f0fdf4',
+    borderRadius: 2,
+    padding: '1px 2px',
+    color: '#16a34a',
+    fontWeight: 500,
+  },
+  verBubbleAdd: {
+    fontSize: 8,
+    color: '#16a34a',
+    background: '#f0fdf4',
     borderRadius: 3,
     padding: '0 3px',
     marginRight: 1,

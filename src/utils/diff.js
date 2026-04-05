@@ -63,12 +63,14 @@ function tokenize(str) {
 export function stripHtml(html) {
   if (!html) return '';
   let text = html;
-  // Convert block elements and <br> to newlines
+  // Convert <br> to newlines
   text = text.replace(/<br\s*\/?>/gi, '\n');
-  text = text.replace(/<\/div>/gi, '\n');
-  text = text.replace(/<\/p>/gi, '\n');
-  text = text.replace(/<div[^>]*>/gi, '');
-  text = text.replace(/<p[^>]*>/gi, '');
+  // Opening block tags represent a new block — add newline before content
+  text = text.replace(/<div[^>]*>/gi, '\n');
+  text = text.replace(/<p[^>]*>/gi, '\n');
+  // Closing block tags — no additional newline needed
+  text = text.replace(/<\/div>/gi, '');
+  text = text.replace(/<\/p>/gi, '');
   // Strip remaining tags
   text = text.replace(/<[^>]+>/g, '');
   // Decode HTML entities
@@ -79,7 +81,8 @@ export function stripHtml(html) {
   text = text.replace(/&quot;/g, '"');
   // Clean up multiple consecutive newlines to max 2
   text = text.replace(/\n{3,}/g, '\n\n');
-  // Trim trailing whitespace
+  // Trim leading/trailing newlines
+  text = text.replace(/^\n+/, '');
   text = text.replace(/\n+$/, '');
   return text;
 }
