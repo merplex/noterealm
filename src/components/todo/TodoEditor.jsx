@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { QUICK_PICKS, calcDate } from './DatePickerPopup';
+import { format } from 'date-fns';
+import { th } from 'date-fns/locale';
 
 const PRIORITIES = [
   { key: 'urgent', label: '🔴 เร่งด่วน' },
@@ -12,7 +14,7 @@ const PRIORITIES = [
 ];
 
 export default function TodoEditor({ todo, onClose }) {
-  const { actions } = useApp();
+  const { state, actions } = useApp();
   const isNew = !todo?.id;
 
   const [title, setTitle] = useState(todo?.title || '');
@@ -22,6 +24,52 @@ export default function TodoEditor({ todo, onClose }) {
   const [dueTime, setDueTime] = useState(todo?.dueTime || '');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState(todo?.tags || []);
+  const [showNoteConfirm, setShowNoteConfirm] = useState(false);
+  const [showLinkNote, setShowLinkNote] = useState(false);
+  const [noteSearch, setNoteSearch] = useState('');
+
+  const filteredNotes = useMemo(() => {
+    if (!showLinkNote) return [];
+    const q = noteSearch.toLowerCase();
+    return state.notes.filter((n) =>
+      !q || n.title?.toLowerCase().includes(q) || n.content?.toLowerCase().includes(q)
+    ).slice(0, 20);
+  }, [showLinkNote, noteSearch, state.notes]);
+
+  const handleAddToNote = async () => {
+    try {
+      await actions.addNote({
+        id: uuidv4(),
+        title: title.trim() || todo?.title || 'จาก Todo',
+        content: `<p>${note.trim() || title.trim() || ''}</p>`,
+        tags: [],
+        pinned: false,
+        images: [],
+        aiBlocks: [],
+        archived: false,
+        source: 'manual',
+        history: [],
+        refs: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      setShowNoteConfirm(false);
+      alert('สร้าง Note สำเร็จ');
+    } catch (err) {
+      alert('เพิ่มไม่สำเร็จ: ' + err.message);
+    }
+  };
+
+  const handleLinkNote = async (noteId) => {
+    if (todo?.id) {
+      try {
+        await actions.updateTodo({ ...todo, linkedNoteId: noteId });
+      } catch (err) {
+        alert('เชื่อมต่อไม่สำเร็จ: ' + err.message);
+      }
+    }
+    setShowLinkNote(false);
+  };
 
   const handleSave = async () => {
     if (!title.trim()) return;
@@ -56,6 +104,16 @@ export default function TodoEditor({ todo, onClose }) {
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <h3 style={styles.headerTitle}>{isNew ? 'สร้าง Todo' : 'แก้ไข Todo'}</h3>
+          {!isNew && (
+            <div style={styles.headerActions}>
+              <button style={styles.headerActionBtn} onClick={() => setShowNoteConfirm(true)}>
+                📝 เพิ่มใน Note
+              </button>
+              <button style={styles.headerActionBtn} onClick={() => { setShowLinkNote(true); setNoteSearch(''); }}>
+                🔗 Link Note
+              </button>
+            </div>
+          )}
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
@@ -184,6 +242,60 @@ export default function TodoEditor({ todo, onClose }) {
           <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
         </div>
       </div>
+
+      {/* Confirm add to note */}
+      {showNoteConfirm && (
+        <div style={styles.subOverlay} onClick={() => setShowNoteConfirm(false)}>
+          <div style={styles.subPopup} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.subTitle}>เพิ่มเป็น Note ใหม่?</div>
+            <p style={styles.subText}>จะสร้าง Note ใหม่จาก Todo "{title || todo?.title}"</p>
+            <div style={styles.subFooter}>
+              <button style={styles.cancelBtn} onClick={() => setShowNoteConfirm(false)}>ยกเลิก</button>
+              <button style={styles.saveBtn} onClick={handleAddToNote}>ยืนยัน</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Link note picker */}
+      {showLinkNote && (
+        <div style={styles.subOverlay} onClick={() => setShowLinkNote(false)}>
+          <div style={styles.subPopup} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.subTitle}>เลือก Note เพื่อเชื่อมต่อ</div>
+            <input
+              style={styles.searchInput}
+              placeholder="ค้นหา Note..."
+              value={noteSearch}
+              onChange={(e) => setNoteSearch(e.target.value)}
+              autoFocus
+            />
+            <div style={styles.noteList}>
+              {filteredNotes.length === 0 ? (
+                <p style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 16 }}>ไม่พบ Note</p>
+              ) : (
+                filteredNotes.map((n) => (
+                  <div
+                    key={n.id}
+                    style={{
+                      ...styles.noteItem,
+                      background: todo?.linkedNoteId === n.id ? C.amberLight : C.white,
+                    }}
+                    onClick={() => handleLinkNote(n.id)}
+                  >
+                    <span style={styles.noteItemTitle}>{n.title || 'ไม่มีชื่อ'}</span>
+                    <span style={styles.noteItemDate}>
+                      {format(new Date(n.updatedAt || n.createdAt), 'd MMM', { locale: th })}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+            <div style={styles.subFooter}>
+              <button style={styles.cancelBtn} onClick={() => setShowLinkNote(false)}>ปิด</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -210,10 +322,27 @@ const styles = {
   },
   header: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
     padding: '14px 16px 10px',
     borderBottom: `1px solid ${C.border}`,
+    flexWrap: 'wrap',
+  },
+  headerActions: {
+    display: 'flex',
+    gap: 4,
+    marginLeft: 'auto',
+  },
+  headerActionBtn: {
+    padding: '4px 8px',
+    borderRadius: 6,
+    border: `1px solid ${C.border}`,
+    background: C.white,
+    fontSize: 11,
+    cursor: 'pointer',
+    fontFamily: C.font,
+    color: C.text,
+    whiteSpace: 'nowrap',
   },
   headerTitle: { fontSize: 16, fontWeight: 600, color: C.text },
   closeBtn: { background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: C.muted },
@@ -322,4 +451,68 @@ const styles = {
     cursor: 'pointer',
     fontFamily: C.font,
   },
+  subOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.3)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 210,
+  },
+  subPopup: {
+    background: C.bg,
+    borderRadius: 14,
+    width: '88%',
+    maxWidth: 380,
+    padding: 16,
+    maxHeight: '70vh',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  subTitle: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: C.text,
+    marginBottom: 10,
+    fontFamily: C.font,
+  },
+  subText: {
+    fontSize: 13,
+    color: C.sub,
+    marginBottom: 14,
+    lineHeight: 1.4,
+  },
+  subFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 10,
+  },
+  searchInput: {
+    width: '100%',
+    padding: '8px 12px',
+    borderRadius: 8,
+    border: `1px solid ${C.border}`,
+    fontSize: 14,
+    fontFamily: C.font,
+    outline: 'none',
+    marginBottom: 8,
+  },
+  noteList: {
+    flex: 1,
+    overflowY: 'auto',
+    maxHeight: 250,
+  },
+  noteItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '8px 10px',
+    borderBottom: `1px solid ${C.border}`,
+    cursor: 'pointer',
+    borderRadius: 6,
+    marginBottom: 2,
+  },
+  noteItemTitle: { flex: 1, fontSize: 13, color: C.text },
+  noteItemDate: { fontSize: 11, color: C.sub },
 };
