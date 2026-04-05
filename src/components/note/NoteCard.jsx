@@ -1,6 +1,6 @@
 import { C } from '../../constants/theme';
 
-export default function NoteCard({ note, onClick, onHistory }) {
+export default function NoteCard({ note, onClick }) {
   const isArchived = note.archived;
 
   return (
@@ -11,18 +11,6 @@ export default function NoteCard({ note, onClick, onHistory }) {
       }}
       onClick={() => onClick?.(note)}
     >
-      {/* History button - always visible */}
-      <button
-        style={styles.historyBtn}
-        onClick={(e) => {
-          e.stopPropagation();
-          onHistory?.(note);
-        }}
-        title="ประวัติ"
-      >
-        🕐
-      </button>
-
       {isArchived && <span style={styles.archiveBadge}>📦 ARCHIVED</span>}
 
       {note.pinned && <span style={styles.pinBadge}>📌</span>}
@@ -65,17 +53,6 @@ const styles = {
     cursor: 'pointer',
     position: 'relative',
     transition: 'box-shadow 0.2s',
-  },
-  historyBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: 16,
-    opacity: 0.6,
-    zIndex: 2,
   },
   archiveBadge: {
     display: 'inline-block',
