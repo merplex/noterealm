@@ -8,6 +8,7 @@ import ReferModal from './ReferModal';
 import HistorySidebar from './HistorySidebar';
 import AIBlock from './AIBlock';
 import AccordionBlock from './AccordionBlock';
+import { callAI } from '../../utils/callAI';
 
 export default function NoteEditor({ note, onClose }) {
   const { state, actions } = useApp();
@@ -94,47 +95,177 @@ export default function NoteEditor({ note, onClose }) {
   }, [state.aiSettings, getSelectedText]);
 
   const handleAddAccordion = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
     const sel = window.getSelection();
     const selected = sel ? sel.toString().trim() : '';
+    const id = uuidv4();
 
-    // ลบ selected text จาก contentEditable ก่อนสร้าง block
-    if (selected && sel.rangeCount) {
-      sel.getRangeAt(0).deleteContents();
-      const el = textareaRef.current;
-      if (el) setContent(el.innerHTML);
+    // Create accordion element inline in contentEditable
+    const wrapper = document.createElement('div');
+    wrapper.contentEditable = 'false';
+    wrapper.className = 'inline-accordion';
+    wrapper.dataset.blockId = id;
+    wrapper.style.cssText = `border:1px solid ${C.border};border-left:3px solid ${C.amber};border-radius:8px;margin:8px 0;background:${C.white};overflow:hidden;`;
+
+    const header = document.createElement('div');
+    header.style.cssText = `display:flex;align-items:center;gap:6px;padding:8px 10px;background:${C.amberLight}55;`;
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = '−';
+    toggleBtn.style.cssText = `width:24px;height:24px;border-radius:6px;border:1.5px solid ${C.amber};background:transparent;cursor:pointer;color:${C.amber};font-weight:700;font-size:16px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;`;
+
+    const titleInput = document.createElement('input');
+    titleInput.placeholder = 'หัวข้อ...';
+    titleInput.style.cssText = `border:none;outline:none;font-size:14px;font-weight:600;color:${C.text};background:transparent;flex:1;min-width:60px;`;
+
+    const dismissBtn = document.createElement('button');
+    dismissBtn.textContent = '✕';
+    dismissBtn.style.cssText = `background:none;border:none;cursor:pointer;color:${C.muted};font-size:13px;flex-shrink:0;padding:0 4px;`;
+
+    const body = document.createElement('div');
+    body.style.cssText = `border-top:1px solid ${C.border};padding:8px 12px;`;
+
+    const contentArea = document.createElement('div');
+    contentArea.contentEditable = 'true';
+    contentArea.style.cssText = `font-size:13px;color:${C.sub};min-height:40px;outline:none;line-height:1.6;white-space:pre-wrap;`;
+    contentArea.textContent = selected || '';
+
+    // Toggle open/close
+    toggleBtn.onclick = () => {
+      const isOpen = body.style.display !== 'none';
+      body.style.display = isOpen ? 'none' : 'block';
+      toggleBtn.textContent = isOpen ? '+' : '−';
+    };
+
+    // Dismiss: restore content back to editor
+    dismissBtn.onclick = () => {
+      const text = contentArea.textContent || '';
+      wrapper.remove();
+      if (text) {
+        el.focus();
+        document.execCommand('insertText', false, text);
+      }
+      syncContent();
+    };
+
+    header.appendChild(toggleBtn);
+    header.appendChild(titleInput);
+    header.appendChild(dismissBtn);
+    body.appendChild(contentArea);
+    wrapper.appendChild(header);
+    wrapper.appendChild(body);
+
+    // Insert at cursor: delete selection first, then insert accordion + line break after
+    if (sel && sel.rangeCount) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+
+      // Insert line break after accordion so text continues below
+      const br = document.createElement('br');
+      range.insertNode(br);
+      range.insertNode(wrapper);
+
+      // Move cursor after the accordion
+      range.setStartAfter(br);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      el.appendChild(wrapper);
     }
 
-    const id = uuidv4();
-    const newBlock = {
-      id,
-      type: 'accordion',
-      title: '',
-      content: selected || '',
-      open: true,
-      autoTitle: !!selected,
-    };
-    setAiBlocks((prev) => [...prev, newBlock]);
-  }, []);
+    syncContent();
+
+    // Auto-generate title with AI if there's content
+    if (selected) {
+      const providerId = state.aiSettings?.provider || 'claude';
+      callAI({
+        provider: providerId,
+        messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${selected}` }],
+        settings: state.aiSettings,
+      }).then((title) => {
+        titleInput.value = title.trim().replace(/^["']|["']$/g, '');
+      }).catch(() => {});
+    }
+  }, [syncContent, state.aiSettings]);
+
+  const IMAGE_SIZES = ['25%', '50%', '75%', '100%'];
 
   const handleImageUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = true;
-    input.onchange = async (e) => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    fileInput.onchange = async (e) => {
       const files = Array.from(e.target.files);
-      const newImages = [];
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+
       for (const file of files) {
         const reader = new FileReader();
         const dataUrl = await new Promise((resolve) => {
           reader.onload = () => resolve(reader.result);
           reader.readAsDataURL(file);
         });
-        newImages.push(dataUrl);
+
+        // Create inline image wrapper with resize button
+        const wrap = document.createElement('span');
+        wrap.contentEditable = 'false';
+        wrap.className = 'inline-img-wrap';
+        wrap.style.cssText = 'display:inline-block;position:relative;margin:4px 2px;vertical-align:top;';
+        wrap.dataset.size = '50%';
+
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.style.cssText = 'width:50%;border-radius:8px;display:block;';
+
+        const sizeBtn = document.createElement('button');
+        sizeBtn.textContent = '50%';
+        sizeBtn.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;z-index:2;';
+        sizeBtn.contentEditable = 'false';
+        sizeBtn.onclick = () => {
+          const curIdx = IMAGE_SIZES.indexOf(wrap.dataset.size);
+          const nextIdx = (curIdx + 1) % IMAGE_SIZES.length;
+          const nextSize = IMAGE_SIZES[nextIdx];
+          wrap.dataset.size = nextSize;
+          img.style.width = nextSize;
+          sizeBtn.textContent = nextSize;
+          syncContent();
+        };
+
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '✕';
+        removeBtn.style.cssText = 'position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;z-index:2;';
+        removeBtn.contentEditable = 'false';
+        removeBtn.onclick = () => {
+          wrap.remove();
+          syncContent();
+        };
+
+        wrap.appendChild(sizeBtn);
+        wrap.appendChild(removeBtn);
+        wrap.appendChild(img);
+
+        // Insert at cursor position
+        const sel = window.getSelection();
+        if (sel.rangeCount) {
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(wrap);
+          range.setStartAfter(wrap);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } else {
+          el.appendChild(wrap);
+        }
       }
-      setImages([...images, ...newImages]);
+      syncContent();
     };
-    input.click();
+    fileInput.click();
   };
 
   const handleRefer = (refNote) => {
@@ -362,7 +493,7 @@ export default function NoteEditor({ note, onClose }) {
             );
           })}
 
-          {/* Images */}
+          {/* Legacy images (non-inline) */}
           {images.length > 0 && (
             <div style={styles.imageGrid}>
               {images.map((img, i) => (
