@@ -25,6 +25,7 @@ export default function NoteEditor({ note, onClose }) {
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
   const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
+  const [showInsertMenu, setShowInsertMenu] = useState(false);
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
@@ -475,9 +476,19 @@ export default function NoteEditor({ note, onClose }) {
         {/* Sticky: Toolbar */}
         <div style={styles.toolbar}>
           <button style={styles.toolBtn} onClick={handleAddAI}>✦ AI</button>
-          <button style={styles.toolBtn} onClick={handleImageUpload}>🖼️</button>
-          <button style={styles.toolBtn} onClick={() => setShowRefer(true)}>🔗</button>
-          <button style={styles.toolBtn} onClick={handleAddAccordion}>≡▼</button>
+          <div style={{ position: 'relative' }}>
+            <button style={styles.toolBtn} onClick={() => setShowInsertMenu(!showInsertMenu)}>＋</button>
+            {showInsertMenu && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowInsertMenu(false)} />
+                <div style={styles.insertMenu}>
+                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleImageUpload(); }}>🖼️ รูปภาพ</button>
+                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); setShowRefer(true); }}>🔗 อ้างอิง</button>
+                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleAddAccordion(); }}>≡ หีบข้อความ</button>
+                </div>
+              </>
+            )}
+          </div>
           <FormatMenu onFormat={handleFormat} />
           <button
             style={{ ...styles.toolBtn, marginLeft: 'auto', color: pinned ? C.amber : C.muted }}
@@ -487,7 +498,7 @@ export default function NoteEditor({ note, onClose }) {
           </button>
           {!isNew && (
             <button
-              style={{ ...styles.toolBtn, fontSize: 11, color: C.sub }}
+              style={styles.toolBtn}
               onClick={() => setHistoryNote(note)}
             >
               history
@@ -619,38 +630,6 @@ export default function NoteEditor({ note, onClose }) {
 
         {/* Sticky: Footer */}
         <div style={styles.footer}>
-          <select
-            style={styles.groupSelect}
-            value={group}
-            onChange={(e) => setGroup(e.target.value)}
-          >
-            <option value="">กลุ่ม...</option>
-            {state.groups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-
-          <div style={styles.tagsWrap}>
-            {tags.map((tag) => (
-              <span key={tag} style={styles.tag}>
-                {tag}
-                <button
-                  style={styles.tagRemove}
-                  onClick={() => setTags(tags.filter((t) => t !== tag))}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            <input
-              style={styles.tagInput}
-              placeholder="+ แท็ก"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-            />
-          </div>
-
           {!isNew && (
             <button style={styles.deleteBtn} onClick={() => {
               if (confirm('ลบโน้ตนี้?')) {
@@ -659,6 +638,7 @@ export default function NoteEditor({ note, onClose }) {
               }
             }}>ลบ</button>
           )}
+          <div style={{ flex: 1 }} />
           <button style={styles.cancelBtn} onClick={onClose}>ยกเลิก</button>
           <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
         </div>
@@ -756,12 +736,37 @@ const styles = {
     flexWrap: 'wrap',
   },
   toolBtn: {
-    padding: '5px 10px',
-    borderRadius: 6,
+    padding: '6px 12px',
+    borderRadius: 8,
     border: `1px solid ${C.border}`,
     background: C.white,
-    fontSize: 13,
+    fontSize: 15,
     cursor: 'pointer',
+    fontWeight: 500,
+  },
+  insertMenu: {
+    position: 'absolute',
+    top: 38,
+    left: 0,
+    background: C.white,
+    border: `1px solid ${C.border}`,
+    borderRadius: 10,
+    padding: 4,
+    zIndex: 100,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+    minWidth: 160,
+  },
+  insertOption: {
+    display: 'block',
+    width: '100%',
+    padding: '8px 12px',
+    border: 'none',
+    borderRadius: 6,
+    background: 'transparent',
+    fontSize: 14,
+    cursor: 'pointer',
+    fontFamily: C.font,
+    textAlign: 'left',
     fontFamily: C.font,
   },
   body: {
