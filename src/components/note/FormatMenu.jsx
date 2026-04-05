@@ -7,10 +7,10 @@ const FORMAT_COLORS = [
 ];
 
 export default function FormatMenu({ onFormat }) {
+  const [expanded, setExpanded] = useState(false);
   const [showColors, setShowColors] = useState(false);
 
-  const items = [
-    { label: 'B', action: 'bold', style: { fontWeight: 700 } },
+  const extraItems = [
     { label: 'I', action: 'italic', style: { fontStyle: 'italic' } },
     { label: 'S', action: 'strike', style: { textDecoration: 'line-through' } },
     { label: '<>', action: 'code', style: { fontFamily: 'monospace', fontSize: 12 } },
@@ -18,37 +18,61 @@ export default function FormatMenu({ onFormat }) {
 
   return (
     <div style={styles.wrap}>
-      {items.map((item) => (
-        <button
-          key={item.action}
-          style={{ ...styles.btn, ...item.style }}
-          onClick={() => onFormat(item.action)}
-        >
-          {item.label}
-        </button>
-      ))}
-      <div style={{ position: 'relative' }}>
-        <button
-          style={{ ...styles.btn, fontSize: 12 }}
-          onClick={() => setShowColors(!showColors)}
-        >
-          𝐀 ▾
-        </button>
-        {showColors && (
-          <div style={styles.colorGrid}>
-            {FORMAT_COLORS.map((color) => (
-              <button
-                key={color}
-                style={{ ...styles.colorDot, background: color }}
-                onClick={() => {
-                  onFormat('color', color);
-                  setShowColors(false);
-                }}
-              />
-            ))}
+      <button
+        style={{ ...styles.btn, fontWeight: 700 }}
+        onClick={() => {
+          if (expanded) {
+            onFormat('bold');
+          } else {
+            setExpanded(true);
+          }
+        }}
+        onDoubleClick={() => { onFormat('bold'); }}
+      >
+        B
+      </button>
+
+      {expanded && (
+        <>
+          {extraItems.map((item) => (
+            <button
+              key={item.action}
+              style={{ ...styles.btn, ...item.style }}
+              onClick={() => onFormat(item.action)}
+            >
+              {item.label}
+            </button>
+          ))}
+          <div style={{ position: 'relative' }}>
+            <button
+              style={{ ...styles.btn, fontSize: 12 }}
+              onClick={() => setShowColors(!showColors)}
+            >
+              𝐀 ▾
+            </button>
+            {showColors && (
+              <div style={styles.colorGrid}>
+                {FORMAT_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    style={{ ...styles.colorDot, background: color }}
+                    onClick={() => {
+                      onFormat('color', color);
+                      setShowColors(false);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+          <button
+            style={{ ...styles.btn, fontSize: 10, color: C.muted, width: 'auto', padding: '0 4px' }}
+            onClick={() => { setExpanded(false); setShowColors(false); }}
+          >
+            ✕
+          </button>
+        </>
+      )}
     </div>
   );
 }

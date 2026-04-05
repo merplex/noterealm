@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import RelatePanel from './RelatePanel';
 import FormatMenu from './FormatMenu';
 import ReferModal from './ReferModal';
+import HistorySidebar from './HistorySidebar';
 import AIBlock from './AIBlock';
 import AccordionBlock from './AccordionBlock';
 
@@ -18,6 +19,7 @@ export default function NoteEditor({ note, onClose }) {
   const [aiBlocks, setAiBlocks] = useState(note?.aiBlocks || []);
   const [group, setGroup] = useState(note?.group || '');
   const [showRefer, setShowRefer] = useState(false);
+  const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
 
@@ -199,8 +201,16 @@ export default function NoteEditor({ note, onClose }) {
           <button style={styles.toolBtn} onClick={handleAddAI}>✦ AI</button>
           <button style={styles.toolBtn} onClick={handleImageUpload}>🖼️</button>
           <button style={styles.toolBtn} onClick={() => setShowRefer(true)}>🔗</button>
-          <button style={styles.toolBtn} onClick={handleAddAccordion}>▶</button>
+          <button style={styles.toolBtn} onClick={handleAddAccordion}>≡▼</button>
           <FormatMenu onFormat={handleFormat} />
+          {!isNew && (
+            <button
+              style={{ ...styles.toolBtn, marginLeft: 'auto', fontSize: 11, color: C.sub }}
+              onClick={() => setHistoryNote(note)}
+            >
+              history
+            </button>
+          )}
         </div>
 
         {/* Scrollable body */}
@@ -328,6 +338,19 @@ export default function NoteEditor({ note, onClose }) {
           <ReferModal
             onSelect={handleRefer}
             onClose={() => setShowRefer(false)}
+          />
+        )}
+
+        {historyNote && (
+          <HistorySidebar
+            note={historyNote}
+            onRestore={(version) => {
+              if (version) {
+                setContent(version.content);
+              }
+              setHistoryNote(null);
+            }}
+            onClose={() => setHistoryNote(null)}
           />
         )}
       </div>
