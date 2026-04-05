@@ -79,6 +79,12 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
             }}>
               ปัจจุบัน
             </span>
+            <button
+              style={styles.restoreBtn}
+              onClick={(e) => { e.stopPropagation(); onRestore?.({ content: note?.content }); }}
+            >
+              ↩ กู้คืน
+            </button>
           </div>
 
           {/* History */}
