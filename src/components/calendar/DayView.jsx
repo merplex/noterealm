@@ -170,23 +170,25 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
             </div>
           );
         })}
+
+        {/* Unscheduled todos with date but no time */}
+        {unscheduledTodos.length > 0 && (
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>ไม่ระบุเวลา</div>
+            {unscheduledTodos.map((todo) => renderTodoCard(todo, false))}
+          </div>
+        )}
+
+        {/* No-date todos */}
+        {noDateTodos.length > 0 && (
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>ไม่ระบุวัน</div>
+            {noDateTodos.map((todo) => renderTodoCard(todo, false))}
+          </div>
+        )}
+
+        <div style={{ height: 100 }} />
       </div>
-
-      {/* Unscheduled todos with date but no time */}
-      {unscheduledTodos.length > 0 && (
-        <div style={styles.section}>
-          <div style={styles.sectionTitle}>ไม่ระบุเวลา</div>
-          {unscheduledTodos.map((todo) => renderTodoCard(todo, false))}
-        </div>
-      )}
-
-      {/* No-date todos */}
-      {noDateTodos.length > 0 && (
-        <div style={styles.section}>
-          <div style={styles.sectionTitle}>ไม่ระบุวัน</div>
-          {noDateTodos.map((todo) => renderTodoCard(todo, false))}
-        </div>
-      )}
 
       {/* Confirm add to note popup */}
       {noteConfirm && (
