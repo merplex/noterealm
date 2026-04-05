@@ -131,7 +131,6 @@ const styles = {
   header: {
     display: 'flex',
     alignItems: 'center',
-    gap: 0,
     padding: '8px 12px',
     background: C.bg,
     borderBottom: `1px solid ${C.border}`,
@@ -143,13 +142,13 @@ const styles = {
     flex: 1,
     display: 'flex',
     alignItems: 'center',
-    gap: 4,
-    margin: '0 8px',
+    gap: 2,
+    margin: '0 6px',
     minWidth: 0,
   },
   smallBtn: {
-    width: 30,
-    height: 30,
+    width: 28,
+    height: 28,
     borderRadius: 6,
     border: 'none',
     background: 'transparent',
@@ -158,6 +157,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    padding: 0,
   },
   hamburgerBtn: {
     width: 34,
@@ -170,6 +170,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    padding: 0,
   },
   searchWrap: {
     flex: 1,
