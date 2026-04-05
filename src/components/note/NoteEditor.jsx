@@ -200,6 +200,13 @@ export default function NoteEditor({ note, onClose }) {
       el.focus();
 
       for (const file of files) {
+        // Read file as base64 first
+        const rawDataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
+
         // Compress image: resize to max 1200px and use JPEG quality 0.7
         const dataUrl = await new Promise((resolve) => {
           const img = new Image();
@@ -216,14 +223,15 @@ export default function NoteEditor({ note, onClose }) {
             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
             resolve(canvas.toDataURL('image/jpeg', 0.7));
           };
-          img.src = URL.createObjectURL(file);
+          img.onerror = () => resolve(rawDataUrl); // fallback to original
+          img.src = rawDataUrl;
         });
 
         // Create inline image wrapper
         const wrap = document.createElement('span');
         wrap.contentEditable = 'false';
         wrap.className = 'inline-img-wrap';
-        wrap.style.cssText = 'display:inline-block;position:relative;margin:0 2px;vertical-align:middle;overflow:hidden;';
+        wrap.style.cssText = 'display:inline-block;position:relative;margin:0 2px;vertical-align:middle;';
         wrap.dataset.size = '10%';
 
         const img = document.createElement('img');
