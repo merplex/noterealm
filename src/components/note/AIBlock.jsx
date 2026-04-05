@@ -60,11 +60,11 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
     setShowProviderPicker(false);
   };
 
-  const handleSend = async (text, mode) => {
+  const handleSend = async (text, mode, silent) => {
     if (!text?.trim()) return;
     const newMsg = { role: 'user', content: text.trim() };
     const updatedMsgs = [...messages, newMsg];
-    onUpdate({ ...block, messages: updatedMsgs });
+    if (!silent) onUpdate({ ...block, messages: updatedMsgs });
     setInput('');
     setLoading(true);
 
@@ -91,12 +91,16 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
       });
       onUpdate({
         ...block,
-        messages: [...updatedMsgs, { role: 'assistant', content: aiResponse }],
+        messages: silent
+          ? [...messages, { role: 'assistant', content: aiResponse }]
+          : [...updatedMsgs, { role: 'assistant', content: aiResponse }],
       });
     } catch (err) {
       onUpdate({
         ...block,
-        messages: [...updatedMsgs, { role: 'assistant', content: `⚠️ Error: ${err.message}` }],
+        messages: silent
+          ? [...messages, { role: 'assistant', content: `⚠️ Error: ${err.message}` }]
+          : [...updatedMsgs, { role: 'assistant', content: `⚠️ Error: ${err.message}` }],
       });
     } finally {
       setLoading(false);
@@ -225,7 +229,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
             hasWrapped
               ? 'สรุปข้อความนี้ให้กระชับ และตรวจสอบความถูกต้องของภาษา'
               : 'สรุปเนื้อหาทั้งหมดให้กระชับ',
-            null
+            null, true
           )}
           disabled={loading}
         >
@@ -249,7 +253,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
                     style={styles.langOption}
                     onClick={() => {
                       setShowLangPicker(false);
-                      handleSend(`แปลเป็นภาษา${lang.code}`, null);
+                      handleSend(`แปลเป็นภาษา${lang.code}`, null, true);
                     }}
                   >
                     {lang.label}
@@ -264,7 +268,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
           onClick={() => {
             const query = wrappedContent || (wrappedImages?.length ? 'วิเคราะห์รูปภาพนี้' : '');
             if (query) {
-              handleSend(query, 'inquiry');
+              handleSend(query, 'inquiry', true);
             } else {
               onUpdate({ ...block, activeMode: 'inquiry' });
             }
@@ -440,7 +444,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: 4,
-    minWidth: 200,
+    width: 260,
   },
   langOption: {
     padding: '7px 10px',
