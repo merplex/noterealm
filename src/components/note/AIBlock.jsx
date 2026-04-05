@@ -23,10 +23,35 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
   useEffect(() => {
     if (block.autoAnalyze && !autoSentRef.current && messages.length === 0 && wrappedContent) {
       autoSentRef.current = true;
-      handleSend('วิเคราะห์ข้อความนี้แล้วทำสิ่งที่เหมาะสมที่สุด: ถ้าเป็นคำถามให้ตอบ, ถ้าเป็นภาษาต่างประเทศให้แปลเป็นไทย, ถ้าเป็นข้อความยาวให้สรุป, ถ้าเป็นข้อความที่มีข้อผิดพลาดให้แก้ไข');
+      // Send as auto-analyze (no visible user message)
+      handleAutoAnalyze();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleAutoAnalyze = async () => {
+    setLoading(true);
+    try {
+      const aiResponse = await callAI({
+        provider: providerId,
+        messages: [],
+        wrappedContent,
+        settings: state.aiSettings,
+        autoAnalyze: true,
+      });
+      onUpdate({
+        ...block,
+        messages: [{ role: 'assistant', content: aiResponse }],
+      });
+    } catch (err) {
+      onUpdate({
+        ...block,
+        messages: [{ role: 'assistant', content: `⚠️ Error: ${err.message}` }],
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get the last AI response text
   const lastAiResponse = [...messages].reverse().find((m) => m.role === 'assistant')?.content || '';
