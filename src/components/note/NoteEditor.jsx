@@ -70,11 +70,11 @@ export default function NoteEditor({ note, onClose }) {
       provider: state.aiSettings?.provider || 'claude',
       messages: [],
       wrappedContent: selected || null,
-      // ถ้ามีข้อความที่เลือก → auto-analyze เสมอ, ถ้าไม่มี → chat ปกติ
       autoAnalyze: !!selected,
+      insertPos: end,
     };
     setAiBlocks((prev) => [...prev, newBlock]);
-    setContent(content.slice(0, end) + `\n[AI_BLOCK:${id}]` + content.slice(end));
+    // ไม่ใส่ marker ใน content
   }, [content, state.aiSettings]);
 
   const handleAddAccordion = useCallback(() => {
@@ -88,12 +88,16 @@ export default function NoteEditor({ note, onClose }) {
       id,
       type: 'accordion',
       title: '',
-      content: selected || '',  // selected text → content
+      content: selected || '',
       open: true,
-      autoTitle: !!selected,    // trigger AI title gen if there's content
+      autoTitle: !!selected,
+      insertPos: start,
     };
     setAiBlocks((prev) => [...prev, newBlock]);
-    setContent(content.slice(0, start) + `[AI_BLOCK:${id}]` + content.slice(end));
+    // ลบข้อความที่เลือกออกจาก content (ย้ายไป accordion แล้ว)
+    if (selected) {
+      setContent(content.slice(0, start) + content.slice(end));
+    }
   }, [content]);
 
   const handleImageUpload = () => {
@@ -124,10 +128,12 @@ export default function NoteEditor({ note, onClose }) {
 
   const handleSave = async () => {
     const now = new Date().toISOString();
+    // Clean any leftover AI_BLOCK markers from content
+    const cleanContent = content.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
     const noteData = {
       id: note?.id || uuidv4(),
       title,
-      content,
+      content: cleanContent,
       tags,
       pinned,
       images,
@@ -142,14 +148,14 @@ export default function NoteEditor({ note, onClose }) {
     };
 
     // Save history entry
-    if (!isNew && note.content !== content) {
+    if (!isNew && note.content !== cleanContent) {
       noteData.history = [
         {
           timestamp: now,
           content: note.content,
           diff: {
-            added: content.length - note.content.length > 0 ? content.length - note.content.length : 0,
-            deleted: note.content.length - content.length > 0 ? note.content.length - content.length : 0,
+            added: cleanContent.length - note.content.length > 0 ? cleanContent.length - note.content.length : 0,
+            deleted: note.content.length - cleanContent.length > 0 ? note.content.length - cleanContent.length : 0,
             edited: 1,
           },
         },
@@ -226,18 +232,12 @@ export default function NoteEditor({ note, onClose }) {
               const aiText = lastAiMsg?.content || '';
 
               if (action === 'append' && aiText) {
-                // เพิ่มคำตอบ AI ต่อท้าย content
-                setContent((prev) => {
-                  const cleaned = prev.replace(`\n[AI_BLOCK:${b.id}]`, '').replace(`[AI_BLOCK:${b.id}]`, '');
-                  return cleaned.trimEnd() + '\n\n' + aiText;
-                });
+                setContent((prev) => prev.trimEnd() + '\n\n' + aiText);
               } else if (action === 'replace' && aiText) {
-                // แทนที่ตำแหน่ง block ด้วยคำตอบ AI
-                setContent((prev) => prev.replace(`\n[AI_BLOCK:${b.id}]`, '\n' + aiText).replace(`[AI_BLOCK:${b.id}]`, aiText));
-              } else {
-                // ปิดทิ้ง — ลบ block marker ออก
-                setContent((prev) => prev.replace(`\n[AI_BLOCK:${b.id}]`, '').replace(`[AI_BLOCK:${b.id}]`, ''));
+                const pos = b.insertPos ?? content.length;
+                setContent((prev) => prev.slice(0, pos) + '\n' + aiText + prev.slice(pos));
               }
+              // 'close' หรือไม่มี action → ไม่แก้ content
               setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
             };
 
