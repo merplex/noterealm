@@ -9,13 +9,28 @@ const API_BASE = import.meta.env.VITE_API_URL ?? '';
  *   'oauth'   → sends OAuth access token from settings
  *   'apikey'  → sends API key from settings
  */
-export async function callAI({ provider, messages, wrappedContent, settings }) {
+export async function callAI({ provider, messages, wrappedContent, settings, extraContext }) {
   const providerConfig = AI_PROVIDERS[provider];
   if (!providerConfig) throw new Error(`Unknown provider: ${provider}`);
 
-  const systemPrompt = wrappedContent
-    ? `ข้อความที่ผู้ใช้คลุมไว้:\n${wrappedContent}\n\nช่วยตอบเกี่ยวกับข้อความข้างต้น`
-    : 'คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm ตอบเป็นภาษาไทยหรือตามภาษาที่ผู้ใช้ถาม';
+  let systemPrompt;
+  if (extraContext?.mode === 'inquiry') {
+    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n\n` +
+      `โน้ตของผู้ใช้:\n${extraContext.notes || '(ไม่มีโน้ต)'}\n\n` +
+      `Todo ของผู้ใช้:\n${extraContext.todos || '(ไม่มี todo)'}\n\n` +
+      `คำสั่ง: ค้นหาคำตอบจากโน้ตและ todo ของผู้ใช้ก่อน ถ้าพบข้อมูลที่เกี่ยวข้องให้ตอบจากข้อมูลนั้น ถ้าไม่พบให้ตอบจากความรู้ทั่วไป โดยระบุว่าไม่พบในโน้ต` +
+      (wrappedContent ? `\n\nข้อความที่คลุมไว้:\n${wrappedContent}` : '');
+  } else if (extraContext?.mode === 'check') {
+    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n\n` +
+      `โน้ตของผู้ใช้:\n${extraContext.notes || '(ไม่มีโน้ต)'}\n\n` +
+      `Todo ของผู้ใช้:\n${extraContext.todos || '(ไม่มี todo)'}\n\n` +
+      `คำสั่ง: ตรวจสอบข้อมูลจากโน้ต, todo และปฏิทินของผู้ใช้ แล้วตอบคำถาม สรุปสถานะ หรือแจ้งเตือนสิ่งที่เกี่ยวข้อง` +
+      (wrappedContent ? `\n\nข้อความที่คลุมไว้:\n${wrappedContent}` : '');
+  } else if (wrappedContent) {
+    systemPrompt = `ข้อความที่ผู้ใช้คลุมไว้:\n${wrappedContent}\n\nช่วยตอบเกี่ยวกับข้อความข้างต้น`;
+  } else {
+    systemPrompt = 'คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm ตอบเป็นภาษาไทยหรือตามภาษาที่ผู้ใช้ถาม';
+  }
 
   // Resolve credentials based on authType
   const auth = {};

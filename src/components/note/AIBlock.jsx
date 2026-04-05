@@ -10,6 +10,7 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showProviderPicker, setShowProviderPicker] = useState(false);
+  const [showDismissMenu, setShowDismissMenu] = useState(false);
 
   const providerId = block.provider || 'claude';
   const provider = AI_PROVIDERS[providerId] || AI_PROVIDERS.claude;
@@ -27,16 +28,23 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Get the last AI response text
+  const lastAiResponse = [...messages].reverse().find((m) => m.role === 'assistant')?.content || '';
+
   const quickActions = hasWrapped
     ? [
         { label: 'สรุป', prompt: 'สรุปข้อความนี้ให้กระชับ' },
         { label: 'แปลอังกฤษ', prompt: 'แปลเป็นภาษาอังกฤษ' },
         { label: 'ตรวจภาษา', prompt: 'ตรวจสอบและแก้ไขภาษาให้ถูกต้อง' },
+        { label: '🔍 สอบถาม', prompt: null, mode: 'inquiry' },
+        { label: '✅ เช็ค', prompt: null, mode: 'check' },
       ]
     : [
         { label: 'ช่วยเขียน', prompt: 'ช่วยเขียนเนื้อหาเกี่ยวกับ' },
         { label: 'ไอเดีย', prompt: 'ช่วยคิดไอเดียเกี่ยวกับ' },
         { label: 'อธิบาย', prompt: 'ช่วยอธิบายเรื่อง' },
+        { label: '🔍 สอบถาม', prompt: null, mode: 'inquiry' },
+        { label: '✅ เช็ค', prompt: null, mode: 'check' },
       ];
 
   const needsAuth = provider.authType === 'oauth' && !state.aiSettings?.[`${providerId}Token`];
@@ -66,7 +74,7 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
     setShowProviderPicker(false);
   };
 
-  const handleSend = async (text) => {
+  const handleSend = async (text, mode) => {
     if (!text?.trim()) return;
     const newMsg = { role: 'user', content: text.trim() };
     const updatedMsgs = [...messages, newMsg];
@@ -74,12 +82,25 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
     setInput('');
     setLoading(true);
 
+    // Build context for inquiry/check modes
+    let extraContext = null;
+    if (mode === 'inquiry' || mode === 'check') {
+      const noteSummaries = state.notes.map((n) =>
+        `[${n.title || 'Untitled'}]: ${(n.content || '').slice(0, 200)}`
+      ).join('\n');
+      const todoSummaries = state.todos.map((t) =>
+        `[${t.done ? '✓' : '○'}] ${t.title}${t.dueDate ? ` (${t.dueDate})` : ''}${t.note ? ` — ${t.note}` : ''}`
+      ).join('\n');
+      extraContext = { notes: noteSummaries, todos: todoSummaries, mode };
+    }
+
     try {
       const aiResponse = await callAI({
         provider: providerId,
         messages: updatedMsgs,
         wrappedContent,
         settings: state.aiSettings,
+        extraContext,
       });
       onUpdate({
         ...block,
@@ -98,7 +119,7 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend(input);
+      handleSend(input, block.activeMode || null);
     }
   };
 
@@ -139,9 +160,42 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
           )}
         </div>
         <span style={styles.msgCount}>{messages.length} ข้อความ</span>
-        <button style={styles.dismissBtn} onClick={() => onDismiss?.(block)}>
-          ✕ Dismiss
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button style={styles.dismissBtn} onClick={() => {
+            if (lastAiResponse) {
+              setShowDismissMenu(!showDismissMenu);
+            } else {
+              onDismiss?.(block);
+            }
+          }}>
+            ✕ Dismiss
+          </button>
+          {showDismissMenu && (
+            <>
+              <div style={styles.backdrop} onClick={() => setShowDismissMenu(false)} />
+              <div style={styles.dismissMenu}>
+                <button
+                  style={styles.dismissOption}
+                  onClick={() => { onDismiss?.(block, 'append'); setShowDismissMenu(false); }}
+                >
+                  ＋ เพิ่มคำตอบ AI ต่อท้าย
+                </button>
+                <button
+                  style={styles.dismissOption}
+                  onClick={() => { onDismiss?.(block, 'replace'); setShowDismissMenu(false); }}
+                >
+                  ↻ แทนที่ด้วยคำตอบ AI
+                </button>
+                <button
+                  style={{ ...styles.dismissOption, color: C.muted }}
+                  onClick={() => { onDismiss?.(block); setShowDismissMenu(false); }}
+                >
+                  ✕ ปิดทิ้ง
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Wrapped content */}
@@ -176,11 +230,32 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
             <button
               key={qa.label}
               style={styles.quickBtn}
-              onClick={() => handleSend(qa.prompt)}
+              onClick={() => {
+                if (qa.mode) {
+                  // สอบถาม/เช็ค: ต้องพิมพ์คำถามก่อน
+                  setInput('');
+                  onUpdate({ ...block, activeMode: qa.mode });
+                } else {
+                  handleSend(qa.prompt);
+                }
+              }}
             >
               {qa.label}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Mode indicator */}
+      {block.activeMode && messages.length === 0 && (
+        <div style={styles.modeIndicator}>
+          <span>{block.activeMode === 'inquiry' ? '🔍 โหมดสอบถาม' : '✅ โหมดเช็ค'}</span>
+          <span style={{ fontSize: 11, color: C.muted }}>
+            {block.activeMode === 'inquiry'
+              ? 'ค้นหาจากโน้ตก่อน ถ้าไม่มีจะถาม AI'
+              : 'ตรวจสอบข้อมูลจากโน้ต/todo/ปฏิทิน'}
+          </span>
+          <button style={styles.modeCancelBtn} onClick={() => onUpdate({ ...block, activeMode: null })}>✕</button>
         </div>
       )}
 
@@ -210,7 +285,7 @@ export default function AIBlock({ block, wrappedContent, onUpdate, onDismiss }) 
           />
           <button
             style={{ ...styles.sendBtn, background: provider.color }}
-            onClick={() => handleSend(input)}
+            onClick={() => handleSend(input, block.activeMode || null)}
             disabled={loading}
           >
             ↑
@@ -370,5 +445,48 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     fontFamily: C.font,
+  },
+  modeIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '6px 12px',
+    background: '#f0fdf4',
+    borderBottom: '1px solid #bbf7d0',
+    fontSize: 12,
+    fontFamily: C.font,
+  },
+  modeCancelBtn: {
+    marginLeft: 'auto',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: C.muted,
+    fontSize: 14,
+  },
+  backdrop: { position: 'fixed', inset: 0, zIndex: 99 },
+  dismissMenu: {
+    position: 'absolute',
+    top: 28,
+    right: 0,
+    background: C.white,
+    border: `1px solid ${C.border}`,
+    borderRadius: 10,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+    zIndex: 100,
+    minWidth: 200,
+    overflow: 'hidden',
+  },
+  dismissOption: {
+    display: 'block',
+    width: '100%',
+    padding: '10px 14px',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontFamily: C.font,
+    color: C.text,
+    textAlign: 'left',
   },
 };

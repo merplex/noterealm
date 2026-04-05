@@ -224,9 +224,24 @@ export default function NoteEditor({ note, onClose }) {
           {aiBlocks.map((block) => {
             const updateBlock = (updated) =>
               setAiBlocks(aiBlocks.map((b) => (b.id === updated.id ? updated : b)));
-            const dismissBlock = (b) => {
+            const dismissBlock = (b, action) => {
+              const lastAiMsg = [...(b.messages || [])].reverse().find((m) => m.role === 'assistant');
+              const aiText = lastAiMsg?.content || '';
+
+              if (action === 'append' && aiText) {
+                // เพิ่มคำตอบ AI ต่อท้าย content
+                setContent((prev) => {
+                  const cleaned = prev.replace(`\n[AI_BLOCK:${b.id}]`, '').replace(`[AI_BLOCK:${b.id}]`, '');
+                  return cleaned.trimEnd() + '\n\n' + aiText;
+                });
+              } else if (action === 'replace' && aiText) {
+                // แทนที่ตำแหน่ง block ด้วยคำตอบ AI
+                setContent((prev) => prev.replace(`\n[AI_BLOCK:${b.id}]`, '\n' + aiText).replace(`[AI_BLOCK:${b.id}]`, aiText));
+              } else {
+                // ปิดทิ้ง — ลบ block marker ออก
+                setContent((prev) => prev.replace(`\n[AI_BLOCK:${b.id}]`, '').replace(`[AI_BLOCK:${b.id}]`, ''));
+              }
               setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
-              setContent((prev) => prev.replace(`\n[AI_BLOCK:${b.id}]`, '').replace(`[AI_BLOCK:${b.id}]`, ''));
             };
 
             if (block.type === 'accordion') {
