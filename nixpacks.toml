@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["rm -rf node_modules/.package-lock.json && npm install"]
 
 [phases.build]
-cmds = ["npm run build", "cd server && npm ci"]
+cmds = ["npm run build", "cd server && npm install"]
 
 [start]
 cmd = "node server/index.js"
