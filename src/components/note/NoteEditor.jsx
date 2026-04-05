@@ -220,23 +220,27 @@ export default function NoteEditor({ note, onClose }) {
             const canvas = document.createElement('canvas');
             canvas.width = w;
             canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const ctx = canvas.getContext('2d');
+            // Fill white background (prevents black for transparent PNGs)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
             resolve(canvas.toDataURL('image/jpeg', 0.7));
           };
-          img.onerror = () => resolve(rawDataUrl); // fallback to original
+          img.onerror = () => resolve(rawDataUrl);
           img.src = rawDataUrl;
         });
 
-        // Create inline image wrapper
+        // Create inline image wrapper — width on wrap, not img
         const wrap = document.createElement('span');
         wrap.contentEditable = 'false';
         wrap.className = 'inline-img-wrap';
-        wrap.style.cssText = 'display:inline-block;position:relative;margin:0 2px;vertical-align:middle;';
+        wrap.style.cssText = 'display:inline-block;position:relative;margin:0 2px;vertical-align:middle;width:10%;';
         wrap.dataset.size = '10%';
 
         const img = document.createElement('img');
         img.src = dataUrl;
-        img.style.cssText = 'width:10%;border-radius:4px;vertical-align:middle;cursor:pointer;';
+        img.style.cssText = 'width:100%;border-radius:4px;vertical-align:middle;cursor:pointer;display:block;';
 
         // Remove button — on the image, top-right corner, sized to fit
         const removeBtn = document.createElement('button');
@@ -262,7 +266,7 @@ export default function NoteEditor({ note, onClose }) {
           const nextIdx = (curIdx + 1) % IMAGE_SIZES.length;
           const nextSize = IMAGE_SIZES[nextIdx];
           wrap.dataset.size = nextSize;
-          img.style.width = nextSize;
+          wrap.style.width = nextSize;
 
           // Adjust remove button size based on image size
           if (nextSize === '10%') {
