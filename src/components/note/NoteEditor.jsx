@@ -191,7 +191,7 @@ export default function NoteEditor({ note, onClose }) {
     }
   }, [syncContent, state.aiSettings]);
 
-  const IMAGE_SIZES = ['5%', '25%', '50%', '75%', '100%'];
+  const IMAGE_SIZES = ['10%', '25%', '100%'];
 
   const handleImageUpload = () => {
     const fileInput = document.createElement('input');
@@ -216,11 +216,11 @@ export default function NoteEditor({ note, onClose }) {
         wrap.contentEditable = 'false';
         wrap.className = 'inline-img-wrap';
         wrap.style.cssText = 'display:inline;position:relative;margin:0 2px;vertical-align:middle;';
-        wrap.dataset.size = '5%';
+        wrap.dataset.size = '10%';
 
         const img = document.createElement('img');
         img.src = dataUrl;
-        img.style.cssText = 'width:5%;border-radius:4px;vertical-align:middle;cursor:pointer;';
+        img.style.cssText = 'width:10%;border-radius:4px;vertical-align:middle;cursor:pointer;';
 
         // Remove button — on the image, top-right corner, sized to fit
         const removeBtn = document.createElement('button');
@@ -247,7 +247,7 @@ export default function NoteEditor({ note, onClose }) {
           img.style.width = nextSize;
 
           // Adjust remove button size based on image size
-          if (nextSize === '5%') {
+          if (nextSize === '10%') {
             removeBtn.style.cssText = 'position:absolute;top:0;right:0;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;z-index:2;border-radius:50%;width:14px;height:14px;font-size:8px;line-height:1;display:flex;align-items:center;justify-content:center;';
             img.style.borderRadius = '4px';
             sizeLabel.style.display = 'none';
@@ -259,7 +259,7 @@ export default function NoteEditor({ note, onClose }) {
           }
 
           // Block display for larger sizes
-          if (nextSize === '5%') {
+          if (nextSize === '10%') {
             wrap.style.display = 'inline';
           } else {
             wrap.style.display = 'inline-block';
@@ -372,14 +372,19 @@ export default function NoteEditor({ note, onClose }) {
     const el = textareaRef.current;
     if (!el || !hasSelectionRef.current || !savedSelectionRef.current) return;
 
-    // Check if tap is outside the contentEditable area or on the editor but outside selection
+    // Only intercept touch events on the editor area, not system gestures
+    if (e.pointerType !== 'touch') return;
+
+    // Check if tap is inside the editor body
+    const rect = el.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+
     const sel = window.getSelection();
     const selText = sel ? sel.toString().trim() : '';
 
     if (selText) {
       // There's still a visible selection — intercept first tap to preserve it
       e.preventDefault();
-      e.stopPropagation();
 
       // Restore the selection (system menu will close since we prevented default)
       setTimeout(() => {
