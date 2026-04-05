@@ -26,6 +26,24 @@ export default function TodoList({ searchText }) {
         (t) => t.title?.toLowerCase().includes(q) || t.note?.toLowerCase().includes(q)
       );
     }
+    // Sort: overdue first, then no-date, then today/future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    todos.sort((a, b) => {
+      const aDate = a.dueDate ? new Date(a.dueDate) : null;
+      const bDate = b.dueDate ? new Date(b.dueDate) : null;
+      const aOverdue = aDate && aDate < today;
+      const bOverdue = bDate && bDate < today;
+      const aNoDate = !aDate;
+      const bNoDate = !bDate;
+      // Group order: overdue=0, no-date=1, future=2
+      const aGroup = aOverdue ? 0 : aNoDate ? 1 : 2;
+      const bGroup = bOverdue ? 0 : bNoDate ? 1 : 2;
+      if (aGroup !== bGroup) return aGroup - bGroup;
+      // Within overdue/future: earliest date first
+      if (aDate && bDate) return aDate - bDate;
+      return 0;
+    });
     return todos;
   }, [state.todos, searchText]);
 
@@ -56,6 +74,21 @@ export default function TodoList({ searchText }) {
 
   return (
     <div style={styles.container}>
+      {/* Quick add bar */}
+      <div style={styles.quickAdd}>
+        <input
+          type="text"
+          placeholder="+ เพิ่ม Todo ใหม่..."
+          value={quickAdd}
+          onChange={(e) => setQuickAdd(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
+          style={styles.quickInput}
+        />
+        <button style={styles.quickBtn} onClick={handleQuickAdd}>
+          เพิ่ม
+        </button>
+      </div>
+
       <div style={styles.list}>
         {SECTIONS.map((section) => {
           const todos = filteredTodos.filter((t) => t.priority === section.key);
@@ -91,21 +124,6 @@ export default function TodoList({ searchText }) {
             {searchText ? 'ไม่พบรายการ' : 'ยังไม่มี Todo — พิมพ์ด้านล่างเพื่อเพิ่ม'}
           </div>
         )}
-      </div>
-
-      {/* Quick add bar */}
-      <div style={styles.quickAdd}>
-        <input
-          type="text"
-          placeholder="+ เพิ่ม Todo ใหม่..."
-          value={quickAdd}
-          onChange={(e) => setQuickAdd(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
-          style={styles.quickInput}
-        />
-        <button style={styles.quickBtn} onClick={handleQuickAdd}>
-          เพิ่ม
-        </button>
       </div>
 
       {editingTodo && (

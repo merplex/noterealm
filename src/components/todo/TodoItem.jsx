@@ -15,6 +15,13 @@ const SOURCE_ICONS = {
 };
 
 export default function TodoItem({ todo, onToggle, onEdit, onDelete }) {
+  const isOverdue = todo.dueDate && (() => {
+    const due = new Date(todo.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return due < today && !todo.done;
+  })();
+
   return (
     <div style={{ ...styles.item, opacity: todo.done ? 0.5 : 1 }}>
       <button
@@ -42,7 +49,7 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }) {
 
       <div style={styles.badges}>
         {todo.dueDate && (
-          <span style={styles.dueBadge}>
+          <span style={isOverdue ? styles.overdueBadge : styles.dueBadge}>
             {new Date(todo.dueDate).toLocaleDateString('th-TH', {
               day: 'numeric',
               month: 'short',
@@ -114,6 +121,14 @@ const styles = {
     background: '#f5f5f4',
     padding: '2px 6px',
     borderRadius: 4,
+  },
+  overdueBadge: {
+    fontSize: 11,
+    color: '#fff',
+    background: '#dc2626',
+    padding: '2px 8px',
+    borderRadius: 10,
+    fontWeight: 600,
   },
   sourceBadge: { fontSize: 14 },
   linkBadge: { fontSize: 12 },
