@@ -498,79 +498,83 @@ export default function NoteEditor({ note, onClose }) {
             style={{ ...styles.textarea, WebkitUserSelect: 'text', WebkitTouchCallout: 'none' }}
           />
 
-          {/* Render AI Blocks & Accordion Blocks */}
-          {aiBlocks.map((block) => {
+          {/* Render AI Blocks as popup overlay */}
+          {aiBlocks.filter((b) => b.type !== 'accordion').length > 0 && (
+            <div style={styles.aiOverlay}>
+              <div style={styles.aiPopup}>
+                {aiBlocks.filter((b) => b.type !== 'accordion').map((block) => {
+                  const updateBlock = (updated) =>
+                    setAiBlocks(aiBlocks.map((b) => (b.id === updated.id ? updated : b)));
+                  const dismissBlock = (b, action) => {
+                    const lastAiMsg = [...(b.messages || [])].reverse().find((m) => m.role === 'assistant');
+                    const aiText = lastAiMsg?.content || '';
+
+                    if (action === 'append' && aiText) {
+                      const el = textareaRef.current;
+                      if (el) {
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.selectNodeContents(el);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        document.execCommand('insertText', false, '\n\n' + aiText);
+                        setContent(el.innerHTML);
+                      } else {
+                        setContent((prev) => prev.trimEnd() + '\n\n' + aiText);
+                      }
+                    } else if (action === 'replace' && aiText) {
+                      const el = textareaRef.current;
+                      if (el) {
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.selectNodeContents(el);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        document.execCommand('insertText', false, '\n' + aiText);
+                        setContent(el.innerHTML);
+                      } else {
+                        setContent((prev) => prev + '\n' + aiText);
+                      }
+                    }
+                    setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
+                  };
+                  return (
+                    <AIBlock
+                      key={block.id}
+                      block={block}
+                      wrappedContent={block.wrappedContent || null}
+                      onUpdate={updateBlock}
+                      onDismiss={dismissBlock}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Render Accordion Blocks inline */}
+          {aiBlocks.filter((b) => b.type === 'accordion').map((block) => {
             const updateBlock = (updated) =>
               setAiBlocks(aiBlocks.map((b) => (b.id === updated.id ? updated : b)));
-            const dismissBlock = (b, action) => {
-              if (b.type === 'accordion') {
-                // Accordion dismiss: คืนข้อความกลับเข้า content
-                if (b.content) {
-                  const el = textareaRef.current;
-                  if (el) {
-                    el.focus();
-                    document.execCommand('insertText', false, b.content);
-                    setContent(el.innerHTML);
-                  } else {
-                    setContent((prev) => prev + b.content);
-                  }
-                }
-                setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
-                return;
-              }
-
-              // AI block dismiss
-              const lastAiMsg = [...(b.messages || [])].reverse().find((m) => m.role === 'assistant');
-              const aiText = lastAiMsg?.content || '';
-
-              if (action === 'append' && aiText) {
+            const dismissBlock = (b) => {
+              if (b.content) {
                 const el = textareaRef.current;
                 if (el) {
-                  // Move cursor to end and insert
-                  const range = document.createRange();
-                  const sel = window.getSelection();
-                  range.selectNodeContents(el);
-                  range.collapse(false);
-                  sel.removeAllRanges();
-                  sel.addRange(range);
-                  document.execCommand('insertText', false, '\n\n' + aiText);
+                  el.focus();
+                  document.execCommand('insertText', false, b.content);
                   setContent(el.innerHTML);
                 } else {
-                  setContent((prev) => prev.trimEnd() + '\n\n' + aiText);
-                }
-              } else if (action === 'replace' && aiText) {
-                const el = textareaRef.current;
-                if (el) {
-                  const range = document.createRange();
-                  const sel = window.getSelection();
-                  range.selectNodeContents(el);
-                  range.collapse(false);
-                  sel.removeAllRanges();
-                  sel.addRange(range);
-                  document.execCommand('insertText', false, '\n' + aiText);
-                  setContent(el.innerHTML);
-                } else {
-                  setContent((prev) => prev + '\n' + aiText);
+                  setContent((prev) => prev + b.content);
                 }
               }
               setAiBlocks(aiBlocks.filter((ab) => ab.id !== b.id));
             };
-
-            if (block.type === 'accordion') {
-              return (
-                <AccordionBlock
-                  key={block.id}
-                  block={block}
-                  onUpdate={updateBlock}
-                  onDismiss={dismissBlock}
-                />
-              );
-            }
             return (
-              <AIBlock
+              <AccordionBlock
                 key={block.id}
                 block={block}
-                wrappedContent={block.wrappedContent || null}
                 onUpdate={updateBlock}
                 onDismiss={dismissBlock}
               />
@@ -685,6 +689,25 @@ export default function NoteEditor({ note, onClose }) {
 }
 
 const styles = {
+  aiOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.35)',
+    zIndex: 150,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  aiPopup: {
+    background: C.bg,
+    borderRadius: 14,
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '80vh',
+    overflowY: 'auto',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+  },
   overlay: {
     position: 'fixed',
     inset: 0,
