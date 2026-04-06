@@ -149,6 +149,7 @@ export default function TodoList({ searchText }) {
                     >
                       {todo.dueDate
                         ? new Date(todo.dueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+                          + (todo.dueTime ? ` ${todo.dueTime}` : '')
                         : 'ไม่ระบุ'}
                     </span>
                   </div>
