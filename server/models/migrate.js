@@ -2,8 +2,19 @@ import 'dotenv/config';
 import pool from './db.js';
 
 const migrations = `
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY,
+  google_id TEXT UNIQUE,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  picture TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS notes (
   id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   title TEXT,
   content TEXT,
   tags TEXT[] DEFAULT '{}',
@@ -21,6 +32,7 @@ CREATE TABLE IF NOT EXISTS notes (
 
 CREATE TABLE IF NOT EXISTS todos (
   id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   note TEXT,
   priority TEXT DEFAULT 'normal',
@@ -51,9 +63,23 @@ CREATE TABLE IF NOT EXISTS connections (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Add user_id column to existing tables if not exists
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='user_id') THEN
+    ALTER TABLE notes ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='user_id') THEN
+    ALTER TABLE todos ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
 CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned);
 CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived);
+CREATE INDEX IF NOT EXISTS idx_todos_user_id ON todos(user_id);
 CREATE INDEX IF NOT EXISTS idx_todos_due ON todos(due_date);
 CREATE INDEX IF NOT EXISTS idx_todos_priority ON todos(priority);
 `;
