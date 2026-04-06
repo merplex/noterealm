@@ -111,20 +111,59 @@ async function findOrCreateLineNote(senderId, senderName) {
   return newRows[0];
 }
 
-// สร้าง timestamp header + เนื้อหา (ใช้ 1 ครั้งต่อ 1 webhook call ต่อ 1 sender)
-function buildEntry(bodyHtml) {
-  const now = new Date();
-  const dateStr = now.toLocaleString('th-TH', {
+// วันที่ Bangkok (ISO: "2026-04-06")
+function getTodayKey() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+}
+
+function getDateLabel() {
+  return new Date().toLocaleDateString('th-TH', {
     day: '2-digit', month: 'short', year: '2-digit',
+    timeZone: 'Asia/Bangkok',
+  });
+}
+
+function getTimeLabel() {
+  return new Date().toLocaleTimeString('th-TH', {
     hour: '2-digit', minute: '2-digit', hour12: false,
     timeZone: 'Asia/Bangkok',
   });
-  return `<hr style="border:none;border-top:1px solid #e7e5e4;margin:12px 0"/><div style="font-size:11px;color:#a8a29e;margin-bottom:6px">📅 ${dateStr}</div>${bodyHtml}`;
 }
 
-async function prependToNote(noteId, existingContent, entryHtml) {
-  const newContent = entryHtml + (existingContent || '');
-  await pool.query(`UPDATE notes SET content=$1, updated_at=NOW() WHERE id=$2`, [newContent, noteId]);
+// แทรกข้อความเข้า note — ใช้ transaction + FOR UPDATE กัน race condition
+async function insertToNote(noteId, bodyHtml) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query('SELECT content FROM notes WHERE id=$1 FOR UPDATE', [noteId]);
+    const content = rows[0]?.content || '';
+
+    const todayKey = getTodayKey();
+    const marker = `<!-- LINE_DAY:${todayKey} -->`;
+    const timeStr = getTimeLabel();
+    const timeHtml = `<div style="font-size:11px;color:#b0a99f;margin:8px 0 2px">🕐 ${timeStr}</div>`;
+    const entryHtml = timeHtml + bodyHtml;
+
+    let newContent;
+    if (content.includes(marker)) {
+      // วันเดียวกัน → แทรกหลัง marker (ใหม่สุดอยู่บน)
+      const idx = content.indexOf(marker) + marker.length;
+      newContent = content.slice(0, idx) + entryHtml + content.slice(idx);
+    } else {
+      // วันใหม่ → สร้าง section ใหม่ด้านบน
+      const dateStr = getDateLabel();
+      const dayHeader = `<hr style="border:none;border-top:1px solid #e7e5e4;margin:12px 0"/><div style="font-size:12px;color:#a8a29e;margin-bottom:4px">📅 ${dateStr}</div>${marker}`;
+      newContent = dayHeader + entryHtml + content;
+    }
+
+    await client.query('UPDATE notes SET content=$1, updated_at=NOW() WHERE id=$2', [newContent, noteId]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // Webhook endpoint
@@ -200,9 +239,7 @@ router.post('/', async (req, res) => {
       }
 
       if (parts.length > 0) {
-        // timestamp เดียวด้านบน ตามด้วยเนื้อหาทั้งหมด
-        const entryHtml = buildEntry(parts.join(''));
-        await prependToNote(note.id, note.content, entryHtml);
+        await insertToNote(note.id, parts.join(''));
         console.log('[LINE] saved', parts.length, 'part(s) to note', note.id);
         await replyMessage(lastReplyToken, `บันทึกใน "${senderName}" แล้ว`);
       }
