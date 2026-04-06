@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 
@@ -13,37 +13,49 @@ export default function NoteCard({ note, onClick, listMode }) {
   const isArchived = note.archived;
   const isDeleted = !!note.deletedAt;
   const [swipeX, setSwipeX] = useState(0);
-  const swipeXRef = useRef(0); // ref สำหรับอ่านค่า swipe ใน handleTouchEnd (ไม่ stale)
+  const swipeXRef = useRef(0);
   const swipingRef = useRef(false);
   const touchStart = useRef(null);
+  const cardRef = useRef(null);
 
   const DELETE_THRESHOLD = 90;
 
-  const reset = () => {
+  const reset = useCallback(() => {
     swipeXRef.current = 0;
     swipingRef.current = false;
     setSwipeX(0);
     touchStart.current = null;
-  };
+  }, []);
 
   const handleTouchStart = (e) => {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     swipingRef.current = false;
     swipeXRef.current = 0;
-    setSwipeX(0); // reset ถ้า card ค้างอยู่จากครั้งก่อน
+    setSwipeX(0);
   };
 
-  const handleTouchMove = (e) => {
-    if (!touchStart.current) return;
-    const dx = e.touches[0].clientX - touchStart.current.x;
-    const dy = e.touches[0].clientY - touchStart.current.y;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
-      swipingRef.current = true;
-      const clamped = Math.max(-100, Math.min(0, dx));
-      swipeXRef.current = clamped;
-      setSwipeX(clamped);
-    }
-  };
+  // ใช้ non-passive listener เพื่อ preventDefault() ตอน swipe แนวนอน
+  // ป้องกัน browser ชิง touch ไป scroll → touchEnd ไม่ถูกเรียก → card ค้าง
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    const onTouchMove = (e) => {
+      if (!touchStart.current) return;
+      const dx = e.touches[0].clientX - touchStart.current.x;
+      const dy = e.touches[0].clientY - touchStart.current.y;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+        e.preventDefault(); // ← ต้อง non-passive ถึงจะทำงาน
+        swipingRef.current = true;
+        const clamped = Math.max(-100, Math.min(0, dx));
+        swipeXRef.current = clamped;
+        setSwipeX(clamped);
+      }
+    };
+
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onTouchMove);
+  }, []);
 
   const handleTouchEnd = () => {
     if (swipeXRef.current <= -DELETE_THRESHOLD) {
@@ -85,6 +97,7 @@ export default function NoteCard({ note, onClick, listMode }) {
       )}
 
       <div
+        ref={cardRef}
         style={{
           ...styles.card,
           opacity: isArchived || isDeleted ? 0.72 : 1,
@@ -94,7 +107,6 @@ export default function NoteCard({ note, onClick, listMode }) {
         }}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={reset}
       >
