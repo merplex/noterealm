@@ -30,26 +30,23 @@ export default function Settings({ onClose }) {
     dispatch({ type: 'SET_USER', payload: null });
   };
 
-  const handleLineConnect = () => {
+  const handleLineConnect = async () => {
     setLineConnecting(true);
-    const w = 500, h = 600;
-    const left = (screen.width - w) / 2, top = (screen.height - h) / 2;
-    const popup = window.open(
-      `${import.meta.env.VITE_API_URL || ''}/api/oauth/line`,
-      'line', `width=${w},height=${h},left=${left},top=${top}`
-    );
-    const listener = (e) => {
-      if (e.data?.type === 'LINE_CONNECTED') {
-        window.removeEventListener('message', listener);
-        setLineConnecting(false);
-        const conn = { type: 'line', enabled: true, label: e.data.displayName || 'LINE', linkedAt: new Date().toISOString() };
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/webhook/line/status`);
+      const data = await res.json();
+      if (data.connected) {
+        const conn = { type: 'line', enabled: true, label: data.displayName || 'LINE Bot', linkedAt: new Date().toISOString() };
         const updated = [...(state.connections || []).filter((c) => c.type !== 'line'), conn];
         dispatch({ type: 'SET_CONNECTIONS', payload: updated });
+      } else {
+        alert('ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาตรวจสอบ Token ใน Railway');
       }
-    };
-    window.addEventListener('message', listener);
-    // Timeout fallback
-    setTimeout(() => { window.removeEventListener('message', listener); setLineConnecting(false); }, 120000);
+    } catch {
+      alert('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+    } finally {
+      setLineConnecting(false);
+    }
   };
 
   const handleLineDisconnect = () => {
@@ -128,7 +125,9 @@ export default function Settings({ onClose }) {
             <div>
               <div style={styles.label}>LINE Connect</div>
               <div style={styles.desc}>
-                {isLineConnected ? 'เชื่อมต่อแล้ว' : 'เชื่อมต่อ LINE เพื่อรับ-ส่งโน้ต'}
+                {isLineConnected
+                  ? `💬 ${state.connections?.find((c) => c.type === 'line')?.label || 'LINE'}`
+                  : 'เชื่อมต่อ LINE เพื่อรับ-ส่งโน้ต'}
               </div>
             </div>
             {isLineConnected ? (

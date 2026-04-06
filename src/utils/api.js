@@ -21,6 +21,7 @@ export const notesApi = {
 };
 
 export const lineApi = {
+  status: () => request('/webhook/line/status'),
   trim: (period) => request('/webhook/line/trim', { method: 'POST', body: JSON.stringify({ period }) }),
 };
 

@@ -281,6 +281,22 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ดึง bot profile เพื่อเช็คว่า token ใช้ได้ + ชื่อ bot
+router.get('/status', async (req, res) => {
+  const token = getToken();
+  if (!token) return res.json({ connected: false });
+  try {
+    const r = await fetch('https://api.line.me/v2/bot/info', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) return res.json({ connected: false });
+    const data = await r.json();
+    res.json({ connected: true, displayName: data.displayName, pictureUrl: data.pictureUrl });
+  } catch {
+    res.json({ connected: false });
+  }
+});
+
 // ตั้ง period + archive notes ที่เกิน period ทันที
 router.post('/trim', async (req, res) => {
   const { period } = req.body; // 'week' | 'month' | 'year'
