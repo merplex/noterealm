@@ -72,20 +72,32 @@ async function replyMessage(replyToken, text) {
   }).catch((err) => console.error('reply error:', err.message));
 }
 
-// หา note ของ sender นี้ (ถ้าไม่มีให้สร้างใหม่)
-async function findOrCreateLineNote(senderName) {
+// หา note ของ sender นี้โดยใช้ LINE ID (ไม่ใช่ชื่อ)
+// เก็บ LINE ID เป็น tag พิเศษ _line_id:Uxxxxx เพื่อค้นหา
+async function findOrCreateLineNote(senderId, senderName) {
+  const idTag = `_line_id:${senderId}`;
   const title = `LINE: ${senderName}`;
-  const { rows } = await pool.query(
-    `SELECT id, content FROM notes WHERE source='line' AND title=$1 AND archived=false ORDER BY updated_at DESC LIMIT 1`,
-    [title]
-  );
-  if (rows.length > 0) return rows[0];
 
+  // ค้นหาด้วย LINE ID tag
+  const { rows } = await pool.query(
+    `SELECT id, content, title FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false ORDER BY updated_at DESC LIMIT 1`,
+    [idTag]
+  );
+
+  if (rows.length > 0) {
+    // ถ้าชื่อเปลี่ยน → อัปเดต title ให้ตรงชื่อล่าสุด
+    if (rows[0].title !== title) {
+      await pool.query(`UPDATE notes SET title=$1, updated_at=NOW() WHERE id=$2`, [title, rows[0].id]);
+    }
+    return rows[0];
+  }
+
+  // ยังไม่มี → สร้างใหม่
   const { rows: newRows } = await pool.query(
     `INSERT INTO notes (id, title, content, tags, pinned, archived, images, ai_blocks, source, refs, history)
-     VALUES (gen_random_uuid(), $1, '', '{}', false, false, '{}', '[]', 'line', '{}', '[]')
+     VALUES (gen_random_uuid(), $1, '', $2, false, false, '{}', '[]', 'line', '{}', '[]')
      RETURNING id, content`,
-    [title]
+    [title, [idTag]]
   );
   return newRows[0];
 }
@@ -125,8 +137,9 @@ router.post('/', async (req, res) => {
     const replyToken = event.replyToken;
 
     try {
+      const senderId = event.source.groupId || event.source.roomId || event.source.userId;
       const senderName = await getSenderName(event);
-      const note = await findOrCreateLineNote(senderName);
+      const note = await findOrCreateLineNote(senderId, senderName);
 
       if (event.message.type === 'text') {
         const text = event.message.text;

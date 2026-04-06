@@ -105,7 +105,7 @@ export default function NoteCard({ note, onClick, listMode }) {
         )}
 
         <div style={styles.footer}>
-          {note.tags?.map((tag) => (
+          {note.tags?.filter((t) => !t.startsWith('_')).map((tag) => (
             <span key={tag} style={styles.tag}>
               {tag}
             </span>
