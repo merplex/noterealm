@@ -122,22 +122,13 @@ async function findOrCreateLineNote(senderId, senderName) {
     return note;
   }
 
-  // ถ้ามี note เดิมที่ถูก soft-delete → undelete แทนสร้างใหม่
-  const { rows: deleted } = await pool.query(
-    `SELECT id, content, title, tags FROM notes WHERE source='line' AND $1=ANY(tags) AND deleted_at IS NOT NULL ORDER BY updated_at DESC LIMIT 1`,
+  // ไม่มี active note → สร้างใหม่เสมอ ไม่ revive deleted/archived
+  // inherit แค่ trim tag จากโน้ตล่าสุด (ไม่ว่าจะ archived หรือ deleted)
+  const { rows: prev } = await pool.query(
+    `SELECT tags FROM notes WHERE source='line' AND $1=ANY(tags) ORDER BY updated_at DESC LIMIT 1`,
     [idTag]
   );
-  if (deleted.length > 0) {
-    await pool.query(`UPDATE notes SET deleted_at=NULL, archived=false, title=$1, updated_at=NOW() WHERE id=$2`, [title, deleted[0].id]);
-    return deleted[0];
-  }
-
-  // inherit trim tag จาก archived note ล่าสุด (ถ้ามี)
-  const { rows: archived } = await pool.query(
-    `SELECT tags FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=true ORDER BY updated_at DESC LIMIT 1`,
-    [idTag]
-  );
-  const prevTrimTag = (archived[0]?.tags || []).find((t) => t.startsWith('_line_trim:'));
+  const prevTrimTag = (prev[0]?.tags || []).find((t) => t.startsWith('_line_trim:'));
   const tags = [idTag];
   if (prevTrimTag) tags.push(prevTrimTag);
 
