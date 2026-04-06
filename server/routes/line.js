@@ -118,28 +118,44 @@ async function prependToNote(noteId, existingContent, entryHtml) {
 
 // Webhook endpoint
 router.post('/', async (req, res) => {
+  console.log('[LINE] webhook received, events:', req.body.events?.length || 0);
+
   const signature = req.headers['x-line-signature'];
   if (!verifySignature(req.rawBody || JSON.stringify(req.body), signature)) {
+    console.error('[LINE] signature verification FAILED');
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
   res.status(200).end();
 
-  const events = (req.body.events || []).filter((e) => e.type === 'message');
+  const allEvents = req.body.events || [];
+  const events = allEvents.filter((e) => e.type === 'message');
+  if (allEvents.length > 0 && events.length === 0) {
+    console.log('[LINE] no message events, types:', allEvents.map((e) => e.type));
+  }
   if (events.length === 0) return;
+
+  console.log('[LINE] processing', events.length, 'message event(s)');
 
   // จัดกลุ่ม events ตาม sender ID — เพื่อให้ timestamp เดียวต่อ 1 webhook call
   const grouped = new Map();
   for (const event of events) {
-    const senderId = event.source.groupId || event.source.roomId || event.source.userId;
+    const src = event.source || {};
+    const senderId = src.groupId || src.roomId || src.userId;
+    if (!senderId) {
+      console.error('[LINE] event has no senderId, source:', JSON.stringify(src));
+      continue;
+    }
     if (!grouped.has(senderId)) grouped.set(senderId, []);
     grouped.get(senderId).push(event);
   }
 
   for (const [senderId, senderEvents] of grouped) {
     try {
+      console.log('[LINE] sender:', senderId, 'events:', senderEvents.length);
       const senderName = await getSenderName(senderEvents[0]);
       const note = await findOrCreateLineNote(senderId, senderName);
+      console.log('[LINE] note:', note.id, 'for', senderName);
 
       // รวมทุก message ของ sender นี้เป็น HTML เดียว (ไม่มี timestamp แยก)
       const parts = [];
@@ -156,6 +172,8 @@ router.post('/', async (req, res) => {
           if (imgData) {
             parts.push(`<img src="${imgData}" style="max-width:100%;border-radius:8px;display:block;margin:4px 0"/>`);
           }
+        } else {
+          console.log('[LINE] unsupported message type:', event.message.type);
         }
       }
 
@@ -163,10 +181,11 @@ router.post('/', async (req, res) => {
         // timestamp เดียวด้านบน ตามด้วยเนื้อหาทั้งหมด
         const entryHtml = buildEntry(parts.join(''));
         await prependToNote(note.id, note.content, entryHtml);
+        console.log('[LINE] saved', parts.length, 'part(s) to note', note.id);
         await replyMessage(lastReplyToken, `บันทึกใน "${senderName}" แล้ว`);
       }
     } catch (err) {
-      console.error('LINE webhook error:', err.message);
+      console.error('[LINE] webhook error:', err.message, err.stack);
     }
   }
 });
