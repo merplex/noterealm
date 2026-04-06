@@ -206,6 +206,9 @@ const styles = {
     gap: 4,
     padding: '8px 14px',
     background: '#f5f5f4',
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
   },
   toggleBtn: {
     flex: 1,
