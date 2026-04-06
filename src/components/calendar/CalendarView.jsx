@@ -134,5 +134,6 @@ const styles = {
   },
   body: {
     flex: 1,
+    overflowY: 'auto',
   },
 };
