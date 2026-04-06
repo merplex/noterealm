@@ -56,7 +56,7 @@ export default function NoteGrid({ searchText, activeFilter, onEdit, onHistory }
     return notes;
   }, [state.notes, state.sortBy, state.sortDir, activeFilter, searchText]);
 
-  const isList = state.viewMode === 'list';
+  const isList = state.noteViewMode === 'list';
 
   return (
     <div>

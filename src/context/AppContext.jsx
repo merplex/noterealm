@@ -13,7 +13,8 @@ const initialState = {
   aiSettings: {},
   connections: [],
   activeTab: 'note',
-  viewMode: 'grid',
+  noteViewMode: 'grid',
+  todoViewMode: 'list',
   sortBy: 'updated',
   sortDir: 'desc',
   defaultTab: 'note',
@@ -27,6 +28,10 @@ function reducer(state, action) {
       return { ...state, activeTab: action.payload };
     case 'SET_VIEW_MODE':
       return { ...state, viewMode: action.payload };
+    case 'SET_NOTE_VIEW_MODE':
+      return { ...state, noteViewMode: action.payload };
+    case 'SET_TODO_VIEW_MODE':
+      return { ...state, todoViewMode: action.payload };
     case 'SET_SORT':
       return { ...state, sortBy: action.payload.sortBy ?? state.sortBy, sortDir: action.payload.sortDir ?? state.sortDir };
     case 'SET_DEFAULT_TAB':
@@ -88,7 +93,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     (async () => {
       // Load local-only settings
-      const localKeys = ['aiSettings', 'connections', 'groups', 'tags', 'activeTab', 'viewMode', 'sortBy', 'sortDir', 'defaultTab'];
+      const localKeys = ['aiSettings', 'connections', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab'];
       const loaded = {};
       for (const key of localKeys) {
         const val = await storage.get(STORAGE_KEYS[key]);
@@ -115,11 +120,12 @@ export function AppProvider({ children }) {
     storage.set(STORAGE_KEYS.groups, state.groups);
     storage.set(STORAGE_KEYS.tags, state.tags);
     storage.set(STORAGE_KEYS.activeTab, state.activeTab);
-    storage.set(STORAGE_KEYS.viewMode, state.viewMode);
+    storage.set(STORAGE_KEYS.noteViewMode, state.noteViewMode);
+    storage.set(STORAGE_KEYS.todoViewMode, state.todoViewMode);
     storage.set(STORAGE_KEYS.sortBy, state.sortBy);
     storage.set(STORAGE_KEYS.sortDir, state.sortDir);
     storage.set(STORAGE_KEYS.defaultTab, state.defaultTab);
-  }, [state.aiSettings, state.connections, state.groups, state.tags, state.activeTab, state.viewMode, state.sortBy, state.sortDir, state.defaultTab]);
+  }, [state.aiSettings, state.connections, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab]);
 
   // Async actions that call API then update local state
   const actions = useMemo(() => ({

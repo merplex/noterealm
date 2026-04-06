@@ -53,8 +53,14 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
   };
 
   const toggleView = () => {
-    dispatch({ type: 'SET_VIEW_MODE', payload: state.viewMode === 'grid' ? 'list' : 'grid' });
+    const isNote = state.activeTab === 'note';
+    if (isNote) {
+      dispatch({ type: 'SET_NOTE_VIEW_MODE', payload: state.noteViewMode === 'grid' ? 'list' : 'grid' });
+    } else {
+      dispatch({ type: 'SET_TODO_VIEW_MODE', payload: state.todoViewMode === 'grid' ? 'list' : 'grid' });
+    }
   };
+  const currentViewMode = state.activeTab === 'note' ? state.noteViewMode : state.todoViewMode;
 
   const handleSortDown = () => {
     holdTimer.current = setTimeout(() => {
@@ -131,7 +137,7 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
         </div>
 
         <button style={styles.iconBtn} onClick={toggleView}>
-          {state.viewMode === 'grid' ? (
+          {currentViewMode === 'grid' ? (
             <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
               <circle cx="3" cy="4" r="1.8" fill={C.sub}/>
               <rect x="7" y="2.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>

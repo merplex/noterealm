@@ -61,6 +61,8 @@ export const STORAGE_KEYS = {
   connections: 'nk_connections',
   activeTab: 'nk_active_tab',
   viewMode: 'nk_view_mode',
+  noteViewMode: 'nk_note_view_mode',
+  todoViewMode: 'nk_todo_view_mode',
   sortBy: 'nk_sort_by',
   sortDir: 'nk_sort_dir',
   defaultTab: 'nk_default_tab',
