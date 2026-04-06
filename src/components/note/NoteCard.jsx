@@ -24,10 +24,12 @@ export default function NoteCard({ note, onClick, listMode }) {
   const cardRef = useRef(null);
 
   const DELETE_THRESHOLD = 90;
+  const gestureRef = useRef(null); // null=undecided, 'h'=horizontal, 'v'=vertical
 
   const reset = useCallback(() => {
     swipeXRef.current = 0;
     swipingRef.current = false;
+    gestureRef.current = null;
     setSwipeX(0);
     touchStart.current = null;
   }, []);
@@ -36,11 +38,12 @@ export default function NoteCard({ note, onClick, listMode }) {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     swipingRef.current = false;
     swipeXRef.current = 0;
+    gestureRef.current = null;
     setSwipeX(0);
   };
 
-  // ใช้ non-passive listener เพื่อ preventDefault() ตอน swipe แนวนอน
-  // ป้องกัน browser ชิง touch ไป scroll → touchEnd ไม่ถูกเรียก → card ค้าง
+  // non-passive listener — lock gesture direction ตั้งแต่ 4px แรก
+  // เพื่อให้ preventDefault() ยิงก่อน browser commit vertical scroll
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
@@ -49,8 +52,16 @@ export default function NoteCard({ note, onClick, listMode }) {
       if (!touchStart.current) return;
       const dx = e.touches[0].clientX - touchStart.current.x;
       const dy = e.touches[0].clientY - touchStart.current.y;
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
-        e.preventDefault(); // ← ต้อง non-passive ถึงจะทำงาน
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      // Lock gesture direction ที่ 4px แรก ก่อน browser commit scroll
+      if (gestureRef.current === null && (absDx > 4 || absDy > 4)) {
+        gestureRef.current = absDx >= absDy ? 'h' : 'v';
+      }
+
+      if (gestureRef.current === 'h') {
+        e.preventDefault(); // ป้องกัน scroll (ต้อง non-passive)
         swipingRef.current = true;
         const clamped = Math.max(-100, Math.min(0, dx));
         swipeXRef.current = clamped;
@@ -70,11 +81,11 @@ export default function NoteCard({ note, onClick, listMode }) {
     reset();
   };
 
-  // Fallback: ถ้า touchEnd ไม่ fire (browser ชิง touch) → auto-reset หลัง 300ms
+  // Fallback: ถ้า touchEnd ไม่ fire → auto-reset หลัง 3s
   // timer restart ทุกครั้งที่ swipeX เปลี่ยน (touchMove) จึงไม่ reset ระหว่าง swipe
   useEffect(() => {
     if (swipeX >= 0) return;
-    const timer = setTimeout(reset, 300);
+    const timer = setTimeout(reset, 3000);
     return () => clearTimeout(timer);
   }, [swipeX, reset]);
 
