@@ -91,7 +91,7 @@ const styles = {
     position: 'relative',
   },
   triggerBtn: {
-    padding: '6px 12px',
+    padding: '5px 8px',
     borderRadius: 8,
     border: `1px solid ${C.border}`,
     background: C.white,
@@ -99,10 +99,13 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 15,
+    fontSize: 'clamp(11px, 3.2vw, 15px)',
     fontWeight: 500,
     color: C.text,
     textTransform: 'none',
+    whiteSpace: 'nowrap',
+    flexShrink: 1,
+    minWidth: 0,
   },
   dropdown: {
     position: 'absolute',
