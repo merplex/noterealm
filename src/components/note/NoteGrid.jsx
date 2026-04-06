@@ -86,7 +86,7 @@ export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, o
           />
         ))}
         {filteredNotes.length === 0 && (
-          <div style={{ ...styles.empty, gridColumn: isList ? undefined : '1/-1' }}>
+          <div style={{ ...styles.empty, columnSpan: isList ? undefined : 'all' }}>
             {searchText ? 'ไม่พบโน้ตที่ค้นหา' : 'ยังไม่มีโน้ต — กด + เพื่อสร้าง'}
           </div>
         )}
