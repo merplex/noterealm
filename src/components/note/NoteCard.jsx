@@ -23,6 +23,8 @@ export default function NoteCard({ note, onClick, listMode }) {
   const handleTouchStart = (e) => {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     swipingRef.current = false;
+    swipeXRef.current = 0;
+    setSwipeX(0); // reset ถ้า card ค้างอยู่จากครั้งก่อน
   };
 
   const handleTouchMove = (e) => {
