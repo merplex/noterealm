@@ -49,6 +49,8 @@ button {
 .masonry-grid > * {
   break-inside: avoid;
   margin-bottom: 12px;
+  overflow: hidden;
+  min-width: 0;
 }
 
 /* contentEditable placeholder */

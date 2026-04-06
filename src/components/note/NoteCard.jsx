@@ -57,7 +57,7 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: isSelecting ? 10 : 0 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: isSelecting ? 10 : 0, minWidth: 0, overflow: 'hidden' }}>
       {isSelecting && (
         <div
           style={{
@@ -136,6 +136,8 @@ const styles = {
     border: `1px solid ${C.border}`,
     cursor: 'pointer',
     position: 'relative',
+    overflow: 'hidden',
+    minWidth: 0,
   },
   archiveBadge: {
     display: 'inline-block',
