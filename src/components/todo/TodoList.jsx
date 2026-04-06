@@ -365,7 +365,7 @@ const styles = {
   },
   selectionCount: { fontSize: 14, fontWeight: 600, color: C.text },
   cancelBtn: {
-    background: 'none', border: 'none', fontSize: 13, color: C.sub,
+    background: 'none', border: 'none', fontSize: 15, fontWeight: 600, color: C.sub,
     cursor: 'pointer', padding: '4px 0', fontFamily: C.font,
   },
   actionBtns: { display: 'flex', gap: 10 },

@@ -77,7 +77,7 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
       <div
         style={{
           ...styles.card,
-          flex: isSelecting ? 1 : undefined,
+          flex: 1,
           opacity: isArchived || isDeleted ? 0.72 : 1,
           outline: isSelected ? `2px solid ${C.amber}` : 'none',
           background: isSelected ? '#fffbeb' : C.white,

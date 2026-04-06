@@ -230,7 +230,8 @@ const styles = {
   cancelBtn: {
     background: 'none',
     border: 'none',
-    fontSize: 13,
+    fontSize: 15,
+    fontWeight: 600,
     color: C.sub,
     cursor: 'pointer',
     padding: '4px 0',
