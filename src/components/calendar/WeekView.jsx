@@ -121,7 +121,6 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
           ))}
         </div>
       )}
-      <div style={{ height: 80 }} />
     </div>
   );
 }

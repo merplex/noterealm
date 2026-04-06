@@ -137,5 +137,6 @@ const styles = {
     flex: 1,
     overflowY: 'auto',
     minHeight: 0,
+    paddingBottom: 80,
   },
 };

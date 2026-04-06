@@ -186,8 +186,6 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
             {noDateTodos.map((todo) => renderTodoCard(todo, false))}
           </div>
         )}
-
-        <div style={{ height: 100 }} />
       </div>
 
       {/* Confirm add to note popup */}
