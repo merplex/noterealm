@@ -11,7 +11,7 @@ import AccordionBlock from './AccordionBlock';
 import { callAI } from '../../utils/callAI';
 import { stripHtml } from '../../utils/diff';
 
-export default function NoteEditor({ note, onClose }) {
+export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(note?.content || '');
@@ -30,6 +30,7 @@ export default function NoteEditor({ note, onClose }) {
   const dirtyRef = useRef(false); // true เมื่อ user แก้ไขจริง — ป้องกัน auto-save ทับ webhook data
   const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
   const [showInsertMenu, setShowInsertMenu] = useState(false);
+  const [previewNote, setPreviewNote] = useState(null); // popup preview ของ relate note
   const [lastSaved, setLastSaved] = useState(note?.updatedAt || null);
   const autoSaveTimer = useRef(null);
 
@@ -517,7 +518,7 @@ export default function NoteEditor({ note, onClose }) {
     <div style={styles.overlay}>
       <div style={styles.modal}>
         {/* Sticky: Related Notes */}
-        <RelatePanel note={{ ...note, content }} onNavigate={() => {}} />
+        <RelatePanel note={{ ...note, content }} onNavigate={(n) => setPreviewNote(n)} />
 
         {/* Sticky: Toolbar */}
         <div style={styles.toolbar}>
@@ -781,6 +782,28 @@ export default function NoteEditor({ note, onClose }) {
             }}
             onClose={() => setHistoryNote(null)}
           />
+        )}
+
+        {/* Preview popup ของ relate note */}
+        {previewNote && (
+          <div style={styles.previewOverlay} onClick={() => setPreviewNote(null)}>
+            <div style={styles.previewModal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.previewHeader}>
+                <button
+                  style={styles.previewEditBtn}
+                  onClick={() => { doAutoSave(); onNavigateToNote?.(previewNote); }}
+                >
+                  แก้ไข
+                </button>
+                <div style={styles.previewTitle}>{previewNote.title || 'Untitled'}</div>
+                <button style={styles.previewCloseBtn} onClick={() => setPreviewNote(null)}>✕</button>
+              </div>
+              <div
+                style={styles.previewBody}
+                dangerouslySetInnerHTML={{ __html: previewNote.content || '<p style="color:#a8a29e">ไม่มีเนื้อหา</p>' }}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -1054,5 +1077,78 @@ const styles = {
     maxHeight: '95vh',
     objectFit: 'contain',
     borderRadius: 4,
+  },
+  previewOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.45)',
+    zIndex: 200,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '7.5vh 16px',
+  },
+  previewModal: {
+    background: C.bg,
+    width: '100%',
+    maxWidth: 580,
+    height: '85vh',
+    borderRadius: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+    overflow: 'hidden',
+  },
+  previewHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 16px',
+    borderBottom: `1px solid ${C.border}`,
+    gap: 8,
+  },
+  previewTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 700,
+    color: C.text,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    textAlign: 'center',
+  },
+  previewEditBtn: {
+    padding: '6px 14px',
+    borderRadius: 8,
+    border: `1px solid ${C.amber}`,
+    background: C.white,
+    color: C.amber,
+    fontSize: 13,
+    fontWeight: 600,
+    fontFamily: C.font,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  previewCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    border: 'none',
+    background: C.white,
+    color: C.muted,
+    fontSize: 16,
+    cursor: 'pointer',
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewBody: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '16px 20px',
+    fontSize: 15,
+    lineHeight: 1.6,
+    color: C.text,
+    wordBreak: 'break-word',
   },
 };

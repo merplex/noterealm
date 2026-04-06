@@ -136,7 +136,7 @@ export default function App() {
 
       {/* Modals */}
       {editingNote !== null && (
-        <NoteEditor note={editingNote} onClose={() => setEditingNote(null)} />
+        <NoteEditor note={editingNote} onClose={() => setEditingNote(null)} onNavigateToNote={(n) => setEditingNote(n)} />
       )}
       {editingTodo !== null && (
         <TodoEditor todo={editingTodo} onClose={() => setEditingTodo(null)} />
