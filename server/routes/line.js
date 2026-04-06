@@ -4,15 +4,21 @@ import pool from '../models/db.js';
 
 const router = Router();
 
+// ล้าง whitespace ทั้งหมด (รวม newline กลางสาย)
+function getToken() {
+  return process.env.LINE_CHANNEL_ACCESS_TOKEN?.replace(/\s/g, '') || '';
+}
+
 function verifySignature(body, signature) {
-  const secret = process.env.LINE_CHANNEL_SECRET?.trim();
+  const secret = process.env.LINE_CHANNEL_SECRET?.replace(/\s/g, '');
   if (!secret) return true;
   const hash = crypto.createHmac('sha256', secret).update(body).digest('base64');
   return hash === signature;
 }
 
 async function lineGet(path) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN?.trim();
+  const token = getToken();
+  if (!token) return null;
   const res = await fetch(`https://api.line.me${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -20,7 +26,6 @@ async function lineGet(path) {
   return res.json();
 }
 
-// ได้ชื่อผู้ส่งหรือชื่อกลุ่ม
 async function getSenderName(event) {
   try {
     if (event.source.type === 'group') {
@@ -38,9 +43,8 @@ async function getSenderName(event) {
   }
 }
 
-// ดึงรูปจาก LINE
 async function fetchLineImage(messageId) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN?.trim();
+  const token = getToken();
   if (!token) return null;
   try {
     const res = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
@@ -61,9 +65,8 @@ async function fetchLineImage(messageId) {
   }
 }
 
-// ส่ง reply กลับ LINE
 async function replyMessage(replyToken, text) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN?.trim();
+  const token = getToken();
   if (!token || !replyToken) return;
   await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
@@ -72,27 +75,22 @@ async function replyMessage(replyToken, text) {
   }).catch((err) => console.error('reply error:', err.message));
 }
 
-// หา note ของ sender นี้โดยใช้ LINE ID (ไม่ใช่ชื่อ)
-// เก็บ LINE ID เป็น tag พิเศษ _line_id:Uxxxxx เพื่อค้นหา
 async function findOrCreateLineNote(senderId, senderName) {
   const idTag = `_line_id:${senderId}`;
   const title = `LINE: ${senderName}`;
 
-  // ค้นหาด้วย LINE ID tag
   const { rows } = await pool.query(
     `SELECT id, content, title FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false ORDER BY updated_at DESC LIMIT 1`,
     [idTag]
   );
 
   if (rows.length > 0) {
-    // ถ้าชื่อเปลี่ยน → อัปเดต title ให้ตรงชื่อล่าสุด
     if (rows[0].title !== title) {
       await pool.query(`UPDATE notes SET title=$1, updated_at=NOW() WHERE id=$2`, [title, rows[0].id]);
     }
     return rows[0];
   }
 
-  // ยังไม่มี → สร้างใหม่
   const { rows: newRows } = await pool.query(
     `INSERT INTO notes (id, title, content, tags, pinned, archived, images, ai_blocks, source, refs, history)
      VALUES (gen_random_uuid(), $1, '', $2, false, false, '{}', '[]', 'line', '{}', '[]')
@@ -102,7 +100,7 @@ async function findOrCreateLineNote(senderId, senderName) {
   return newRows[0];
 }
 
-// สร้าง HTML block สำหรับ entry ใหม่
+// สร้าง timestamp header + เนื้อหา (ใช้ 1 ครั้งต่อ 1 webhook call ต่อ 1 sender)
 function buildEntry(bodyHtml) {
   const now = new Date();
   const dateStr = now.toLocaleString('th-TH', {
@@ -113,13 +111,9 @@ function buildEntry(bodyHtml) {
   return `<hr style="border:none;border-top:1px solid #e7e5e4;margin:12px 0"/><div style="font-size:11px;color:#a8a29e;margin-bottom:6px">📅 ${dateStr}</div>${bodyHtml}`;
 }
 
-// Prepend entry ไว้บนสุด แล้ว update note
-async function appendToNote(noteId, existingContent, entryHtml) {
+async function prependToNote(noteId, existingContent, entryHtml) {
   const newContent = entryHtml + (existingContent || '');
-  await pool.query(
-    `UPDATE notes SET content=$1, updated_at=NOW() WHERE id=$2`,
-    [newContent, noteId]
-  );
+  await pool.query(`UPDATE notes SET content=$1, updated_at=NOW() WHERE id=$2`, [newContent, noteId]);
 }
 
 // Webhook endpoint
@@ -129,33 +123,47 @@ router.post('/', async (req, res) => {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  res.status(200).end(); // ตอบ LINE ก่อนเสมอ (ต้องตอบภายใน 1 วิ)
+  res.status(200).end();
 
-  const events = req.body.events || [];
+  const events = (req.body.events || []).filter((e) => e.type === 'message');
+  if (events.length === 0) return;
+
+  // จัดกลุ่ม events ตาม sender ID — เพื่อให้ timestamp เดียวต่อ 1 webhook call
+  const grouped = new Map();
   for (const event of events) {
-    if (event.type !== 'message') continue;
-    const replyToken = event.replyToken;
+    const senderId = event.source.groupId || event.source.roomId || event.source.userId;
+    if (!grouped.has(senderId)) grouped.set(senderId, []);
+    grouped.get(senderId).push(event);
+  }
 
+  for (const [senderId, senderEvents] of grouped) {
     try {
-      const senderId = event.source.groupId || event.source.roomId || event.source.userId;
-      const senderName = await getSenderName(event);
+      const senderName = await getSenderName(senderEvents[0]);
       const note = await findOrCreateLineNote(senderId, senderName);
 
-      if (event.message.type === 'text') {
-        const text = event.message.text;
-        const bodyHtml = `<p style="white-space:pre-wrap;margin:0">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
-        await appendToNote(note.id, note.content, buildEntry(bodyHtml));
-        await replyMessage(replyToken, `บันทึกใน "${senderName}" แล้ว`);
+      // รวมทุก message ของ sender นี้เป็น HTML เดียว (ไม่มี timestamp แยก)
+      const parts = [];
+      let lastReplyToken = null;
 
-      } else if (event.message.type === 'image') {
-        const imgData = await fetchLineImage(event.message.id);
-        if (imgData) {
-          const bodyHtml = `<img src="${imgData}" style="max-width:100%;border-radius:8px;display:block"/>`;
-          await appendToNote(note.id, note.content, buildEntry(bodyHtml));
-          await replyMessage(replyToken, `บันทึกรูปใน "${senderName}" แล้ว`);
-        } else {
-          await replyMessage(replyToken, 'ดึงรูปไม่ได้ ลองใหม่อีกครั้ง');
+      for (const event of senderEvents) {
+        lastReplyToken = event.replyToken;
+
+        if (event.message.type === 'text') {
+          const text = event.message.text;
+          parts.push(`<p style="white-space:pre-wrap;margin:4px 0">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`);
+        } else if (event.message.type === 'image') {
+          const imgData = await fetchLineImage(event.message.id);
+          if (imgData) {
+            parts.push(`<img src="${imgData}" style="max-width:100%;border-radius:8px;display:block;margin:4px 0"/>`);
+          }
         }
+      }
+
+      if (parts.length > 0) {
+        // timestamp เดียวด้านบน ตามด้วยเนื้อหาทั้งหมด
+        const entryHtml = buildEntry(parts.join(''));
+        await prependToNote(note.id, note.content, entryHtml);
+        await replyMessage(lastReplyToken, `บันทึกใน "${senderName}" แล้ว`);
       }
     } catch (err) {
       console.error('LINE webhook error:', err.message);
