@@ -21,6 +21,9 @@ export default function NoteEditor({ note, onClose }) {
   const [aiBlocks, setAiBlocks] = useState(note?.aiBlocks || []);
   const [group, setGroup] = useState(note?.group || '');
   const [showRefer, setShowRefer] = useState(false);
+  const [fullscreenImg, setFullscreenImg] = useState(null);
+  const bodyRef = useRef(null);
+  const galleryRef = useRef(null);
   const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
@@ -29,6 +32,58 @@ export default function NoteEditor({ note, onClose }) {
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
+
+  // Extract inline images from content for gallery
+  const inlineImages = useMemo(() => {
+    if (!content) return [];
+    const div = document.createElement('div');
+    div.innerHTML = content;
+    return Array.from(div.querySelectorAll('img')).map((img) => img.src).filter(Boolean);
+  }, [content]);
+  const allImages = [...inlineImages, ...images];
+  const hasGallery = allImages.length > 0;
+
+  // Track nearest image on scroll and center it in gallery
+  useEffect(() => {
+    const body = bodyRef.current;
+    const gallery = galleryRef.current;
+    if (!body || !gallery || !hasGallery) return;
+
+    const handleScroll = () => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const imgs = textarea.querySelectorAll('img');
+      if (imgs.length === 0) return;
+
+      const bodyRect = body.getBoundingClientRect();
+      const centerY = bodyRect.top + bodyRect.height / 2;
+      let nearestIdx = 0;
+      let minDist = Infinity;
+      imgs.forEach((img, i) => {
+        const rect = img.getBoundingClientRect();
+        const dist = Math.abs(rect.top + rect.height / 2 - centerY);
+        if (dist < minDist) { minDist = dist; nearestIdx = i; }
+      });
+
+      // Center the nearest gallery image and enlarge it
+      const galleryScroll = gallery.firstChild;
+      const galleryImgs = galleryScroll?.children;
+      if (!galleryImgs) return;
+      Array.from(galleryImgs).forEach((gImg, i) => {
+        gImg.style.transform = i === nearestIdx ? 'scale(1.05)' : 'scale(1)';
+      });
+      if (galleryImgs[nearestIdx]) {
+        const gImg = galleryImgs[nearestIdx];
+        const scrollLeft = gImg.offsetLeft - galleryScroll.clientWidth / 2 + gImg.clientWidth / 2;
+        galleryScroll.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+      }
+    };
+
+    body.addEventListener('scroll', handleScroll);
+    // Initial call
+    setTimeout(handleScroll, 200);
+    return () => body.removeEventListener('scroll', handleScroll);
+  }, [hasGallery, allImages.length]);
 
   // Set initial content in contentEditable div
   useEffect(() => {
@@ -122,7 +177,14 @@ export default function NoteEditor({ note, onClose }) {
     if (!el) return;
 
     const sel = window.getSelection();
-    const selected = sel ? sel.toString().trim() : '';
+    let selectedHtml = '';
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      const fragment = range.cloneContents();
+      const tempDiv = document.createElement('div');
+      tempDiv.appendChild(fragment);
+      selectedHtml = tempDiv.innerHTML;
+    }
     const id = uuidv4();
 
     // Create accordion element inline in contentEditable
@@ -153,7 +215,7 @@ export default function NoteEditor({ note, onClose }) {
     const contentArea = document.createElement('div');
     contentArea.contentEditable = 'true';
     contentArea.style.cssText = `font-size:13px;color:${C.sub};min-height:40px;outline:none;line-height:1.6;white-space:pre-wrap;`;
-    contentArea.textContent = selected || '';
+    contentArea.innerHTML = selectedHtml || '';
 
     // Toggle open/close
     toggleBtn.onclick = () => {
@@ -162,12 +224,15 @@ export default function NoteEditor({ note, onClose }) {
       toggleBtn.textContent = isOpen ? '+' : '−';
     };
 
-    // Dismiss: restore content back to editor at accordion's position
+    // Dismiss: restore content (including images) back to editor at accordion's position
     dismissBtn.onclick = () => {
-      const text = contentArea.textContent || '';
-      if (text) {
-        const textNode = document.createTextNode(text);
-        wrapper.parentNode.insertBefore(textNode, wrapper);
+      const html = contentArea.innerHTML || '';
+      if (html) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        while (tempDiv.firstChild) {
+          wrapper.parentNode.insertBefore(tempDiv.firstChild, wrapper);
+        }
       }
       wrapper.remove();
       syncContent();
@@ -210,8 +275,6 @@ export default function NoteEditor({ note, onClose }) {
     }
   }, [syncContent, state.aiSettings]);
 
-  const IMAGE_SIZES = ['10%', '25%', '100%'];
-
   const handleImageUpload = () => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -224,7 +287,6 @@ export default function NoteEditor({ note, onClose }) {
       el.focus();
 
       for (const file of files) {
-        // Compress image using createImageBitmap (reliable decode)
         let dataUrl;
         try {
           const bitmap = await createImageBitmap(file);
@@ -244,7 +306,6 @@ export default function NoteEditor({ note, onClose }) {
           bitmap.close();
           dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         } catch {
-          // Fallback: read as base64 directly
           dataUrl = await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
@@ -252,75 +313,23 @@ export default function NoteEditor({ note, onClose }) {
           });
         }
 
-        // Create inline image wrapper — width on wrap, not img
-        const wrap = document.createElement('span');
-        wrap.contentEditable = 'false';
-        wrap.className = 'inline-img-wrap';
-        wrap.style.cssText = 'display:inline-block;position:relative;margin:0 2px;vertical-align:middle;width:10%;';
-        wrap.dataset.size = '10%';
-
+        // Create inline image — text-height thumbnail, no delete button
         const img = document.createElement('img');
         img.src = dataUrl;
-        img.style.cssText = 'width:100%;border-radius:4px;vertical-align:middle;cursor:pointer;display:block;';
+        img.className = 'inline-note-img';
+        img.style.cssText = 'height:1.2em;vertical-align:middle;border-radius:3px;margin:0 2px;cursor:default;';
 
-        // Remove button — on the image, top-right corner, sized to fit
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = '✕';
-        removeBtn.style.cssText = 'position:absolute;top:0;right:0;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;z-index:2;border-radius:50%;width:14px;height:14px;font-size:8px;line-height:1;display:flex;align-items:center;justify-content:center;';
-        removeBtn.contentEditable = 'false';
-        removeBtn.onclick = (ev) => {
-          ev.stopPropagation();
-          if (confirm('ลบรูปนี้?')) {
-            wrap.remove();
-            syncContent();
-          }
-        };
-
-        // Size label — hidden at 5%
-        const sizeLabel = document.createElement('span');
-        sizeLabel.style.cssText = 'position:absolute;top:0;left:0;background:rgba(0,0,0,0.6);color:#fff;border-radius:4px;padding:1px 4px;font-size:9px;z-index:2;display:none;pointer-events:none;';
-
-        // Click image to cycle size
-        img.onclick = (ev) => {
-          ev.stopPropagation();
-          const curIdx = IMAGE_SIZES.indexOf(wrap.dataset.size);
-          const nextIdx = (curIdx + 1) % IMAGE_SIZES.length;
-          const nextSize = IMAGE_SIZES[nextIdx];
-          wrap.dataset.size = nextSize;
-          wrap.style.width = nextSize;
-
-          // Adjust remove button size based on image size
-          if (nextSize === '10%') {
-            removeBtn.style.cssText = 'position:absolute;top:0;right:0;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;z-index:2;border-radius:50%;width:14px;height:14px;font-size:8px;line-height:1;display:flex;align-items:center;justify-content:center;';
-            img.style.borderRadius = '4px';
-            sizeLabel.style.display = 'none';
-          } else {
-            removeBtn.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;z-index:2;border-radius:50%;width:22px;height:22px;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;';
-            img.style.borderRadius = '8px';
-            sizeLabel.style.display = 'block';
-            sizeLabel.textContent = nextSize;
-          }
-
-          wrap.style.display = 'inline-block';
-          syncContent();
-        };
-
-        wrap.appendChild(removeBtn);
-        wrap.appendChild(sizeLabel);
-        wrap.appendChild(img);
-
-        // Insert at cursor position — truly inline
         const sel = window.getSelection();
         if (sel && sel.rangeCount) {
           const range = sel.getRangeAt(0);
           range.deleteContents();
-          range.insertNode(wrap);
-          range.setStartAfter(wrap);
+          range.insertNode(img);
+          range.setStartAfter(img);
           range.collapse(true);
           sel.removeAllRanges();
           sel.addRange(range);
         } else {
-          el.appendChild(wrap);
+          el.appendChild(img);
         }
       }
       syncContent();
@@ -507,7 +516,7 @@ export default function NoteEditor({ note, onClose }) {
         </div>
 
         {/* Scrollable body */}
-        <div style={styles.body}>
+        <div style={styles.body} ref={bodyRef}>
           <input
             type="text"
             placeholder="หัวข้อ..."
@@ -610,23 +619,54 @@ export default function NoteEditor({ note, onClose }) {
             );
           })}
 
-          {/* Legacy images (non-inline) */}
-          {images.length > 0 && (
-            <div style={styles.imageGrid}>
-              {images.map((img, i) => (
-                <div key={i} style={styles.imageWrap}>
-                  <img src={img} alt="" style={styles.image} />
-                  <button
-                    style={styles.imgRemove}
-                    onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                  >
-                    ✕
-                  </button>
-                </div>
+        </div>
+
+        {/* Image Gallery Bar */}
+        {hasGallery && (
+          <div style={styles.galleryBar} ref={galleryRef}>
+            <div style={styles.galleryScroll}>
+              {allImages.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  style={styles.galleryImg}
+                  onClick={() => {
+                    // Move cursor behind this image in the note
+                    const textarea = textareaRef.current;
+                    if (textarea) {
+                      const imgs = textarea.querySelectorAll('img');
+                      if (imgs[i]) {
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.setStartAfter(imgs[i]);
+                        range.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        // Scroll body to show the image
+                        const body = bodyRef.current;
+                        if (body) {
+                          const imgRect = imgs[i].getBoundingClientRect();
+                          const bodyRect = body.getBoundingClientRect();
+                          const scrollTop = body.scrollTop + (imgRect.top - bodyRect.top) - bodyRect.height / 2;
+                          body.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                        }
+                      }
+                    }
+                    setFullscreenImg(fullscreenImg === src ? null : src);
+                  }}
+                />
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Fullscreen image overlay */}
+        {fullscreenImg && (
+          <div style={styles.fullscreenOverlay} onClick={() => setFullscreenImg(null)}>
+            <img src={fullscreenImg} alt="" style={styles.fullscreenImg} />
+          </div>
+        )}
 
         {/* Sticky: Footer */}
         <div style={styles.footer}>
@@ -798,33 +838,6 @@ const styles = {
     wordBreak: 'break-word',
     lineHeight: 1.7,
   },
-  imageGrid: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  imageWrap: { position: 'relative' },
-  image: {
-    width: 100,
-    height: 100,
-    objectFit: 'cover',
-    borderRadius: 8,
-  },
-  imgRemove: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 20,
-    height: 20,
-    borderRadius: '50%',
-    background: 'rgba(0,0,0,0.5)',
-    color: 'white',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: 12,
-    lineHeight: 1,
-  },
   footer: {
     display: 'flex',
     alignItems: 'center',
@@ -941,5 +954,46 @@ const styles = {
     fontFamily: C.font,
     whiteSpace: 'nowrap',
     borderRadius: 6,
+  },
+  galleryBar: {
+    borderTop: `1px solid ${C.border}`,
+    background: C.bg,
+    height: '25vh',
+    flexShrink: 0,
+    overflow: 'hidden',
+  },
+  galleryScroll: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    height: '100%',
+    overflowX: 'auto',
+    padding: '8px 12px',
+    scrollBehavior: 'smooth',
+  },
+  galleryImg: {
+    height: 'calc(25vh - 24px)',
+    width: 'auto',
+    borderRadius: 8,
+    cursor: 'pointer',
+    flexShrink: 0,
+    objectFit: 'contain',
+    transition: 'transform 0.2s',
+  },
+  fullscreenOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.85)',
+    zIndex: 300,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
+  fullscreenImg: {
+    maxWidth: '95vw',
+    maxHeight: '95vh',
+    objectFit: 'contain',
+    borderRadius: 4,
   },
 };
