@@ -5,10 +5,15 @@ import { useApp } from '../../context/AppContext';
 export default function NoteCard({ note, onClick, listMode }) {
   const { actions } = useApp();
 
-  // Memoize preview — ป้องกันรัน regex บน content หลาย MB ทุก swipe frame
+  // Memoize preview — strip base64 ก่อน regex เพื่อกัน JS block บน LINE notes
   const previewHtml = useMemo(() => {
     if (!note.content) return '';
-    return note.content.replace(/<img[^>]*>/g, '🖼').replace(/\[.*?\]/g, '').slice(0, 200);
+    return note.content
+      .replace(/data:[a-z/+]+;base64,[A-Za-z0-9+/=]*/g, '')
+      .slice(0, 2000)
+      .replace(/<img[^>]*>/g, '🖼')
+      .replace(/\[.*?\]/g, '')
+      .slice(0, 200);
   }, [note.content]);
   const isArchived = note.archived;
   const isDeleted = !!note.deletedAt;
