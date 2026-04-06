@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, isSameMonth, isSameDay, format,
@@ -8,6 +8,14 @@ import { C, PRIORITY_COLORS } from '../../constants/theme';
 
 const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
+
+// Inject marquee keyframe once
+if (typeof document !== 'undefined' && !document.getElementById('nr-marquee-css')) {
+  const style = document.createElement('style');
+  style.id = 'nr-marquee-css';
+  style.textContent = `@keyframes nr-marquee { 0%,10% { transform: translateX(0); } 90%,100% { transform: translateX(calc(-50% - 1em)); } }`;
+  document.head.appendChild(style);
+}
 
 export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onToggleTodo }) {
   const today = new Date();
@@ -93,7 +101,11 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                       ...styles.dot,
                       background: PRIORITY_COLORS[todo.priority] || C.muted,
                     }} />
-                    <span style={styles.todoTitle}>{todo.title}</span>
+                    <span style={styles.todoTitleWrap}>
+                      <span style={styles.todoTitleMarquee}>
+                        {todo.title}&nbsp;&nbsp;&nbsp;&nbsp;{todo.title}
+                      </span>
+                    </span>
                   </div>
                 ))}
                 {dayTodoList.length > 4 && (
@@ -229,12 +241,17 @@ const styles = {
     borderRadius: '50%',
     flexShrink: 0,
   },
-  todoTitle: {
+  todoTitleWrap: {
+    flex: 1,
+    overflow: 'hidden',
+    minWidth: 0,
+  },
+  todoTitleMarquee: {
+    display: 'inline-block',
     fontSize: 10,
     color: C.text,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+    animation: 'nr-marquee 6s linear infinite',
   },
   more: {
     fontSize: 9,
