@@ -130,40 +130,29 @@ function getTimeLabel() {
   });
 }
 
-// แทรกข้อความเข้า note — ใช้ transaction + FOR UPDATE กัน race condition
+// แทรกข้อความเข้า note — ใช้ single atomic SQL (ไม่ต้อง transaction/FOR UPDATE)
+// PostgreSQL จัดการ row-level lock ให้เอง — concurrent UPDATE จะ serialize อัตโนมัติ
 async function insertToNote(noteId, bodyHtml) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const { rows } = await client.query('SELECT content FROM notes WHERE id=$1 FOR UPDATE', [noteId]);
-    const content = rows[0]?.content || '';
+  const todayKey = getTodayKey();
+  const marker = `<!-- LINE_DAY:${todayKey} -->`;
+  const timeStr = getTimeLabel();
+  const timeHtml = `<div style="font-size:11px;color:#b0a99f;margin:8px 0 2px">🕐 ${timeStr}</div>`;
+  const entryHtml = timeHtml + bodyHtml;
 
-    const todayKey = getTodayKey();
-    const marker = `<!-- LINE_DAY:${todayKey} -->`;
-    const timeStr = getTimeLabel();
-    const timeHtml = `<div style="font-size:11px;color:#b0a99f;margin:8px 0 2px">🕐 ${timeStr}</div>`;
-    const entryHtml = timeHtml + bodyHtml;
+  const dateStr = getDateLabel();
+  const dayHeader = `<hr style="border:none;border-top:1px solid #e7e5e4;margin:12px 0"/><div style="font-size:12px;color:#a8a29e;margin-bottom:4px">📅 ${dateStr}</div>${marker}`;
+  const fullEntry = dayHeader + entryHtml;
 
-    let newContent;
-    if (content.includes(marker)) {
-      // วันเดียวกัน → แทรกหลัง marker (ใหม่สุดอยู่บน)
-      const idx = content.indexOf(marker) + marker.length;
-      newContent = content.slice(0, idx) + entryHtml + content.slice(idx);
-    } else {
-      // วันใหม่ → สร้าง section ใหม่ด้านบน
-      const dateStr = getDateLabel();
-      const dayHeader = `<hr style="border:none;border-top:1px solid #e7e5e4;margin:12px 0"/><div style="font-size:12px;color:#a8a29e;margin-bottom:4px">📅 ${dateStr}</div>${marker}`;
-      newContent = dayHeader + entryHtml + content;
-    }
-
-    await client.query('UPDATE notes SET content=$1, updated_at=NOW() WHERE id=$2', [newContent, noteId]);
-    await client.query('COMMIT');
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+  // single UPDATE — PostgreSQL re-evaluates CASE หลังได้ row lock
+  // ถ้า marker มีแล้ว (วันเดียวกัน) → แทรกหลัง marker
+  // ถ้ายังไม่มี (วันใหม่) → prepend ทั้ง day header + entry
+  await pool.query(
+    `UPDATE notes SET content = CASE
+       WHEN content LIKE '%' || $2 || '%' THEN replace(content, $2, $2 || $3)
+       ELSE $4 || COALESCE(content, '')
+     END, updated_at = NOW() WHERE id = $1`,
+    [noteId, marker, entryHtml, fullEntry]
+  );
 }
 
 // Webhook endpoint

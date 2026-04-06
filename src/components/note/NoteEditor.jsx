@@ -27,6 +27,7 @@ export default function NoteEditor({ note, onClose }) {
   const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
+  const dirtyRef = useRef(false); // true เมื่อ user แก้ไขจริง — ป้องกัน auto-save ทับ webhook data
   const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
   const [showInsertMenu, setShowInsertMenu] = useState(false);
   const [lastSaved, setLastSaved] = useState(note?.updatedAt || null);
@@ -343,6 +344,7 @@ export default function NoteEditor({ note, onClose }) {
   // Auto-save (no new version, just save current state)
   const doAutoSave = useCallback(async () => {
     if (isNew) return; // Don't auto-save unsaved notes
+    if (!dirtyRef.current) return; // ไม่ได้แก้ไข → ไม่ save ทับ (ป้องกันทับ webhook data)
     const el = textareaRef.current;
     const curContent = el ? el.innerHTML : content;
     const cleanContent = curContent.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
@@ -556,7 +558,7 @@ export default function NoteEditor({ note, onClose }) {
             type="text"
             placeholder="หัวข้อ..."
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { dirtyRef.current = true; setTitle(e.target.value); }}
             style={styles.titleInput}
           />
 
@@ -565,7 +567,7 @@ export default function NoteEditor({ note, onClose }) {
             contentEditable
             suppressContentEditableWarning
             data-placeholder="เขียนโน้ต..."
-            onInput={(e) => { setContent(e.currentTarget.innerHTML); }}
+            onInput={(e) => { dirtyRef.current = true; setContent(e.currentTarget.innerHTML); }}
             onContextMenu={(e) => e.preventDefault()}
             onClick={(e) => {
               // If clicked on an inline image, highlight it in gallery
