@@ -21,12 +21,12 @@ noterealm/
 ## Backend on Railway
 - **URL**: `https://noterealm-production.up.railway.app`
 - **Root Directory** on Railway: `server`
-- **PostgreSQL**: `postgresql://postgres:dRtBNgcnILPcMXNNaUsrHaOjCBIQsRFT@caboose.proxy.rlwy.net:57998/railway`
+- **PostgreSQL**: ดู DATABASE_URL จาก Railway dashboard (อย่า commit credentials ลง git)
 
 ## Run Database Migration (จาก local)
 ```bash
 cd server
-DATABASE_URL="postgresql://postgres:dRtBNgcnILPcMXNNaUsrHaOjCBIQsRFT@caboose.proxy.rlwy.net:57998/railway" npm run db:migrate
+DATABASE_URL="<ดูจาก Railway dashboard>" npm run db:migrate
 ```
 ต้อง `cd server` ก่อน เพราะ `db:migrate` script อยู่ใน `server/package.json`
 
