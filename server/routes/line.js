@@ -238,4 +238,52 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ตัด content เก่าออกจาก LINE notes — ตาม period (week/month/year)
+router.post('/trim', async (req, res) => {
+  const { period } = req.body; // 'week' | 'month' | 'year'
+  if (!['week', 'month', 'year'].includes(period)) {
+    return res.status(400).json({ error: 'period must be week, month, or year' });
+  }
+
+  const cutoff = new Date();
+  if (period === 'week') cutoff.setDate(cutoff.getDate() - 7);
+  else if (period === 'month') cutoff.setMonth(cutoff.getMonth() - 1);
+  else cutoff.setFullYear(cutoff.getFullYear() - 1);
+  const cutoffKey = cutoff.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+
+  try {
+    const { rows } = await pool.query(`SELECT id, content FROM notes WHERE source='line' AND deleted_at IS NULL`);
+    let trimmed = 0;
+
+    for (const note of rows) {
+      const content = note.content || '';
+      // หา <!-- LINE_DAY:YYYY-MM-DD --> markers ที่เก่ากว่า cutoff
+      const regex = /<!-- LINE_DAY:(\d{4}-\d{2}-\d{2}) -->/g;
+      let match;
+      let cutIndex = -1;
+
+      while ((match = regex.exec(content)) !== null) {
+        if (match[1] < cutoffKey) {
+          // วันนี้เก่าเกิน → หา <hr> ก่อน marker แล้วตัดจากตรงนั้นถึงท้าย
+          const before = content.slice(0, match.index);
+          const hrIdx = before.lastIndexOf('<hr');
+          cutIndex = hrIdx >= 0 ? hrIdx : match.index;
+          break; // sections เรียงใหม่→เก่า พอเจออันแรกที่เก่า ตัดทั้งหมดหลังจากนี้
+        }
+      }
+
+      if (cutIndex >= 0) {
+        const newContent = content.slice(0, cutIndex);
+        await pool.query(`UPDATE notes SET content=$1, updated_at=NOW() WHERE id=$2`, [newContent, note.id]);
+        trimmed++;
+      }
+    }
+
+    res.json({ trimmed, cutoffDate: cutoffKey });
+  } catch (err) {
+    console.error('[LINE] trim error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

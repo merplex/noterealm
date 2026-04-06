@@ -19,6 +19,7 @@ const initialState = {
   sortBy: 'updated',
   sortDir: 'desc',
   defaultTab: 'note',
+  lineTrim: 'month',
 };
 
 function reducer(state, action) {
@@ -37,6 +38,8 @@ function reducer(state, action) {
       return { ...state, sortBy: action.payload.sortBy ?? state.sortBy, sortDir: action.payload.sortDir ?? state.sortDir };
     case 'SET_DEFAULT_TAB':
       return { ...state, defaultTab: action.payload };
+    case 'SET_LINE_TRIM':
+      return { ...state, lineTrim: action.payload };
 
     // Notes
     case 'SET_NOTES':
@@ -100,7 +103,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     (async () => {
       // Load local-only settings
-      const localKeys = ['aiSettings', 'connections', 'user', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab'];
+      const localKeys = ['aiSettings', 'connections', 'user', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab', 'lineTrim'];
       const loaded = {};
       for (const key of localKeys) {
         const val = await storage.get(STORAGE_KEYS[key]);
@@ -133,7 +136,8 @@ export function AppProvider({ children }) {
     storage.set(STORAGE_KEYS.sortBy, state.sortBy);
     storage.set(STORAGE_KEYS.sortDir, state.sortDir);
     storage.set(STORAGE_KEYS.defaultTab, state.defaultTab);
-  }, [state.aiSettings, state.connections, state.user, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab]);
+    storage.set(STORAGE_KEYS.lineTrim, state.lineTrim);
+  }, [state.aiSettings, state.connections, state.user, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab, state.lineTrim]);
 
   // Async actions that call API then update local state
   const actions = useMemo(() => ({

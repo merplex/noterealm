@@ -20,6 +20,10 @@ export const notesApi = {
   delete: (id) => request(`/api/notes/${id}`, { method: 'DELETE' }),
 };
 
+export const lineApi = {
+  trim: (period) => request('/webhook/line/trim', { method: 'POST', body: JSON.stringify({ period }) }),
+};
+
 export const todosApi = {
   list: () => request('/api/todos'),
   create: (data) => request('/api/todos', { method: 'POST', body: JSON.stringify(data) }),

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { lineApi, notesApi } from '../utils/api';
 
 export default function Settings({ onClose }) {
   const { state, dispatch } = useApp();
@@ -54,6 +55,16 @@ export default function Settings({ onClose }) {
   const handleLineDisconnect = () => {
     const updated = (state.connections || []).filter((c) => c.type !== 'line');
     dispatch({ type: 'SET_CONNECTIONS', payload: updated });
+  };
+
+  const handleLineTrim = async (period) => {
+    dispatch({ type: 'SET_LINE_TRIM', payload: period });
+    try {
+      await lineApi.trim(period);
+      // Reload notes เพื่อแสดง content ที่ตัดแล้ว
+      const notes = await notesApi.list();
+      dispatch({ type: 'SET_NOTES', payload: notes });
+    } catch { /* silent */ }
   };
 
   return (
@@ -134,6 +145,33 @@ export default function Settings({ onClose }) {
               </button>
             )}
           </div>
+
+          {isLineConnected && (
+            <>
+              <div style={styles.divider} />
+              <div style={styles.row}>
+                <div>
+                  <div style={styles.label}>ตัดโน้ต LINE</div>
+                  <div style={styles.desc}>เก็บข้อมูลย้อนหลัง</div>
+                </div>
+                <div style={styles.segmented}>
+                  {[
+                    { key: 'week', label: 'สัปดาห์' },
+                    { key: 'month', label: 'เดือน' },
+                    { key: 'year', label: 'ปี' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      style={{ ...styles.seg, background: state.lineTrim === opt.key ? C.amber : C.white, color: state.lineTrim === opt.key ? C.white : C.sub }}
+                      onClick={() => handleLineTrim(opt.key)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
