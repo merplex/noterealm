@@ -78,3 +78,5 @@ git checkout main && git merge <feature-branch> && git push origin main && git c
 - **ห้ามใช้ CSS `zoom`** — ทำให้ layout พังใน Brave, Firefox และ browser อื่น
 - **Header**: ใช้ `display:flex` โดย search bar ใช้ `flex:1` + icon buttons ใช้ `width:36px; flexShrink:0` — ทำให้ปุ่มไม่ทะลุออกนอกจอทุก browser
 - ถ้าต้องการขยายตัวอักษร ให้ปรับ `fontSize` ในแต่ละ component แทน ห้ามใช้ zoom/transform:scale ที่ root
+- **ห้ามใช้ spacer div แยกในแต่ละ view** เพื่อเว้นระยะกับปุ่ม FAB — ให้ตั้ง `paddingBottom` ที่ scroll container (parent) จุดเดียว เพราะแต่ละ browser แสดง spacer ไม่เหมือนกัน (เช่น CalendarView body ใช้ `paddingBottom:80`)
+- **ห้ามใช้ `scrollIntoView`** ใน nested scroll context — มันจะ scroll parent containers ด้วย ทำให้ Header หายไป ให้ใช้ `scrollTo` บน scroll container ที่ต้องการแทน
