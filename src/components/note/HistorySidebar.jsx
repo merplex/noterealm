@@ -347,7 +347,7 @@ const styles = {
     display: 'inline-block',
     fontSize: 10,
     color: '#1e40af',
-    background: '#dbeafe',
+    background: 'transparent',
     border: '1px solid #60a5fa',
     borderRadius: 4,
     padding: '1px 6px',
