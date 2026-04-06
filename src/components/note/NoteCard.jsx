@@ -79,7 +79,7 @@ export default function NoteCard({ note, onClick, listMode }) {
           ...styles.card,
           opacity: isArchived || isDeleted ? 0.72 : 1,
           transform: `translateX(${swipeX}px)`,
-          transition: swiping ? 'none' : 'transform 0.2s',
+          transition: swipingRef.current ? 'none' : 'transform 0.2s',
         }}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
