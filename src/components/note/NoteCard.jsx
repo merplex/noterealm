@@ -177,6 +177,8 @@ const styles = {
     display: '-webkit-box',
     WebkitLineClamp: 4,
     WebkitBoxOrient: 'vertical',
+    wordBreak: 'break-all',
+    overflowWrap: 'break-word',
   },
   imageRow: {
     display: 'flex',

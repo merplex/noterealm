@@ -18,6 +18,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
         </div>
 
         <nav style={styles.nav}>
+          <div style={styles.sectionLabel}>Note</div>
           <button
             style={{ ...styles.navItem, background: !activeFilter ? C.amberLight : 'transparent' }}
             onClick={() => { onFilterTag(null); onClose(); }}
@@ -146,10 +147,10 @@ const styles = {
   },
   section: { padding: '8px 8px 0' },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: C.muted,
-    padding: '8px 12px 4px',
+    fontSize: 12,
+    fontWeight: 700,
+    color: C.text,
+    padding: '10px 12px 4px',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
