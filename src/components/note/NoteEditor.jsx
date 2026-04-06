@@ -832,7 +832,6 @@ const styles = {
     position: 'sticky',
     top: 0,
     zIndex: 10,
-    overflow: 'hidden',
   },
   toolBtn: {
     padding: '5px 8px',
