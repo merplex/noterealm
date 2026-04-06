@@ -220,7 +220,7 @@ router.post('/', async (req, res) => {
         } else if (event.message.type === 'image') {
           const imgData = await fetchLineImage(event.message.id);
           if (imgData) {
-            parts.push(`${senderLabel ? `<p style="margin:4px 0">${senderLabel}</p>` : ''}<img src="${imgData}" style="max-width:100%;border-radius:8px;display:block;margin:4px 0"/>`);
+            parts.push(`${senderLabel ? `<p style="margin:4px 0">${senderLabel}</p>` : ''}<img src="${imgData}" class="inline-note-img" style="height:1.2em;vertical-align:middle;border-radius:3px;margin:0 2px;cursor:default"/>`);
           }
         } else {
           console.log('[LINE] unsupported message type:', event.message.type);
