@@ -57,16 +57,27 @@ export default function NoteCard({ note, onClick, listMode }) {
     return () => el.removeEventListener('touchmove', onTouchMove);
   }, []);
 
-  const handleTouchEnd = () => {
+  const doSwipeEnd = useCallback(() => {
+    if (swipeXRef.current === 0 && !swipingRef.current) return; // ไม่ได้ swipe
     if (swipeXRef.current <= -DELETE_THRESHOLD) {
-      if (isDeleted) {
-        actions.restoreNote(note.id);
-      } else {
-        actions.deleteNote(note.id);
-      }
+      if (isDeleted) actions.restoreNote(note.id);
+      else actions.deleteNote(note.id);
     }
     reset();
-  };
+  }, [isDeleted, note.id, actions, reset]);
+
+  const handleTouchEnd = () => doSwipeEnd();
+
+  // Fallback: document-level touchend — จับได้เสมอแม้ element-level ไม่ fire
+  useEffect(() => {
+    const onEnd = () => doSwipeEnd();
+    document.addEventListener('touchend', onEnd, { passive: true });
+    document.addEventListener('touchcancel', onEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+    };
+  }, [doSwipeEnd]);
 
   const handleClick = () => {
     if (swipingRef.current || Math.abs(swipeXRef.current) > 5) return;
