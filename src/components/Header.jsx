@@ -17,18 +17,35 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
   const holdTimer = useRef(null);
 
   const searchResults = useMemo(() => {
-    if (!searchText.trim()) return { notes: [], todos: [] };
+    if (!searchText.trim()) return [];
     const q = searchText.toLowerCase();
-    const notes = state.notes.filter((n) =>
-      n.title?.toLowerCase().includes(q) || n.content?.toLowerCase().includes(q)
-    ).slice(0, 5);
-    const todos = state.todos.filter((t) =>
-      t.title?.toLowerCase().includes(q) || t.note?.toLowerCase().includes(q)
-    ).slice(0, 5);
-    return { notes, todos };
+    const results = [];
+
+    // Notes — ทุก state
+    state.notes.forEach((n) => {
+      if (!n.title?.toLowerCase().includes(q) && !n.content?.toLowerCase().includes(q)) return;
+      let tag, tagColor, tagBg;
+      if (n.deletedAt) { tag = 'Note / ลบ'; tagColor = '#fff'; tagBg = '#dc2626'; }
+      else if (n.archived) { tag = 'Note / Archive'; tagColor = C.sub; tagBg = '#e7e5e4'; }
+      else { tag = 'Note'; tagColor = C.text; tagBg = C.amber; }
+      results.push({ type: 'note', item: n, tag, tagColor, tagBg, order: n.deletedAt ? 2 : n.archived ? 1 : 0 });
+    });
+
+    // Todos — ทุก state
+    state.todos.forEach((t) => {
+      if (!t.title?.toLowerCase().includes(q) && !t.note?.toLowerCase().includes(q)) return;
+      let tag, tagColor, tagBg;
+      if (t.deletedAt) { tag = 'Todo / ลบ'; tagColor = '#fff'; tagBg = '#dc2626'; }
+      else { tag = 'Todo'; tagColor = '#fff'; tagBg = '#1e3a5f'; }
+      results.push({ type: 'todo', item: t, tag, tagColor, tagBg, order: t.deletedAt ? 2 : 0 });
+    });
+
+    // เรียง: ปกติก่อน → archive → ลบ
+    results.sort((a, b) => a.order - b.order);
+    return results.slice(0, 12);
   }, [searchText, state.notes, state.todos]);
 
-  const hasResults = searchResults.notes.length > 0 || searchResults.todos.length > 0;
+  const hasResults = searchResults.length > 0;
 
   const handleSearch = (e) => {
     setSearchText(e.target.value);
@@ -108,27 +125,22 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
             <>
               <div style={styles.backdrop} onClick={() => setShowResults(false)} />
               <div style={styles.resultsDropdown}>
-                {searchResults.notes.map((note) => (
+                {searchResults.map((r) => (
                   <button
-                    key={note.id}
+                    key={r.item.id}
                     style={styles.resultItem}
-                    onClick={() => handleSelectNote(note)}
+                    onClick={() => r.type === 'note' ? handleSelectNote(r.item) : handleSelectTodo(r.item)}
                   >
-                    <span style={styles.noteTag}>Note</span>
-                    <span style={styles.resultTitle}>{note.title || 'ไม่มีชื่อ'}</span>
-                  </button>
-                ))}
-                {searchResults.todos.map((todo) => (
-                  <button
-                    key={todo.id}
-                    style={styles.resultItem}
-                    onClick={() => handleSelectTodo(todo)}
-                  >
-                    <span style={styles.todoTag}>Todo</span>
+                    <span style={{ ...styles.stateTag, background: r.tagBg, color: r.tagColor }}>
+                      {r.tag}
+                    </span>
                     <span style={{
                       ...styles.resultTitle,
-                      textDecoration: todo.done ? 'line-through' : 'none',
-                    }}>{todo.title}</span>
+                      textDecoration: r.item.done ? 'line-through' : 'none',
+                      opacity: (r.item.deletedAt || r.item.archived) ? 0.65 : 1,
+                    }}>
+                      {r.item.title || 'ไม่มีชื่อ'}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -320,25 +332,14 @@ const styles = {
     borderBottom: `1px solid ${C.border}`,
   },
   resultTitle: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  noteTag: {
+  stateTag: {
     fontSize: 10,
     fontWeight: 700,
     padding: '2px 8px',
     borderRadius: 10,
-    background: C.amber,
-    color: C.text,
     flexShrink: 0,
     marginRight: 8,
-  },
-  todoTag: {
-    fontSize: 10,
-    fontWeight: 700,
-    padding: '2px 8px',
-    borderRadius: 10,
-    background: '#1e3a5f',
-    color: C.white,
-    flexShrink: 0,
-    marginRight: 8,
+    whiteSpace: 'nowrap',
   },
   sortMenu: {
     position: 'absolute',
