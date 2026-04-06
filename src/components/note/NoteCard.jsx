@@ -63,31 +63,34 @@ export default function NoteCard({ note, onClick, listMode }) {
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12 }}>
-      {/* Delete background */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: 100,
-        background: isDeleted ? '#16a34a' : '#dc2626',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 600,
-        borderRadius: '0 12px 12px 0',
-      }}>
-        {isDeleted ? 'คืนค่า' : 'ลบ'}
-      </div>
+      {/* Delete background — แสดงเฉพาะตอน swipe */}
+      {swipeX < 0 && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: 100,
+          background: isDeleted ? '#16a34a' : '#dc2626',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          fontSize: 14,
+          fontWeight: 600,
+          borderRadius: '0 12px 12px 0',
+        }}>
+          {isDeleted ? 'คืนค่า' : 'ลบ'}
+        </div>
+      )}
 
       <div
         style={{
           ...styles.card,
           opacity: isArchived || isDeleted ? 0.72 : 1,
-          transform: `translateX(${swipeX}px)`,
+          transform: swipeX < 0 ? `translateX(${swipeX}px)` : undefined,
           transition: swipingRef.current ? 'none' : 'transform 0.2s',
+          willChange: swipeX < 0 ? 'transform' : undefined,
         }}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
