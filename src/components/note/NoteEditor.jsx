@@ -532,6 +532,27 @@ export default function NoteEditor({ note, onClose }) {
             data-placeholder="เขียนโน้ต..."
             onInput={(e) => { setContent(e.currentTarget.innerHTML); }}
             onContextMenu={(e) => e.preventDefault()}
+            onClick={(e) => {
+              // If clicked on an inline image, highlight it in gallery
+              if (e.target.tagName === 'IMG' && galleryRef.current) {
+                const imgs = Array.from(textareaRef.current.querySelectorAll('img'));
+                const idx = imgs.indexOf(e.target);
+                if (idx >= 0) {
+                  const galleryScroll = galleryRef.current.firstChild;
+                  const galleryImgs = galleryScroll?.children;
+                  if (galleryImgs) {
+                    Array.from(galleryImgs).forEach((gImg, i) => {
+                      gImg.style.transform = i === idx ? 'scale(1.05)' : 'scale(1)';
+                    });
+                    if (galleryImgs[idx]) {
+                      const gImg = galleryImgs[idx];
+                      const scrollLeft = gImg.offsetLeft - galleryScroll.clientWidth / 2 + gImg.clientWidth / 2;
+                      galleryScroll.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+                    }
+                  }
+                }
+              }
+            }}
             style={{ ...styles.textarea, WebkitUserSelect: 'text', WebkitTouchCallout: 'none' }}
           />
 
