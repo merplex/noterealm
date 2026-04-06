@@ -60,7 +60,11 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
 
   useEffect(() => {
     if (nearestRef.current) {
-      nearestRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const calBody = nearestRef.current.closest('[data-cal-body]');
+      if (calBody) {
+        const top = nearestRef.current.offsetTop - calBody.offsetTop - 50;
+        calBody.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
     }
   }, [year]);
 

@@ -68,7 +68,7 @@ export default function CalendarView({ onSelectTodo }) {
       </div>
 
       {/* Calendar content */}
-      <div style={styles.body}>
+      <div style={styles.body} data-cal-body>
         {view === 'year' && <YearView {...viewProps} />}
         {view === 'month' && <MonthView {...viewProps} />}
         {view === 'week' && <WeekView {...viewProps} />}
@@ -83,6 +83,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
+    minHeight: 0,
   },
   topBar: {
     display: 'flex',
@@ -135,5 +136,6 @@ const styles = {
   body: {
     flex: 1,
     overflowY: 'auto',
+    minHeight: 0,
   },
 };
