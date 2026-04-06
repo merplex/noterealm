@@ -75,26 +75,56 @@ async function replyMessage(replyToken, text) {
   }).catch((err) => console.error('reply error:', err.message));
 }
 
+// ดึง dates ทั้งหมดจาก content (เรียงใหม่→เก่า)
+function parseDayMarkers(content) {
+  return [...(content || '').matchAll(/<!-- LINE_DAY:(\d{4}-\d{2}-\d{2}) -->/g)].map((m) => m[1]);
+}
+
+// เช็คว่า note เกิน period หรือยัง (ดูจาก span ของ markers)
+function isNoteExpired(content, period) {
+  const dates = parseDayMarkers(content);
+  if (dates.length < 1) return false;
+  const newest = dates[0];
+  const oldest = dates[dates.length - 1];
+  const diffMs = new Date(newest) - new Date(oldest);
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  const maxDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
+  return diffDays >= maxDays;
+}
+
 async function findOrCreateLineNote(senderId, senderName) {
   const idTag = `_line_id:${senderId}`;
   const title = `LINE: ${senderName}`;
 
-  // เช็ค deleted_at IS NULL ด้วย — ถ้า note ถูก soft-delete จะมองไม่เห็นใน frontend
+  // หา note ที่ active (ไม่ archived, ไม่ deleted)
   const { rows } = await pool.query(
-    `SELECT id, content, title FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
+    `SELECT id, content, title, tags FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
     [idTag]
   );
 
   if (rows.length > 0) {
-    if (rows[0].title !== title) {
-      await pool.query(`UPDATE notes SET title=$1, updated_at=NOW() WHERE id=$2`, [title, rows[0].id]);
+    const note = rows[0];
+    // เช็ค trim period จาก tag _line_trim:xxx
+    const trimTag = (note.tags || []).find((t) => t.startsWith('_line_trim:'));
+    const period = trimTag?.split(':')[1];
+
+    if (period && isNoteExpired(note.content, period)) {
+      // note เก่าเกิน → archive แล้วสร้างใหม่
+      await pool.query(`UPDATE notes SET archived=true, updated_at=NOW() WHERE id=$1`, [note.id]);
+      console.log('[LINE] archived note', note.id, '(exceeded', period, ')');
+      // fall through เพื่อสร้าง note ใหม่ด้านล่าง — inherit trim tag
+      return createLineNote(title, [idTag, `_line_trim:${period}`]);
     }
-    return rows[0];
+
+    if (note.title !== title) {
+      await pool.query(`UPDATE notes SET title=$1, updated_at=NOW() WHERE id=$2`, [title, note.id]);
+    }
+    return note;
   }
 
   // ถ้ามี note เดิมที่ถูก soft-delete → undelete แทนสร้างใหม่
   const { rows: deleted } = await pool.query(
-    `SELECT id, content, title FROM notes WHERE source='line' AND $1=ANY(tags) AND deleted_at IS NOT NULL ORDER BY updated_at DESC LIMIT 1`,
+    `SELECT id, content, title, tags FROM notes WHERE source='line' AND $1=ANY(tags) AND deleted_at IS NOT NULL ORDER BY updated_at DESC LIMIT 1`,
     [idTag]
   );
   if (deleted.length > 0) {
@@ -102,13 +132,26 @@ async function findOrCreateLineNote(senderId, senderName) {
     return deleted[0];
   }
 
-  const { rows: newRows } = await pool.query(
+  // inherit trim tag จาก archived note ล่าสุด (ถ้ามี)
+  const { rows: archived } = await pool.query(
+    `SELECT tags FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=true ORDER BY updated_at DESC LIMIT 1`,
+    [idTag]
+  );
+  const prevTrimTag = (archived[0]?.tags || []).find((t) => t.startsWith('_line_trim:'));
+  const tags = [idTag];
+  if (prevTrimTag) tags.push(prevTrimTag);
+
+  return createLineNote(title, tags);
+}
+
+async function createLineNote(title, tags) {
+  const { rows } = await pool.query(
     `INSERT INTO notes (id, title, content, tags, pinned, archived, images, ai_blocks, source, refs, history)
      VALUES (gen_random_uuid(), $1, '', $2, false, false, '{}', '[]', 'line', '{}', '[]')
-     RETURNING id, content`,
-    [title, [idTag]]
+     RETURNING id, content, tags`,
+    [title, tags]
   );
-  return newRows[0];
+  return rows[0];
 }
 
 // วันที่ Bangkok (ISO: "2026-04-06")
@@ -238,48 +281,32 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ตัด content เก่าออกจาก LINE notes — ตาม period (week/month/year)
+// ตั้ง period + archive notes ที่เกิน period ทันที
 router.post('/trim', async (req, res) => {
   const { period } = req.body; // 'week' | 'month' | 'year'
   if (!['week', 'month', 'year'].includes(period)) {
     return res.status(400).json({ error: 'period must be week, month, or year' });
   }
 
-  const cutoff = new Date();
-  if (period === 'week') cutoff.setDate(cutoff.getDate() - 7);
-  else if (period === 'month') cutoff.setMonth(cutoff.getMonth() - 1);
-  else cutoff.setFullYear(cutoff.getFullYear() - 1);
-  const cutoffKey = cutoff.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
-
   try {
-    const { rows } = await pool.query(`SELECT id, content FROM notes WHERE source='line' AND deleted_at IS NULL`);
-    let trimmed = 0;
+    // หา LINE notes ที่ active ทั้งหมด
+    const { rows } = await pool.query(`SELECT id, content, tags FROM notes WHERE source='line' AND archived=false AND deleted_at IS NULL`);
+    let archivedCount = 0;
 
     for (const note of rows) {
-      const content = note.content || '';
-      // หา <!-- LINE_DAY:YYYY-MM-DD --> markers ที่เก่ากว่า cutoff
-      const regex = /<!-- LINE_DAY:(\d{4}-\d{2}-\d{2}) -->/g;
-      let match;
-      let cutIndex = -1;
+      // อัปเดต _line_trim tag
+      const newTags = [...(note.tags || []).filter((t) => !t.startsWith('_line_trim:')), `_line_trim:${period}`];
+      await pool.query(`UPDATE notes SET tags=$1 WHERE id=$2`, [newTags, note.id]);
 
-      while ((match = regex.exec(content)) !== null) {
-        if (match[1] < cutoffKey) {
-          // วันนี้เก่าเกิน → หา <hr> ก่อน marker แล้วตัดจากตรงนั้นถึงท้าย
-          const before = content.slice(0, match.index);
-          const hrIdx = before.lastIndexOf('<hr');
-          cutIndex = hrIdx >= 0 ? hrIdx : match.index;
-          break; // sections เรียงใหม่→เก่า พอเจออันแรกที่เก่า ตัดทั้งหมดหลังจากนี้
-        }
-      }
-
-      if (cutIndex >= 0) {
-        const newContent = content.slice(0, cutIndex);
-        await pool.query(`UPDATE notes SET content=$1, updated_at=NOW() WHERE id=$2`, [newContent, note.id]);
-        trimmed++;
+      // เช็คว่าเกิน period หรือยัง → archive
+      if (isNoteExpired(note.content, period)) {
+        await pool.query(`UPDATE notes SET archived=true, updated_at=NOW() WHERE id=$1`, [note.id]);
+        archivedCount++;
+        console.log('[LINE] archived note', note.id, '(exceeded', period, ')');
       }
     }
 
-    res.json({ trimmed, cutoffDate: cutoffKey });
+    res.json({ archived: archivedCount, period });
   } catch (err) {
     console.error('[LINE] trim error:', err.message);
     res.status(500).json({ error: err.message });
