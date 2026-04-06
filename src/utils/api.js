@@ -16,6 +16,7 @@ export const notesApi = {
   list: () => request('/api/notes'),
   create: (data) => request('/api/notes', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => request(`/api/notes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  softDelete: (id, deletedAt) => request(`/api/notes/${id}/soft-delete`, { method: 'PATCH', body: JSON.stringify({ deletedAt }) }),
   delete: (id) => request(`/api/notes/${id}`, { method: 'DELETE' }),
 };
 

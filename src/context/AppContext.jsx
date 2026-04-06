@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import { createContext, useContext, useReducer, useEffect, useMemo, useRef } from 'react';
 import { storage } from '../constants/storage';
 import { STORAGE_KEYS } from '../constants/providers';
 import { notesApi, todosApi } from '../utils/api';
@@ -93,6 +93,8 @@ function reducer(state, action) {
 
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const stateRef = useRef(state);
+  stateRef.current = state; // อัปเดต ref ทุก render เพื่อกัน stale closure ใน actions
 
   // Load non-API state from local storage + fetch notes/todos from API
   useEffect(() => {
@@ -146,20 +148,18 @@ export function AppProvider({ children }) {
       return saved;
     },
     deleteNote: async (id) => {
-      // Soft delete — set deletedAt, keep in DB
-      const note = state.notes.find((n) => n.id === id);
+      const note = stateRef.current.notes.find((n) => n.id === id);
       if (note) {
-        const updated = { ...note, deletedAt: new Date().toISOString() };
-        await notesApi.update(id, updated);
-        dispatch({ type: 'UPDATE_NOTE', payload: updated });
+        const deletedAt = new Date().toISOString();
+        dispatch({ type: 'UPDATE_NOTE', payload: { ...note, deletedAt } });
+        await notesApi.softDelete(id, deletedAt);
       }
     },
     restoreNote: async (id) => {
-      const note = state.notes.find((n) => n.id === id);
+      const note = stateRef.current.notes.find((n) => n.id === id);
       if (note) {
-        const updated = { ...note, deletedAt: undefined };
-        await notesApi.update(id, updated);
-        dispatch({ type: 'UPDATE_NOTE', payload: updated });
+        dispatch({ type: 'UPDATE_NOTE', payload: { ...note, deletedAt: null } });
+        await notesApi.softDelete(id, null);
       }
     },
     addTodo: async (todoData) => {
