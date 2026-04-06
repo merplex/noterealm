@@ -32,14 +32,25 @@ async function replyMessage(replyToken, text) {
 // ดึง content รูปภาพจาก LINE
 async function fetchLineImage(messageId) {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  if (!token) return null;
-  const res = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return null;
-  const buffer = await res.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString('base64');
-  return `data:image/jpeg;base64,${base64}`;
+  if (!token) { console.error('LINE: no access token'); return null; }
+  try {
+    const res = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      console.error(`LINE image fetch failed: ${res.status} ${await res.text()}`);
+      return null;
+    }
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    const mimeType = contentType.split(';')[0].trim();
+    const buffer = await res.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    console.log(`LINE image fetched: ${mimeType}, ${buffer.byteLength} bytes`);
+    return `data:${mimeType};base64,${base64}`;
+  } catch (err) {
+    console.error('LINE image fetch error:', err.message);
+    return null;
+  }
 }
 
 // Webhook endpoint
@@ -85,7 +96,8 @@ router.post('/', async (req, res) => {
           ['รูปภาพจาก LINE', '', [], images]
         );
 
-        await replyMessage(replyToken, 'บันทึกรูปภาพแล้ว');
+        const msg = imageData ? 'บันทึกรูปภาพแล้ว' : 'บันทึกแล้ว (ดึงรูปไม่ได้)';
+        await replyMessage(replyToken, msg);
       }
     } catch (err) {
       console.error('LINE webhook error:', err.message);
