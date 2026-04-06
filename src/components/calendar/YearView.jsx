@@ -163,7 +163,6 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
           ))}
         </div>
       )}
-      <div style={{ height: 100 }} />
     </div>
   );
 }
