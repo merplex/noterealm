@@ -12,6 +12,7 @@ const initialState = {
   todos: [],
   aiSettings: {},
   connections: [],
+  user: null,
   activeTab: 'note',
   noteViewMode: 'grid',
   todoViewMode: 'list',
@@ -77,6 +78,10 @@ function reducer(state, action) {
     case 'SET_CONNECTIONS':
       return { ...state, connections: action.payload };
 
+    // User
+    case 'SET_USER':
+      return { ...state, user: action.payload };
+
     // AI Settings
     case 'SET_AI_SETTINGS':
       return { ...state, aiSettings: action.payload };
@@ -93,7 +98,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     (async () => {
       // Load local-only settings
-      const localKeys = ['aiSettings', 'connections', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab'];
+      const localKeys = ['aiSettings', 'connections', 'user', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab'];
       const loaded = {};
       for (const key of localKeys) {
         const val = await storage.get(STORAGE_KEYS[key]);
@@ -117,6 +122,7 @@ export function AppProvider({ children }) {
     if (state === initialState) return;
     storage.set(STORAGE_KEYS.aiSettings, state.aiSettings);
     storage.set(STORAGE_KEYS.connections, state.connections);
+    storage.set(STORAGE_KEYS.user, state.user);
     storage.set(STORAGE_KEYS.groups, state.groups);
     storage.set(STORAGE_KEYS.tags, state.tags);
     storage.set(STORAGE_KEYS.activeTab, state.activeTab);
@@ -125,7 +131,7 @@ export function AppProvider({ children }) {
     storage.set(STORAGE_KEYS.sortBy, state.sortBy);
     storage.set(STORAGE_KEYS.sortDir, state.sortDir);
     storage.set(STORAGE_KEYS.defaultTab, state.defaultTab);
-  }, [state.aiSettings, state.connections, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab]);
+  }, [state.aiSettings, state.connections, state.user, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab]);
 
   // Async actions that call API then update local state
   const actions = useMemo(() => ({

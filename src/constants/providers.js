@@ -59,6 +59,7 @@ export const STORAGE_KEYS = {
   todos: 'nk_todos',
   aiSettings: 'nk_ai_settings',
   connections: 'nk_connections',
+  user: 'nk_user',
   activeTab: 'nk_active_tab',
   viewMode: 'nk_view_mode',
   noteViewMode: 'nk_note_view_mode',

@@ -1,8 +1,60 @@
+import { useState } from 'react';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 
 export default function Settings({ onClose }) {
   const { state, dispatch } = useApp();
+  const [lineConnecting, setLineConnecting] = useState(false);
+
+  const isLoggedIn = !!state.user;
+  const isLineConnected = state.connections?.some((c) => c.type === 'line' && c.enabled);
+
+  const handleLogin = () => {
+    const w = 500, h = 600;
+    const left = (screen.width - w) / 2, top = (screen.height - h) / 2;
+    const popup = window.open(
+      `${import.meta.env.VITE_API_URL || ''}/api/oauth/google?mode=login`,
+      'login', `width=${w},height=${h},left=${left},top=${top}`
+    );
+    const listener = (e) => {
+      if (e.data?.type === 'LOGIN_SUCCESS') {
+        window.removeEventListener('message', listener);
+        dispatch({ type: 'SET_USER', payload: e.data.user });
+      }
+    };
+    window.addEventListener('message', listener);
+  };
+
+  const handleLogout = () => {
+    dispatch({ type: 'SET_USER', payload: null });
+  };
+
+  const handleLineConnect = () => {
+    setLineConnecting(true);
+    const w = 500, h = 600;
+    const left = (screen.width - w) / 2, top = (screen.height - h) / 2;
+    const popup = window.open(
+      `${import.meta.env.VITE_API_URL || ''}/api/oauth/line`,
+      'line', `width=${w},height=${h},left=${left},top=${top}`
+    );
+    const listener = (e) => {
+      if (e.data?.type === 'LINE_CONNECTED') {
+        window.removeEventListener('message', listener);
+        setLineConnecting(false);
+        const conn = { type: 'line', enabled: true, label: e.data.displayName || 'LINE', linkedAt: new Date().toISOString() };
+        const updated = [...(state.connections || []).filter((c) => c.type !== 'line'), conn];
+        dispatch({ type: 'SET_CONNECTIONS', payload: updated });
+      }
+    };
+    window.addEventListener('message', listener);
+    // Timeout fallback
+    setTimeout(() => { window.removeEventListener('message', listener); setLineConnecting(false); }, 120000);
+  };
+
+  const handleLineDisconnect = () => {
+    const updated = (state.connections || []).filter((c) => c.type !== 'line');
+    dispatch({ type: 'SET_CONNECTIONS', payload: updated });
+  };
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -39,26 +91,48 @@ export default function Settings({ onClose }) {
 
           <div style={styles.divider} />
 
-          {/* View mode */}
+          {/* Login for backup */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>รูปแบบการแสดงผล</div>
-              <div style={styles.desc}>Grid (2 คอลัมน์) หรือ List</div>
+              <div style={styles.label}>Login</div>
+              <div style={styles.desc}>
+                {isLoggedIn ? `${state.user.name || state.user.email}` : 'เข้าสู่ระบบเพื่อ Backup ข้อมูล'}
+              </div>
             </div>
-            <div style={styles.segmented}>
-              <button
-                style={{ ...styles.seg, background: state.viewMode === 'grid' ? C.amber : C.white, color: state.viewMode === 'grid' ? C.white : C.sub }}
-                onClick={() => dispatch({ type: 'SET_VIEW_MODE', payload: 'grid' })}
-              >
-                ⊞ Grid
+            {isLoggedIn ? (
+              <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLogout}>
+                ออกจากระบบ
               </button>
-              <button
-                style={{ ...styles.seg, background: state.viewMode === 'list' ? C.amber : C.white, color: state.viewMode === 'list' ? C.white : C.sub }}
-                onClick={() => dispatch({ type: 'SET_VIEW_MODE', payload: 'list' })}
-              >
-                ☰ List
+            ) : (
+              <button style={styles.actionBtn} onClick={handleLogin}>
+                🔐 เข้าสู่ระบบ
               </button>
+            )}
+          </div>
+
+          <div style={styles.divider} />
+
+          {/* LINE Connect */}
+          <div style={styles.row}>
+            <div>
+              <div style={styles.label}>LINE Connect</div>
+              <div style={styles.desc}>
+                {isLineConnected ? 'เชื่อมต่อแล้ว' : 'เชื่อมต่อ LINE เพื่อรับ-ส่งโน้ต'}
+              </div>
             </div>
+            {isLineConnected ? (
+              <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLineDisconnect}>
+                ยกเลิก
+              </button>
+            ) : (
+              <button
+                style={{ ...styles.actionBtn, background: '#06C755', color: C.white }}
+                onClick={handleLineConnect}
+                disabled={lineConnecting}
+              >
+                💬 {lineConnecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ LINE'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -125,4 +199,17 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   divider: { height: 1, background: C.border },
+  actionBtn: {
+    padding: '8px 16px',
+    borderRadius: 8,
+    border: 'none',
+    background: C.amber,
+    color: C.white,
+    fontSize: 13,
+    fontWeight: 600,
+    fontFamily: C.font,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  },
 };
