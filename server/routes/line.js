@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import pool from '../models/db.js';
+import { isR2Configured, uploadToR2 } from '../utils/r2.js';
 
 const router = Router();
 
@@ -56,8 +57,16 @@ async function fetchLineImage(messageId) {
     }
     const contentType = res.headers.get('content-type') || 'image/jpeg';
     const mimeType = contentType.split(';')[0].trim();
-    const buffer = await res.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
+    const buffer = Buffer.from(await res.arrayBuffer());
+
+    // อัปโหลดไป R2 ถ้า configured — ไม่งั้น fallback เป็น base64
+    if (isR2Configured()) {
+      const url = await uploadToR2(buffer, mimeType);
+      console.log('[LINE] image uploaded to R2:', url);
+      return url;
+    }
+
+    const base64 = buffer.toString('base64');
     return `data:${mimeType};base64,${base64}`;
   } catch (err) {
     console.error('LINE image error:', err.message);
@@ -296,6 +305,50 @@ router.get('/status', async (req, res) => {
     res.json({ connected: true, displayName: data.displayName, pictureUrl: data.pictureUrl });
   } catch {
     res.json({ connected: false });
+  }
+});
+
+// migrate รูป base64 ใน LINE notes ไปยัง R2
+router.post('/migrate-images', async (req, res) => {
+  if (!isR2Configured()) {
+    return res.status(400).json({ error: 'R2 not configured' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, content FROM notes WHERE source='line' AND content LIKE '%data:image/%' AND deleted_at IS NULL`
+    );
+
+    let totalMigrated = 0;
+    for (const note of rows) {
+      const base64Regex = /data:(image\/[a-z+]+);base64,([A-Za-z0-9+/=]+)/g;
+      let newContent = note.content;
+      let match;
+      let migrated = 0;
+
+      while ((match = base64Regex.exec(note.content)) !== null) {
+        const [full, mimeType, b64] = match;
+        try {
+          const buffer = Buffer.from(b64, 'base64');
+          const url = await uploadToR2(buffer, mimeType);
+          newContent = newContent.replace(full, url);
+          migrated++;
+        } catch (err) {
+          console.error('[LINE] migrate image error:', err.message);
+        }
+      }
+
+      if (migrated > 0) {
+        await pool.query(`UPDATE notes SET content=$1, updated_at=NOW() WHERE id=$2`, [newContent, note.id]);
+        totalMigrated += migrated;
+        console.log('[LINE] migrated', migrated, 'image(s) in note', note.id);
+      }
+    }
+
+    res.json({ migrated: totalMigrated, notes: rows.length });
+  } catch (err) {
+    console.error('[LINE] migrate error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

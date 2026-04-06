@@ -9,10 +9,11 @@
     "build": "cd .. && npm install && npm run build"
   },
   "dependencies": {
-    "express": "^4.21.0",
+    "@anthropic-ai/sdk": "^0.82.0",
+    "@aws-sdk/client-s3": "^3.1024.0",
     "cors": "^2.8.5",
-    "pg": "^8.13.0",
     "dotenv": "^16.4.5",
-    "@anthropic-ai/sdk": "^0.82.0"
+    "express": "^4.21.0",
+    "pg": "^8.13.0"
   }
 }
