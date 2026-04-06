@@ -184,6 +184,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
           ))}
         </div>
       )}
+      <div style={{ height: 80 }} />
     </div>
   );
 }
