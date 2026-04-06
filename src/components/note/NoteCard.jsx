@@ -154,6 +154,7 @@ const styles = {
     border: `1px solid ${C.border}`,
     cursor: 'pointer',
     position: 'relative',
+    touchAction: 'pan-y', // browser จัดการแค่ scroll แนวตั้ง — แนวนอนปล่อยให้ JS (swipe-to-delete)
   },
   archiveBadge: {
     display: 'inline-block',
