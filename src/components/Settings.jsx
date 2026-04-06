@@ -146,14 +146,13 @@ export default function Settings({ onClose }) {
             )}
           </div>
 
-          {isLineConnected && (
-            <>
-              <div style={styles.divider} />
-              <div style={styles.row}>
-                <div>
-                  <div style={styles.label}>ตัดโน้ต LINE</div>
-                  <div style={styles.desc}>เก็บข้อมูลย้อนหลัง</div>
-                </div>
+          <>
+            <div style={styles.divider} />
+            <div style={styles.row}>
+              <div>
+                <div style={styles.label}>ตัดโน้ต LINE</div>
+                <div style={styles.desc}>เก็บข้อมูลย้อนหลัง</div>
+              </div>
                 <div style={styles.segmented}>
                   {[
                     { key: 'week', label: 'สัปดาห์' },
@@ -169,9 +168,8 @@ export default function Settings({ onClose }) {
                     </button>
                   ))}
                 </div>
-              </div>
-            </>
-          )}
+            </div>
+          </>
         </div>
       </div>
     </div>
