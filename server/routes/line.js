@@ -14,7 +14,7 @@ function verifySignature(body, signature) {
 
 // ส่ง reply กลับ LINE (ต้องมี Channel Access Token)
 async function replyMessage(replyToken, text) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN?.trim();
   if (!token || !replyToken) return;
   await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
@@ -31,7 +31,7 @@ async function replyMessage(replyToken, text) {
 
 // ดึง content รูปภาพจาก LINE
 async function fetchLineImage(messageId) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN?.trim();
   if (!token) { console.error('LINE: no access token'); return null; }
   try {
     const res = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
