@@ -632,28 +632,33 @@ export default function NoteEditor({ note, onClose }) {
                   alt=""
                   style={styles.galleryImg}
                   onClick={() => {
-                    // Move cursor behind this image in the note
-                    const textarea = textareaRef.current;
-                    if (textarea) {
-                      const imgs = textarea.querySelectorAll('img');
-                      if (imgs[i]) {
-                        const range = document.createRange();
-                        const sel = window.getSelection();
-                        range.setStartAfter(imgs[i]);
-                        range.collapse(true);
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                        // Scroll body to show the image
-                        const body = bodyRef.current;
-                        if (body) {
-                          const imgRect = imgs[i].getBoundingClientRect();
-                          const bodyRect = body.getBoundingClientRect();
-                          const scrollTop = body.scrollTop + (imgRect.top - bodyRect.top) - bodyRect.height / 2;
-                          body.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                    if (fullscreenImg === src) {
+                      // Closing fullscreen — move cursor behind this image
+                      setFullscreenImg(null);
+                      const textarea = textareaRef.current;
+                      if (textarea) {
+                        const imgs = textarea.querySelectorAll('img');
+                        if (imgs[i]) {
+                          const range = document.createRange();
+                          const sel = window.getSelection();
+                          range.setStartAfter(imgs[i]);
+                          range.collapse(true);
+                          sel.removeAllRanges();
+                          sel.addRange(range);
+                          const body = bodyRef.current;
+                          if (body) {
+                            const imgRect = imgs[i].getBoundingClientRect();
+                            const bodyRect = body.getBoundingClientRect();
+                            const scrollTop = body.scrollTop + (imgRect.top - bodyRect.top) - bodyRect.height / 2;
+                            body.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                          }
                         }
                       }
+                    } else {
+                      // Opening fullscreen — blur to prevent keyboard
+                      document.activeElement?.blur();
+                      setFullscreenImg(src);
                     }
-                    setFullscreenImg(fullscreenImg === src ? null : src);
                   }}
                 />
               ))}
