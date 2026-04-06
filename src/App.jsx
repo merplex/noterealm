@@ -48,6 +48,15 @@ export default function App() {
         onSidebar={() => setShowSidebar(true)}
         onSearch={setSearchText}
         onSettings={() => setShowSettings(true)}
+        onSelectNote={(note) => {
+          dispatch({ type: 'SET_TAB', payload: 'note' });
+          setEditingNote(note);
+        }}
+        onSelectTodo={(todo) => {
+          dispatch({ type: 'SET_TAB', payload: 'todo' });
+          setTodoView('list');
+          setEditingTodo(todo);
+        }}
       />
 
       <main style={styles.main}>

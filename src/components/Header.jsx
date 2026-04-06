@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 
@@ -9,22 +9,53 @@ const SORT_OPTIONS = [
   { key: 'hasImage', label: 'มีรูปภาพ' },
 ];
 
-export default function Header({ onSidebar, onSearch, onSettings }) {
+export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, onSelectTodo }) {
   const { state, dispatch } = useApp();
   const [searchText, setSearchText] = useState('');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const holdTimer = useRef(null);
+
+  const searchResults = useMemo(() => {
+    if (!searchText.trim()) return { notes: [], todos: [] };
+    const q = searchText.toLowerCase();
+    const notes = state.notes.filter((n) =>
+      n.title?.toLowerCase().includes(q) || n.content?.toLowerCase().includes(q)
+    ).slice(0, 5);
+    const todos = state.todos.filter((t) =>
+      t.title?.toLowerCase().includes(q) || t.note?.toLowerCase().includes(q)
+    ).slice(0, 5);
+    return { notes, todos };
+  }, [searchText, state.notes, state.todos]);
+
+  const hasResults = searchResults.notes.length > 0 || searchResults.todos.length > 0;
 
   const handleSearch = (e) => {
     setSearchText(e.target.value);
     onSearch?.(e.target.value);
+    setShowResults(!!e.target.value.trim());
+  };
+
+  const handleClear = () => {
+    setSearchText('');
+    onSearch?.('');
+    setShowResults(false);
+  };
+
+  const handleSelectNote = (note) => {
+    setShowResults(false);
+    onSelectNote?.(note);
+  };
+
+  const handleSelectTodo = (todo) => {
+    setShowResults(false);
+    onSelectTodo?.(todo);
   };
 
   const toggleView = () => {
     dispatch({ type: 'SET_VIEW_MODE', payload: state.viewMode === 'grid' ? 'list' : 'grid' });
   };
 
-  // Short press = toggle asc/desc, long press = show sort menu
   const handleSortDown = () => {
     holdTimer.current = setTimeout(() => {
       setShowSortMenu(true);
@@ -47,28 +78,58 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
 
   return (
     <header style={styles.header}>
-      {/* Left edge: Avatar */}
       <button style={styles.avatar} onClick={onSettings}>
         <span style={styles.avatarText}>N</span>
       </button>
 
-      {/* Center: search + view + sort — 3:1:1 ratio */}
       <div style={styles.center}>
-        <div style={styles.searchWrap}>
+        <div style={{ ...styles.searchWrap, position: 'relative' }}>
           <span style={styles.searchIcon}>🔍</span>
           <input
             type="text"
             placeholder="ค้นหา NoteRealm..."
             value={searchText}
             onChange={handleSearch}
+            onFocus={() => searchText.trim() && setShowResults(true)}
             style={styles.searchInput}
           />
           {searchText && (
-            <button style={styles.clearBtn} onClick={() => { setSearchText(''); onSearch?.(''); }}>✕</button>
+            <button style={styles.clearBtn} onClick={handleClear}>✕</button>
+          )}
+
+          {/* Search results dropdown */}
+          {showResults && hasResults && (
+            <>
+              <div style={styles.backdrop} onClick={() => setShowResults(false)} />
+              <div style={styles.resultsDropdown}>
+                {searchResults.notes.map((note) => (
+                  <button
+                    key={note.id}
+                    style={styles.resultItem}
+                    onClick={() => handleSelectNote(note)}
+                  >
+                    <span style={styles.noteTag}>Note</span>
+                    <span style={styles.resultTitle}>{note.title || 'ไม่มีชื่อ'}</span>
+                  </button>
+                ))}
+                {searchResults.todos.map((todo) => (
+                  <button
+                    key={todo.id}
+                    style={styles.resultItem}
+                    onClick={() => handleSelectTodo(todo)}
+                  >
+                    <span style={styles.todoTag}>Todo</span>
+                    <span style={{
+                      ...styles.resultTitle,
+                      textDecoration: todo.done ? 'line-through' : 'none',
+                    }}>{todo.title}</span>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
-        {/* View toggle */}
         <button style={styles.iconBtn} onClick={toggleView}>
           {state.viewMode === 'grid' ? (
             <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
@@ -84,7 +145,6 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
           )}
         </button>
 
-        {/* Sort button */}
         <div style={{ position: 'relative' }}>
           <button
             style={styles.iconBtn}
@@ -115,7 +175,6 @@ export default function Header({ onSidebar, onSearch, onSettings }) {
         </div>
       </div>
 
-      {/* Right edge: Hamburger */}
       <button style={styles.hamburgerBtn} onClick={onSidebar}>
         <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
           <rect y="0" width="20" height="3" rx="1.5" fill={C.text}/>
@@ -145,7 +204,7 @@ const styles = {
     gap: 2,
     margin: '0 6px',
     minWidth: 0,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   iconBtn: {
     width: 36,
@@ -219,6 +278,62 @@ const styles = {
   },
   avatarText: { color: C.white, fontSize: 15, fontWeight: 700 },
   backdrop: { position: 'fixed', inset: 0, zIndex: 99 },
+  resultsDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    background: C.white,
+    border: `1px solid ${C.border}`,
+    borderRadius: 12,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+    zIndex: 100,
+    maxHeight: 320,
+    overflowY: 'auto',
+  },
+  resultSection: {
+    padding: '8px 14px 4px',
+    fontSize: 11,
+    fontWeight: 600,
+    color: C.muted,
+    textTransform: 'uppercase',
+  },
+  resultItem: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+    padding: '10px 14px',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontFamily: C.font,
+    textAlign: 'left',
+    fontSize: 14,
+    color: C.text,
+    borderBottom: `1px solid ${C.border}`,
+  },
+  resultTitle: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  noteTag: {
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: 10,
+    background: C.amber,
+    color: C.text,
+    flexShrink: 0,
+    marginRight: 8,
+  },
+  todoTag: {
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: 10,
+    background: '#1e3a5f',
+    color: C.white,
+    flexShrink: 0,
+    marginRight: 8,
+  },
   sortMenu: {
     position: 'absolute',
     top: 40,

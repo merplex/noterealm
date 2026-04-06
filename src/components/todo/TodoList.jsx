@@ -13,8 +13,11 @@ const SECTIONS = [
   { key: 'low', label: '⚪ ต่ำ' },
 ];
 
+const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
+
 export default function TodoList({ searchText }) {
   const { state, actions } = useApp();
+  const isGrid = state.viewMode === 'grid';
   const [collapsed, setCollapsed] = useState({});
   const [editingTodo, setEditingTodo] = useState(null);
   const [datePickTodo, setDatePickTodo] = useState(null);
@@ -97,40 +100,101 @@ export default function TodoList({ searchText }) {
       </div>
 
       <div style={styles.list}>
-        {SECTIONS.map((section) => {
-          const todos = filteredTodos.filter((t) => t.priority === section.key);
-          if (todos.length === 0) return null;
-
-          return (
-            <div key={section.key}>
-              <button
-                style={styles.sectionHeader}
-                onClick={() => toggleCollapse(section.key)}
-              >
-                <span>{section.label}</span>
-                <span style={styles.count}>{todos.length}</span>
-                <span style={styles.chevron}>
-                  {collapsed[section.key] ? '▸' : '▾'}
-                </span>
-              </button>
-              {!collapsed[section.key] &&
-                todos.map((todo) => (
-                  <TodoItem
-                    key={todo.id}
-                    todo={todo}
-                    onToggle={handleToggle}
-                    onEdit={setEditingTodo}
-                    onDateClick={setDatePickTodo}
-                  />
-                ))}
+        {isGrid ? (
+          /* Grid view */
+          filteredTodos.length === 0 ? (
+            <div style={styles.empty}>
+              {searchText ? 'ไม่พบรายการ' : 'ยังไม่มี Todo — พิมพ์ด้านบนเพื่อเพิ่ม'}
             </div>
-          );
-        })}
+          ) : (
+            <div style={styles.grid}>
+              {filteredTodos.map((todo) => (
+                <div
+                  key={todo.id}
+                  style={{
+                    ...styles.gridCard,
+                    opacity: todo.done ? 0.5 : 1,
+                    borderLeftColor: PRIORITY_COLORS[todo.priority] || C.muted,
+                  }}
+                  onClick={() => setEditingTodo(todo)}
+                >
+                  <div style={styles.gridCardHeader}>
+                    <button
+                      style={{
+                        ...styles.gridCb,
+                        background: todo.done ? C.amber : 'transparent',
+                        borderColor: todo.done ? C.amber : C.border,
+                      }}
+                      onClick={(e) => { e.stopPropagation(); handleToggle(todo); }}
+                    >
+                      {todo.done && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>✓</span>}
+                    </button>
+                    <span style={{
+                      ...styles.gridTitle,
+                      textDecoration: todo.done ? 'line-through' : 'none',
+                    }}>{todo.title}</span>
+                  </div>
+                  {todo.note && <p style={styles.gridNote}>{todo.note}</p>}
+                  <div style={styles.gridMeta}>
+                    <span style={{
+                      ...styles.gridPriority,
+                      background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+                      color: PRIORITY_COLORS[todo.priority] || C.muted,
+                    }}>
+                      {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+                    </span>
+                    <span
+                      style={styles.gridDate}
+                      onClick={(e) => { e.stopPropagation(); setDatePickTodo(todo); }}
+                    >
+                      {todo.dueDate
+                        ? new Date(todo.dueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+                        : 'ไม่ระบุ'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : (
+          /* List view */
+          <>
+            {SECTIONS.map((section) => {
+              const todos = filteredTodos.filter((t) => t.priority === section.key);
+              if (todos.length === 0) return null;
 
-        {filteredTodos.length === 0 && (
-          <div style={styles.empty}>
-            {searchText ? 'ไม่พบรายการ' : 'ยังไม่มี Todo — พิมพ์ด้านล่างเพื่อเพิ่ม'}
-          </div>
+              return (
+                <div key={section.key}>
+                  <button
+                    style={styles.sectionHeader}
+                    onClick={() => toggleCollapse(section.key)}
+                  >
+                    <span>{section.label}</span>
+                    <span style={styles.count}>{todos.length}</span>
+                    <span style={styles.chevron}>
+                      {collapsed[section.key] ? '▸' : '▾'}
+                    </span>
+                  </button>
+                  {!collapsed[section.key] &&
+                    todos.map((todo) => (
+                      <TodoItem
+                        key={todo.id}
+                        todo={todo}
+                        onToggle={handleToggle}
+                        onEdit={setEditingTodo}
+                        onDateClick={setDatePickTodo}
+                      />
+                    ))}
+                </div>
+              );
+            })}
+
+            {filteredTodos.length === 0 && (
+              <div style={styles.empty}>
+                {searchText ? 'ไม่พบรายการ' : 'ยังไม่มี Todo — พิมพ์ด้านบนเพื่อเพิ่ม'}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -218,5 +282,74 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     fontFamily: C.font,
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: 8,
+    padding: 10,
+  },
+  gridCard: {
+    background: C.white,
+    borderRadius: 10,
+    border: `1px solid ${C.border}`,
+    borderLeft: '4px solid',
+    padding: 10,
+    cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  gridCardHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  gridCb: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    border: '2px solid',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginTop: 1,
+    background: 'transparent',
+  },
+  gridTitle: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: C.text,
+    lineHeight: 1.3,
+    wordBreak: 'break-word',
+  },
+  gridNote: {
+    fontSize: 11,
+    color: C.sub,
+    lineHeight: 1.3,
+    overflow: 'hidden',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    margin: 0,
+  },
+  gridMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  gridPriority: {
+    fontSize: 10,
+    padding: '1px 6px',
+    borderRadius: 8,
+    fontWeight: 600,
+  },
+  gridDate: {
+    fontSize: 10,
+    color: C.sub,
+    cursor: 'pointer',
   },
 };
