@@ -1,9 +1,15 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 
 export default function NoteCard({ note, onClick, listMode }) {
   const { actions } = useApp();
+
+  // Memoize preview — ป้องกันรัน regex บน content หลาย MB ทุก swipe frame
+  const previewHtml = useMemo(() => {
+    if (!note.content) return '';
+    return note.content.replace(/<img[^>]*>/g, '🖼').replace(/\[.*?\]/g, '').slice(0, 200);
+  }, [note.content]);
   const isArchived = note.archived;
   const isDeleted = !!note.deletedAt;
   const [swipeX, setSwipeX] = useState(0);
@@ -96,12 +102,10 @@ export default function NoteCard({ note, onClick, listMode }) {
 
         {note.title && <h3 style={styles.title}>{note.title}</h3>}
 
-        {note.content && (
+        {previewHtml && (
           <p
             style={styles.content}
-            dangerouslySetInnerHTML={{
-              __html: note.content.replace(/<img[^>]*>/g, '🖼').replace(/\[.*?\]/g, '').slice(0, 200),
-            }}
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
           />
         )}
 
