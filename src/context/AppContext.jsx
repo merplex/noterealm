@@ -140,8 +140,21 @@ export function AppProvider({ children }) {
       return saved;
     },
     deleteNote: async (id) => {
-      await notesApi.delete(id);
-      dispatch({ type: 'DELETE_NOTE', payload: id });
+      // Soft delete — set deletedAt, keep in DB
+      const note = state.notes.find((n) => n.id === id);
+      if (note) {
+        const updated = { ...note, deletedAt: new Date().toISOString() };
+        await notesApi.update(id, updated);
+        dispatch({ type: 'UPDATE_NOTE', payload: updated });
+      }
+    },
+    restoreNote: async (id) => {
+      const note = state.notes.find((n) => n.id === id);
+      if (note) {
+        const updated = { ...note, deletedAt: undefined };
+        await notesApi.update(id, updated);
+        dispatch({ type: 'UPDATE_NOTE', payload: updated });
+      }
     },
     addTodo: async (todoData) => {
       const saved = await todosApi.create(todoData);

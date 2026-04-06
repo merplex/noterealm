@@ -10,6 +10,15 @@ export default function NoteGrid({ searchText, activeFilter, onEdit, onHistory }
     let notes = [...state.notes];
 
     // Sidebar filter
+    if (activeFilter === 'deleted') {
+      notes = notes.filter((n) => n.deletedAt);
+      // Sort by deletedAt desc
+      notes.sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
+      return notes;
+    }
+    // Exclude deleted notes from all other views
+    notes = notes.filter((n) => !n.deletedAt);
+
     if (activeFilter === 'pinned') {
       notes = notes.filter((n) => n.pinned);
     } else if (activeFilter === 'archived') {

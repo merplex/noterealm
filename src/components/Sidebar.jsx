@@ -32,11 +32,19 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
             <span>ปักหมุด</span>
           </button>
           <button
-            style={{ ...styles.navItem }}
+            style={{ ...styles.navItem, background: activeFilter === 'archived' ? C.amberLight : 'transparent' }}
             onClick={() => { onFilterTag('archived'); onClose(); }}
           >
             <span>📦</span>
             <span>เก็บถาวร</span>
+          </button>
+          <button
+            style={{ ...styles.navItem, background: activeFilter === 'deleted' ? C.amberLight : 'transparent' }}
+            onClick={() => { onFilterTag('deleted'); onClose(); }}
+          >
+            <span>🗑</span>
+            <span>ถังขยะ</span>
+            <span style={styles.count}>{state.notes.filter((n) => n.deletedAt).length}</span>
           </button>
         </nav>
 

@@ -1,47 +1,119 @@
+import { useState, useRef } from 'react';
 import { C } from '../../constants/theme';
+import { useApp } from '../../context/AppContext';
 
-export default function NoteCard({ note, onClick }) {
+export default function NoteCard({ note, onClick, listMode }) {
+  const { actions } = useApp();
   const isArchived = note.archived;
+  const isDeleted = !!note.deletedAt;
+  const [swipeX, setSwipeX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const touchStart = useRef(null);
+
+  const handleTouchStart = (e) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+    setSwiping(false);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStart.current) return;
+    const dx = e.touches[0].clientX - touchStart.current.x;
+    const dy = e.touches[0].clientY - touchStart.current.y;
+    // Only swipe horizontally
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+      setSwiping(true);
+      setSwipeX(Math.min(0, dx)); // Only swipe left
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeX < -80) {
+      // Delete
+      if (isDeleted) {
+        // Already in trash — restore
+        actions.restoreNote(note.id);
+      } else {
+        actions.deleteNote(note.id);
+      }
+      setSwipeX(0);
+    } else {
+      setSwipeX(0);
+    }
+    touchStart.current = null;
+    setSwiping(false);
+  };
+
+  const handleClick = () => {
+    if (swiping || Math.abs(swipeX) > 5) return;
+    onClick?.(note);
+  };
 
   return (
-    <div
-      style={{
-        ...styles.card,
-        opacity: isArchived ? 0.72 : 1,
-      }}
-      onClick={() => onClick?.(note)}
-    >
-      {isArchived && <span style={styles.archiveBadge}>📦 ARCHIVED</span>}
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12 }}>
+      {/* Delete background */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 100,
+        background: isDeleted ? '#16a34a' : '#dc2626',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 600,
+        borderRadius: '0 12px 12px 0',
+      }}>
+        {isDeleted ? 'คืนค่า' : 'ลบ'}
+      </div>
 
-      {note.pinned && <span style={styles.pinBadge}>📌</span>}
+      <div
+        style={{
+          ...styles.card,
+          opacity: isArchived || isDeleted ? 0.72 : 1,
+          transform: `translateX(${swipeX}px)`,
+          transition: swiping ? 'none' : 'transform 0.2s',
+        }}
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {isArchived && <span style={styles.archiveBadge}>📦 ARCHIVED</span>}
+        {isDeleted && <span style={styles.deletedBadge}>🗑 ถูกลบ</span>}
 
-      {note.title && <h3 style={styles.title}>{note.title}</h3>}
+        {note.pinned && !isDeleted && <span style={styles.pinBadge}>📌</span>}
 
-      {note.content && (
-        <p
-          style={styles.content}
-          dangerouslySetInnerHTML={{
-            __html: note.content.replace(/\[.*?\]/g, '').slice(0, 200),
-          }}
-        />
-      )}
+        {note.title && <h3 style={styles.title}>{note.title}</h3>}
 
-      {note.images?.length > 0 && (
-        <div style={styles.imageRow}>
-          {note.images.slice(0, 3).map((img, i) => (
-            <div key={i} style={{ ...styles.thumb, backgroundImage: `url(${img})` }} />
+        {note.content && (
+          <p
+            style={styles.content}
+            dangerouslySetInnerHTML={{
+              __html: note.content.replace(/<img[^>]*>/g, '🖼').replace(/\[.*?\]/g, '').slice(0, 200),
+            }}
+          />
+        )}
+
+        {note.images?.length > 0 && (
+          <div style={styles.imageRow}>
+            {note.images.slice(0, 3).map((img, i) => (
+              <div key={i} style={{ ...styles.thumb, backgroundImage: `url(${img})` }} />
+            ))}
+          </div>
+        )}
+
+        <div style={styles.footer}>
+          {note.tags?.map((tag) => (
+            <span key={tag} style={styles.tag}>
+              {tag}
+            </span>
           ))}
+          {note.aiBlocks?.length > 0 && <span style={styles.aiBadge}>🤖</span>}
+          {note.refs?.length > 0 && <span style={styles.refBadge}>🔗</span>}
         </div>
-      )}
-
-      <div style={styles.footer}>
-        {note.tags?.map((tag) => (
-          <span key={tag} style={styles.tag}>
-            {tag}
-          </span>
-        ))}
-        {note.aiBlocks?.length > 0 && <span style={styles.aiBadge}>🤖</span>}
-        {note.refs?.length > 0 && <span style={styles.refBadge}>🔗</span>}
       </div>
     </div>
   );
@@ -55,13 +127,21 @@ const styles = {
     border: `1px solid ${C.border}`,
     cursor: 'pointer',
     position: 'relative',
-    transition: 'box-shadow 0.2s',
   },
   archiveBadge: {
     display: 'inline-block',
     fontSize: 10,
     background: '#f5f5f4',
     color: C.sub,
+    padding: '2px 6px',
+    borderRadius: 4,
+    marginBottom: 6,
+  },
+  deletedBadge: {
+    display: 'inline-block',
+    fontSize: 10,
+    background: '#fef2f2',
+    color: '#dc2626',
     padding: '2px 6px',
     borderRadius: 4,
     marginBottom: 6,
