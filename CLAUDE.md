@@ -73,3 +73,8 @@ git checkout main && git merge <feature-branch> && git push origin main && git c
 - ปุ่มลบใช้ `position:absolute; top:0; right:0` อยู่ในกรอบรูปทุกขนาด
 - Compress รูปด้วย canvas: fill white ก่อน draw เพื่อป้องกัน PNG โปร่งใสกลายเป็นดำ
 - **ใช้ `createImageBitmap(file)`** สำหรับ decode รูป — ห้ามใช้ `new Image()` + `onload` เพราะ decode ไม่ทัน ทำให้ภาพขาว (commit `bcf06ef`)
+
+## Layout & Responsive (สำคัญ — ห้ามใช้ zoom)
+- **ห้ามใช้ CSS `zoom`** — ทำให้ layout พังใน Brave, Firefox และ browser อื่น
+- **Header**: ใช้ `display:flex` โดย search bar ใช้ `flex:1` + icon buttons ใช้ `width:36px; flexShrink:0` — ทำให้ปุ่มไม่ทะลุออกนอกจอทุก browser
+- ถ้าต้องการขยายตัวอักษร ให้ปรับ `fontSize` ในแต่ละ component แทน ห้ามใช้ zoom/transform:scale ที่ root
