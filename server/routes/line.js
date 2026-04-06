@@ -79,8 +79,9 @@ async function findOrCreateLineNote(senderId, senderName) {
   const idTag = `_line_id:${senderId}`;
   const title = `LINE: ${senderName}`;
 
+  // เช็ค deleted_at IS NULL ด้วย — ถ้า note ถูก soft-delete จะมองไม่เห็นใน frontend
   const { rows } = await pool.query(
-    `SELECT id, content, title FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false ORDER BY updated_at DESC LIMIT 1`,
+    `SELECT id, content, title FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
     [idTag]
   );
 
@@ -89,6 +90,16 @@ async function findOrCreateLineNote(senderId, senderName) {
       await pool.query(`UPDATE notes SET title=$1, updated_at=NOW() WHERE id=$2`, [title, rows[0].id]);
     }
     return rows[0];
+  }
+
+  // ถ้ามี note เดิมที่ถูก soft-delete → undelete แทนสร้างใหม่
+  const { rows: deleted } = await pool.query(
+    `SELECT id, content, title FROM notes WHERE source='line' AND $1=ANY(tags) AND deleted_at IS NOT NULL ORDER BY updated_at DESC LIMIT 1`,
+    [idTag]
+  );
+  if (deleted.length > 0) {
+    await pool.query(`UPDATE notes SET deleted_at=NULL, archived=false, title=$1, updated_at=NOW() WHERE id=$2`, [title, deleted[0].id]);
+    return deleted[0];
   }
 
   const { rows: newRows } = await pool.query(
@@ -160,17 +171,28 @@ router.post('/', async (req, res) => {
       // รวมทุก message ของ sender นี้เป็น HTML เดียว (ไม่มี timestamp แยก)
       const parts = [];
       let lastReplyToken = null;
+      const isGroup = senderEvents[0].source?.type === 'group' || senderEvents[0].source?.type === 'room';
 
       for (const event of senderEvents) {
         lastReplyToken = event.replyToken;
 
+        // ถ้าเป็น group → แสดงชื่อคนส่งแต่ละข้อความ
+        let senderLabel = '';
+        if (isGroup && event.source?.userId) {
+          try {
+            const profile = await lineGet(`/v2/bot/group/${event.source.groupId}/member/${event.source.userId}`);
+            const name = profile?.displayName || 'Unknown';
+            senderLabel = `<strong style="color:#78716c;font-size:12px">${name.replace(/</g, '&lt;')}</strong> `;
+          } catch { /* ignore */ }
+        }
+
         if (event.message.type === 'text') {
           const text = event.message.text;
-          parts.push(`<p style="white-space:pre-wrap;margin:4px 0">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`);
+          parts.push(`<p style="white-space:pre-wrap;margin:4px 0">${senderLabel}${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`);
         } else if (event.message.type === 'image') {
           const imgData = await fetchLineImage(event.message.id);
           if (imgData) {
-            parts.push(`<img src="${imgData}" style="max-width:100%;border-radius:8px;display:block;margin:4px 0"/>`);
+            parts.push(`${senderLabel ? `<p style="margin:4px 0">${senderLabel}</p>` : ''}<img src="${imgData}" style="max-width:100%;border-radius:8px;display:block;margin:4px 0"/>`);
           }
         } else {
           console.log('[LINE] unsupported message type:', event.message.type);
