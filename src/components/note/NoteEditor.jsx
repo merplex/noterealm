@@ -391,14 +391,16 @@ export default function NoteEditor({ note, onClose }) {
     if (!finalTitle && textOnly) {
       try {
         const providerId = state.aiSettings?.provider || 'claude';
+        // Use readable text (with spaces preserved) for AI prompt
+        const readableText = cleanContent.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
         const aiTitle = await callAI({
           provider: providerId,
-          messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${textOnly.slice(0, 300)}` }],
+          messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
           settings: state.aiSettings,
         });
         finalTitle = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
-      } catch {
-        // AI failed — use first line of content
+      } catch (e) {
+        console.warn('AI title generation failed:', e.message);
       }
       if (!finalTitle) {
         const stripped = stripHtml(cleanContent);
