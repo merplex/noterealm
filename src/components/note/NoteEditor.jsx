@@ -403,8 +403,7 @@ export default function NoteEditor({ note, onClose }) {
         console.warn('AI title generation failed:', e.message);
       }
       if (!finalTitle) {
-        const stripped = stripHtml(cleanContent);
-        finalTitle = stripped.split('\n')[0].trim().slice(0, 50) || 'Untitled';
+        finalTitle = '...AI คิดไม่ออก ช่วยกรอกเอง...';
       }
     }
 
