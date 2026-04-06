@@ -1,11 +1,11 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { useRef, useMemo } from 'react';
 import { C } from '../../constants/theme';
-import { useApp } from '../../context/AppContext';
 
-export default function NoteCard({ note, onClick, listMode }) {
-  const { actions } = useApp();
+export default function NoteCard({ note, onClick, listMode, isSelecting, isSelected, onLongPress, onSelect }) {
+  const longPressTimer = useRef(null);
+  const pointerStart = useRef(null);
+  const suppressClick = useRef(false);
 
-  // Memoize preview — strip base64 ก่อน regex เพื่อกัน JS block บน LINE notes
   const previewHtml = useMemo(() => {
     if (!note.content) return '';
     return note.content
@@ -15,121 +15,81 @@ export default function NoteCard({ note, onClick, listMode }) {
       .replace(/\[.*?\]/g, '')
       .slice(0, 200);
   }, [note.content]);
+
   const isArchived = note.archived;
   const isDeleted = !!note.deletedAt;
-  const [swipeX, setSwipeX] = useState(0);
-  const swipeXRef = useRef(0);
-  const swipingRef = useRef(false);
-  const touchStart = useRef(null);
-  const cardRef = useRef(null);
 
-  const DELETE_THRESHOLD = 90;
-  const gestureRef = useRef(null); // null=undecided, 'h'=horizontal, 'v'=vertical
-
-  const reset = useCallback(() => {
-    swipeXRef.current = 0;
-    swipingRef.current = false;
-    gestureRef.current = null;
-    setSwipeX(0);
-    touchStart.current = null;
-  }, []);
-
-  const handleTouchStart = (e) => {
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    swipingRef.current = false;
-    swipeXRef.current = 0;
-    gestureRef.current = null;
-    setSwipeX(0);
+  const cancelLongPress = () => {
+    clearTimeout(longPressTimer.current);
+    longPressTimer.current = null;
   };
 
-  // non-passive listener — lock gesture direction ตั้งแต่ 4px แรก
-  // เพื่อให้ preventDefault() ยิงก่อน browser commit vertical scroll
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-
-    const onTouchMove = (e) => {
-      if (!touchStart.current) return;
-      const dx = e.touches[0].clientX - touchStart.current.x;
-      const dy = e.touches[0].clientY - touchStart.current.y;
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-
-      // Lock gesture direction ที่ 4px แรก ก่อน browser commit scroll
-      if (gestureRef.current === null && (absDx > 4 || absDy > 4)) {
-        gestureRef.current = absDx >= absDy ? 'h' : 'v';
-      }
-
-      if (gestureRef.current === 'h') {
-        e.preventDefault(); // ป้องกัน scroll (ต้อง non-passive)
-        swipingRef.current = true;
-        const clamped = Math.max(-100, Math.min(0, dx));
-        swipeXRef.current = clamped;
-        setSwipeX(clamped);
-      }
-    };
-
-    el.addEventListener('touchmove', onTouchMove, { passive: false });
-    return () => el.removeEventListener('touchmove', onTouchMove);
-  }, []);
-
-  const handleTouchEnd = () => {
-    if (swipeXRef.current <= -DELETE_THRESHOLD) {
-      if (isDeleted) actions.restoreNote(note.id);
-      else actions.deleteNote(note.id);
-    }
-    reset();
+  const handlePointerDown = (e) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+    longPressTimer.current = setTimeout(() => {
+      suppressClick.current = true;
+      onLongPress?.(note);
+    }, 500);
   };
 
-  // Fallback: ถ้า touchEnd ไม่ fire → auto-reset หลัง 3s
-  // timer restart ทุกครั้งที่ swipeX เปลี่ยน (touchMove) จึงไม่ reset ระหว่าง swipe
-  useEffect(() => {
-    if (swipeX >= 0) return;
-    const timer = setTimeout(reset, 3000);
-    return () => clearTimeout(timer);
-  }, [swipeX, reset]);
+  const handlePointerMove = (e) => {
+    if (!pointerStart.current) return;
+    const dx = Math.abs(e.clientX - pointerStart.current.x);
+    const dy = Math.abs(e.clientY - pointerStart.current.y);
+    if (dx > 10 || dy > 10) cancelLongPress();
+  };
+
+  const handlePointerUp = () => {
+    cancelLongPress();
+    pointerStart.current = null;
+  };
 
   const handleClick = () => {
-    if (swipingRef.current || Math.abs(swipeXRef.current) > 5) return;
-    onClick?.(note);
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
+    if (isSelecting) {
+      onSelect?.(note);
+    } else {
+      onClick?.(note);
+    }
   };
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12 }}>
-      {/* Delete background — แสดงเฉพาะตอน swipe */}
-      {swipeX < 0 && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: 100,
-          background: isDeleted ? '#16a34a' : '#dc2626',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff',
-          fontSize: 14,
-          fontWeight: 600,
-          borderRadius: '0 12px 12px 0',
-        }}>
-          {isDeleted ? 'คืนค่า' : 'ลบ'}
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: isSelecting ? 10 : 0 }}>
+      {isSelecting && (
+        <div
+          style={{
+            width: 22, height: 22, borderRadius: '50%',
+            border: `2px solid ${isSelected ? C.amber : C.border}`,
+            background: isSelected ? C.amber : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, marginTop: 14, color: '#fff', fontSize: 13, fontWeight: 700,
+            transition: 'all 0.15s', cursor: 'pointer',
+          }}
+          onClick={handleClick}
+        >
+          {isSelected ? '✓' : ''}
         </div>
       )}
 
       <div
-        ref={cardRef}
         style={{
           ...styles.card,
+          flex: isSelecting ? 1 : undefined,
           opacity: isArchived || isDeleted ? 0.72 : 1,
-          transform: swipeX < 0 ? `translateX(${swipeX}px)` : undefined,
-          transition: swipingRef.current ? 'none' : 'transform 0.2s',
-          willChange: swipeX < 0 ? 'transform' : undefined,
+          outline: isSelected ? `2px solid ${C.amber}` : 'none',
+          background: isSelected ? '#fffbeb' : C.white,
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
         }}
         onClick={handleClick}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={reset}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onContextMenu={(e) => { e.preventDefault(); onLongPress?.(note); }}
       >
         {isArchived && <span style={styles.archiveBadge}>📦 ARCHIVED</span>}
         {isDeleted && <span style={styles.deletedBadge}>🗑 ถูกลบ</span>}
@@ -139,10 +99,7 @@ export default function NoteCard({ note, onClick, listMode }) {
         {note.title && <h3 style={styles.title}>{note.title}</h3>}
 
         {previewHtml && (
-          <p
-            style={styles.content}
-            dangerouslySetInnerHTML={{ __html: previewHtml }}
-          />
+          <p style={styles.content} dangerouslySetInnerHTML={{ __html: previewHtml }} />
         )}
 
         {note.images?.length > 0 && (
@@ -155,9 +112,7 @@ export default function NoteCard({ note, onClick, listMode }) {
 
         <div style={styles.footer}>
           {note.tags?.filter((t) => !t.startsWith('_')).map((tag) => (
-            <span key={tag} style={styles.tag}>
-              {tag}
-            </span>
+            <span key={tag} style={styles.tag}>{tag}</span>
           ))}
           {note.aiBlocks?.length > 0 && <span style={styles.aiBadge}>🤖</span>}
           {note.refs?.length > 0 && <span style={styles.refBadge}>🔗</span>}
@@ -175,7 +130,6 @@ const styles = {
     border: `1px solid ${C.border}`,
     cursor: 'pointer',
     position: 'relative',
-    touchAction: 'pan-y', // browser จัดการแค่ scroll แนวตั้ง — แนวนอนปล่อยให้ JS (swipe-to-delete)
   },
   archiveBadge: {
     display: 'inline-block',

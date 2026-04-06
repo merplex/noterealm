@@ -7,6 +7,8 @@ export default function DynamicFilters({ activeFilter, onFilter }) {
     { key: 'line', label: 'Line', icon: '💬' },
     { key: 'email', label: 'Email', icon: '📧' },
     { key: 'picture', label: 'Picture', icon: '🖼' },
+    { key: 'archive', label: 'Archive', icon: '📦' },
+    { key: 'deleted', label: 'Trash', icon: '🗑' },
   ];
 
   return (

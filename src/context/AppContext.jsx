@@ -166,6 +166,22 @@ export function AppProvider({ children }) {
         await notesApi.softDelete(id, null);
       }
     },
+    permanentDeleteNote: async (id) => {
+      await notesApi.delete(id);
+      dispatch({ type: 'DELETE_NOTE', payload: id });
+    },
+    archiveNote: async (id) => {
+      const note = stateRef.current.notes.find((n) => n.id === id);
+      if (!note) return;
+      const saved = await notesApi.update(id, { ...note, archived: true });
+      dispatch({ type: 'UPDATE_NOTE', payload: saved });
+    },
+    unarchiveNote: async (id) => {
+      const note = stateRef.current.notes.find((n) => n.id === id);
+      if (!note) return;
+      const saved = await notesApi.update(id, { ...note, archived: false });
+      dispatch({ type: 'UPDATE_NOTE', payload: saved });
+    },
     addTodo: async (todoData) => {
       const saved = await todosApi.create(todoData);
       dispatch({ type: 'ADD_TODO', payload: saved });
