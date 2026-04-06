@@ -7,43 +7,49 @@ export default function NoteCard({ note, onClick, listMode }) {
   const isArchived = note.archived;
   const isDeleted = !!note.deletedAt;
   const [swipeX, setSwipeX] = useState(0);
-  const [swiping, setSwiping] = useState(false);
+  const swipeXRef = useRef(0); // ref สำหรับอ่านค่า swipe ใน handleTouchEnd (ไม่ stale)
+  const swipingRef = useRef(false);
   const touchStart = useRef(null);
 
-  const handleTouchStart = (e) => {
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
-    setSwiping(false);
+  const DELETE_THRESHOLD = 90;
+
+  const reset = () => {
+    swipeXRef.current = 0;
+    swipingRef.current = false;
+    setSwipeX(0);
+    touchStart.current = null;
   };
 
-  const DELETE_THRESHOLD = 90; // px — ต้อง swipe ถึงระดับนี้ถึงจะลบ
+  const handleTouchStart = (e) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    swipingRef.current = false;
+  };
 
   const handleTouchMove = (e) => {
     if (!touchStart.current) return;
     const dx = e.touches[0].clientX - touchStart.current.x;
     const dy = e.touches[0].clientY - touchStart.current.y;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-      setSwiping(true);
-      setSwipeX(Math.max(-100, Math.min(0, dx))); // clamp -100 ถึง 0
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+      swipingRef.current = true;
+      const clamped = Math.max(-100, Math.min(0, dx));
+      swipeXRef.current = clamped;
+      setSwipeX(clamped);
     }
   };
 
   const handleTouchEnd = () => {
-    if (swipeX <= -DELETE_THRESHOLD) {
-      // swipe สุด → ลบ/คืนค่าเลย
+    if (swipeXRef.current <= -DELETE_THRESHOLD) {
       if (isDeleted) {
         actions.restoreNote(note.id);
       } else {
         actions.deleteNote(note.id);
       }
     }
-    // swipe แง้มๆ → snap back เสมอ
-    setSwipeX(0);
-    touchStart.current = null;
-    setSwiping(false);
+    reset();
   };
 
   const handleClick = () => {
-    if (swiping || Math.abs(swipeX) > 5) return;
+    if (swipingRef.current || Math.abs(swipeXRef.current) > 5) return;
     onClick?.(note);
   };
 
@@ -79,6 +85,7 @@ export default function NoteCard({ note, onClick, listMode }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={reset}
       >
         {isArchived && <span style={styles.archiveBadge}>📦 ARCHIVED</span>}
         {isDeleted && <span style={styles.deletedBadge}>🗑 ถูกลบ</span>}
