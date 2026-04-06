@@ -15,30 +15,29 @@ export default function NoteCard({ note, onClick, listMode }) {
     setSwiping(false);
   };
 
+  const DELETE_THRESHOLD = 90; // px — ต้อง swipe ถึงระดับนี้ถึงจะลบ
+
   const handleTouchMove = (e) => {
     if (!touchStart.current) return;
     const dx = e.touches[0].clientX - touchStart.current.x;
     const dy = e.touches[0].clientY - touchStart.current.y;
-    // Only swipe horizontally
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
       setSwiping(true);
-      setSwipeX(Math.min(0, dx)); // Only swipe left
+      setSwipeX(Math.max(-100, Math.min(0, dx))); // clamp -100 ถึง 0
     }
   };
 
   const handleTouchEnd = () => {
-    if (swipeX < -80) {
-      // Delete
+    if (swipeX <= -DELETE_THRESHOLD) {
+      // swipe สุด → ลบ/คืนค่าเลย
       if (isDeleted) {
-        // Already in trash — restore
         actions.restoreNote(note.id);
       } else {
         actions.deleteNote(note.id);
       }
-      setSwipeX(0);
-    } else {
-      setSwipeX(0);
     }
+    // swipe แง้มๆ → snap back เสมอ
+    setSwipeX(0);
     touchStart.current = null;
     setSwiping(false);
   };

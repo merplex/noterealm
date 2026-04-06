@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import NoteCard from './NoteCard';
 import DynamicFilters from './DynamicFilters';
 
-export default function NoteGrid({ searchText, activeFilter, onEdit, onHistory }) {
+export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, onHistory }) {
   const { state } = useApp();
 
   const filteredNotes = useMemo(() => {
@@ -12,7 +12,6 @@ export default function NoteGrid({ searchText, activeFilter, onEdit, onHistory }
     // Sidebar filter
     if (activeFilter === 'deleted') {
       notes = notes.filter((n) => n.deletedAt);
-      // Sort by deletedAt desc
       notes.sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
       return notes;
     }
@@ -21,8 +20,14 @@ export default function NoteGrid({ searchText, activeFilter, onEdit, onHistory }
 
     if (activeFilter === 'pinned') {
       notes = notes.filter((n) => n.pinned);
-    } else if (activeFilter === 'archived') {
-      notes = notes.filter((n) => n.archived);
+    } else if (activeFilter === 'line') {
+      notes = notes.filter((n) => n.source === 'line');
+    } else if (activeFilter === 'email') {
+      notes = notes.filter((n) => n.source === 'email');
+    } else if (activeFilter === 'picture') {
+      notes = notes.filter(
+        (n) => n.images?.length > 0 || n.content?.includes('<img')
+      );
     } else if (activeFilter?.startsWith('tag:')) {
       const tag = activeFilter.slice(4);
       notes = notes.filter((n) => n.tags?.includes(tag));
@@ -69,7 +74,7 @@ export default function NoteGrid({ searchText, activeFilter, onEdit, onHistory }
 
   return (
     <div>
-      <DynamicFilters />
+      <DynamicFilters activeFilter={activeFilter} onFilter={onFilter} />
       <div className={isList ? '' : 'masonry-grid'} style={isList ? styles.list : undefined}>
         {filteredNotes.map((note) => (
           <NoteCard

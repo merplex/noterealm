@@ -64,6 +64,7 @@ export default function App() {
           <NoteGrid
             searchText={searchText}
             activeFilter={activeFilter}
+            onFilter={setActiveFilter}
             onEdit={(note) => setEditingNote(note)}
             onHistory={(note) => setHistoryNote(note)}
           />

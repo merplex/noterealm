@@ -1,20 +1,12 @@
 import { C } from '../../constants/theme';
-import { CONNECTION_ICONS } from '../../constants/providers';
-import { useApp } from '../../context/AppContext';
 
 export default function DynamicFilters({ activeFilter, onFilter }) {
-  const { state } = useApp();
-  const enabledConnections = state.connections.filter((c) => c.enabled);
-
   const filters = [
     { key: 'all', label: 'All', icon: '' },
-    ...enabledConnections.map((c) => ({
-      key: c.type,
-      label: c.label || c.type,
-      icon: CONNECTION_ICONS[c.type] || '',
-    })),
-    { key: 'pinned', label: 'Pinned', icon: '📌' },
-    { key: 'archived', label: 'Archived', icon: '📦' },
+    { key: 'pinned', label: 'Pin', icon: '📌' },
+    { key: 'line', label: 'Line', icon: '💬' },
+    { key: 'email', label: 'Email', icon: '📧' },
+    { key: 'picture', label: 'Picture', icon: '🖼' },
   ];
 
   return (
