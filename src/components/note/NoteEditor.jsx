@@ -265,11 +265,12 @@ export default function NoteEditor({ note, onClose }) {
     syncContent();
 
     // Auto-generate title with AI if there's content
-    if (selected) {
+    const selectedText = selectedHtml.replace(/<[^>]+>/g, '').trim();
+    if (selectedText) {
       const providerId = state.aiSettings?.provider || 'claude';
       callAI({
         provider: providerId,
-        messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${selected}` }],
+        messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${selectedText}` }],
         settings: state.aiSettings,
       }).then((title) => {
         titleInput.value = title.trim().replace(/^["']|["']$/g, '');
