@@ -29,6 +29,8 @@ export default function NoteEditor({ note, onClose }) {
   const textareaRef = useRef(null);
   const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
   const [showInsertMenu, setShowInsertMenu] = useState(false);
+  const [lastSaved, setLastSaved] = useState(note?.updatedAt || null);
+  const autoSaveTimer = useRef(null);
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
@@ -336,6 +338,37 @@ export default function NoteEditor({ note, onClose }) {
     };
     fileInput.click();
   };
+
+  // Auto-save (no new version, just save current state)
+  const doAutoSave = useCallback(async () => {
+    if (isNew) return; // Don't auto-save unsaved notes
+    const el = textareaRef.current;
+    const curContent = el ? el.innerHTML : content;
+    const cleanContent = curContent.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
+    const textOnly = cleanContent.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, '').trim();
+    if (!title.trim() && !textOnly) return;
+
+    const now = new Date().toISOString();
+    try {
+      await actions.updateNote({
+        ...note,
+        title: title.trim() || note.title,
+        content: cleanContent,
+        tags, pinned, images, aiBlocks, group,
+        refs: (curContent.match(/\[\[([^:]+):/g) || []).map((m) => m.slice(2, -1)),
+        updatedAt: now,
+      });
+      setLastSaved(now);
+    } catch { /* silent */ }
+  }, [isNew, note, title, content, tags, pinned, images, aiBlocks, group, actions]);
+
+  // Debounced auto-save on content change
+  useEffect(() => {
+    if (isNew) return;
+    clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(doAutoSave, 3000);
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [content, title, doAutoSave, isNew]);
 
   const handleRefer = (refNote) => {
     insertAtCursor(`[[${refNote.id}:${refNote.title || 'Untitled'}]]`);
@@ -696,16 +729,14 @@ export default function NoteEditor({ note, onClose }) {
 
         {/* Sticky: Footer */}
         <div style={styles.footer}>
-          {!isNew && (
-            <button style={styles.deleteBtn} onClick={() => {
-              if (confirm('ลบโน้ตนี้?')) {
-                actions.deleteNote(note.id);
-                onClose();
-              }
-            }}>ลบ</button>
+          {!isNew && lastSaved && (
+            <span style={styles.saveInfo}>
+              อัพเดท {new Date(lastSaved).toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
+              {' จาก ver '}{(note?.history?.length || 0) + 1}
+            </span>
           )}
           <div style={{ flex: 1 }} />
-          <button style={styles.cancelBtn} onClick={onClose}>ยกเลิก</button>
+          <button style={styles.cancelBtn} onClick={() => { doAutoSave(); onClose(); }}>ออก</button>
           <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
         </div>
 
@@ -926,16 +957,12 @@ const styles = {
     fontSize: 18,
     cursor: 'pointer',
   },
-  deleteBtn: {
-    padding: '8px 16px',
-    borderRadius: 8,
-    border: `1px solid #fca5a5`,
-    background: '#fef2f2',
-    fontSize: 15,
-    cursor: 'pointer',
+  saveInfo: {
+    fontSize: 11,
+    color: C.muted,
     fontFamily: C.font,
-    color: '#dc2626',
     flexShrink: 0,
+    whiteSpace: 'nowrap',
   },
   cancelBtn: {
     padding: '8px 16px',
