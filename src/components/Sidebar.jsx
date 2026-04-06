@@ -1,11 +1,12 @@
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 
-export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFilter }) {
+export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFilter, onTodoTrash }) {
   const { state } = useApp();
 
   const allTags = [...new Set(state.notes.flatMap((n) => n.tags || []))];
   const groups = state.groups || [];
+  const deletedTodoCount = state.todos.filter((t) => t.deletedAt).length;
 
   return (
     <>
@@ -47,6 +48,18 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
             <span style={styles.count}>{state.notes.filter((n) => n.deletedAt).length}</span>
           </button>
         </nav>
+
+        {/* Todo section */}
+        <section style={styles.section}>
+          <div style={styles.sectionLabel}>Todo</div>
+          <button style={styles.navItem} onClick={onTodoTrash}>
+            <span>🗑</span>
+            <span>ถังขยะ Todo</span>
+            {deletedTodoCount > 0 && (
+              <span style={styles.count}>{deletedTodoCount}</span>
+            )}
+          </button>
+        </section>
 
         {allTags.length > 0 && (
           <section style={styles.section}>

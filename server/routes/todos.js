@@ -50,7 +50,22 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete todo
+// Soft delete / restore todo
+router.patch('/:id/soft-delete', async (req, res) => {
+  const { deletedAt } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE todos SET deleted_at=$1 WHERE id=$2 RETURNING *`,
+      [deletedAt || null, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(mapTodo(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Permanent delete todo
 router.delete('/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM todos WHERE id = $1', [req.params.id]);
@@ -73,6 +88,7 @@ function mapTodo(row) {
     linkedNoteId: row.linked_note_id,
     source: row.source,
     createdAt: row.created_at,
+    deletedAt: row.deleted_at || null,
   };
 }
 

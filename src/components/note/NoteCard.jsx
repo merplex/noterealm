@@ -1,7 +1,7 @@
 import { useRef, useMemo } from 'react';
 import { C } from '../../constants/theme';
 
-export default function NoteCard({ note, onClick, listMode, isSelecting, isSelected, onLongPress, onSelect }) {
+export default function NoteCard({ note, onClick, listMode, isSelecting, isSelected, onLongPress, onSelect, onTagClick }) {
   const longPressTimer = useRef(null);
   const pointerStart = useRef(null);
   const suppressClick = useRef(false);
@@ -112,7 +112,13 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
 
         <div style={styles.footer}>
           {note.tags?.filter((t) => !t.startsWith('_')).map((tag) => (
-            <span key={tag} style={styles.tag}>{tag}</span>
+            <span
+              key={tag}
+              style={styles.tag}
+              onClick={(e) => { e.stopPropagation(); onTagClick?.(`tag:${tag}`); }}
+            >
+              {tag}
+            </span>
           ))}
           {note.aiBlocks?.length > 0 && <span style={styles.aiBadge}>🤖</span>}
           {note.refs?.length > 0 && <span style={styles.refBadge}>🔗</span>}

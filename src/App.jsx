@@ -21,6 +21,7 @@ export default function App() {
   const [historyNote, setHistoryNote] = useState(null);
   const [editingTodo, setEditingTodo] = useState(null);
   const [todoView, setTodoView] = useState('list');
+  const [todoFilter, setTodoFilter] = useState(null);
 
   const handleAddNote = () => setEditingNote({});
 
@@ -85,7 +86,7 @@ export default function App() {
               </button>
             </div>
             {todoView === 'list' ? (
-              <TodoList searchText={searchText} />
+              <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} />
             ) : (
               <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} />
             )}
@@ -128,6 +129,12 @@ export default function App() {
           activeFilter={activeFilter}
           onFilterTag={setActiveFilter}
           onFilterGroup={setActiveFilter}
+          onTodoTrash={() => {
+            dispatch({ type: 'SET_TAB', payload: 'todo' });
+            setTodoView('list');
+            setTodoFilter('deleted');
+            setShowSidebar(false);
+          }}
         />
       )}
 

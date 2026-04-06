@@ -29,5 +29,6 @@ export const todosApi = {
   list: () => request('/api/todos'),
   create: (data) => request('/api/todos', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => request(`/api/todos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  softDelete: (id, deletedAt) => request(`/api/todos/${id}/soft-delete`, { method: 'PATCH', body: JSON.stringify({ deletedAt }) }),
   delete: (id) => request(`/api/todos/${id}`, { method: 'DELETE' }),
 };

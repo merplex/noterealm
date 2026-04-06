@@ -193,6 +193,15 @@ export function AppProvider({ children }) {
       return saved;
     },
     deleteTodo: async (id) => {
+      const deletedAt = new Date().toISOString();
+      dispatch({ type: 'UPDATE_TODO', payload: { id, deletedAt } });
+      await todosApi.softDelete(id, deletedAt);
+    },
+    restoreTodo: async (id) => {
+      dispatch({ type: 'UPDATE_TODO', payload: { id, deletedAt: null } });
+      await todosApi.softDelete(id, null);
+    },
+    permanentDeleteTodo: async (id) => {
       await todosApi.delete(id);
       dispatch({ type: 'DELETE_TODO', payload: id });
     },

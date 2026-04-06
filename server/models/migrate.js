@@ -74,6 +74,9 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='deleted_at') THEN
     ALTER TABLE notes ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='deleted_at') THEN
+    ALTER TABLE todos ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;
+  END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);

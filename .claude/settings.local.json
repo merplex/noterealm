@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:dRtBNgcnILPcMXNNaUsrHaOjCBIQsRFT@caboose.proxy.rlwy.net:57998/railway\" npm run db:migrate)",
+      "Bash(npm show:*)",
+      "Bash(npm run:*)",
+      "Bash(curl:*)",
+      "Bash(git pull:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(railway --version)",
+      "Bash(git commit -m 'fix: strip base64 ก่อน regex ใน NoteCard preview — กัน JS block ทำ swipe ค้าง:*)",
+      "Bash(git rebase:*)",
+      "Bash(git fetch:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit -m 'fix: strip base64 ใน previewHtml useMemo — กัน JS block บน LINE notes ที่มีรูป:*)",
+      "Bash(git commit -m 'fix: แสดง ตัดโน้ต LINE เสมอ ไม่ต้องรอ LINE Connect OAuth:*)",
+      "Bash(ls /image)",
+      "Read(//c//**)"
+    ]
+  }
+}

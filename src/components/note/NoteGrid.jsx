@@ -173,6 +173,7 @@ export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, o
             isSelected={selectedIds.has(note.id)}
             onLongPress={handleLongPress}
             onSelect={handleSelect}
+            onTagClick={(f) => { cancelSelection(); onFilter(f); }}
           />
         ))}
         {filteredNotes.length === 0 && (
