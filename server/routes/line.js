@@ -145,6 +145,17 @@ async function createLineNote(title, tags) {
   return rows[0];
 }
 
+// แปลง URL ใน text เป็น <a> tag — split ก่อน escape เพื่อให้ & ใน URL ไม่ถูกแปลง
+function linkify(text) {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part) => {
+    if (/^https?:\/\//.test(part)) {
+      const safe = part.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `<a href="${safe}" target="_blank" rel="noopener noreferrer" style="color:#0284c7;word-break:break-all">${safe}</a>`;
+    }
+    return part.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }).join('');
+}
+
 // วันที่ Bangkok (ISO: "2026-04-06")
 function getTodayKey() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
@@ -250,7 +261,7 @@ router.post('/', async (req, res) => {
 
         if (event.message.type === 'text') {
           const text = event.message.text;
-          parts.push(`<p style="white-space:pre-wrap;margin:4px 0">${senderLabel}${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`);
+          parts.push(`<p style="white-space:pre-wrap;margin:4px 0">${senderLabel}${linkify(text)}</p>`);
         } else if (event.message.type === 'image') {
           const imgData = await fetchLineImage(event.message.id);
           if (imgData) {
