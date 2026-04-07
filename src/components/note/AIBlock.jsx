@@ -253,7 +253,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
                     style={styles.langOption}
                     onClick={() => {
                       setShowLangPicker(false);
-                      handleSend(`แปลเป็นภาษา${lang.code}`, null, true);
+                      handleSend(`แปลเป็นภาษา${lang.code} แปลเฉยๆ ไม่ต้องอธิบายเพิ่ม ไม่ต้องยกตัวอย่าง ให้ผลลัพธ์เป็นคำแปลอย่างเดียว รักษารูปแบบการจัดย่อหน้าและเครื่องหมายวรรคตอนให้ถูกต้อง`, null, true);
                     }}
                   >
                     {lang.label}
