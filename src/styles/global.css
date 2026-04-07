@@ -39,13 +39,9 @@ button {
 
 /* Safe-area utilities
    Native app: env(safe-area-inset-*) ทำงานปกติ
-   Android browser: env() return 0 → ใช้ fallback 36px สำหรับ status bar */
+   Android native: StatusBar.setOverlaysWebView(false) จัดการให้ */
 .pt-safe-header {
   padding-top: calc(8px + var(--sat, env(safe-area-inset-top, 0px)));
-}
-/* Android browser ไม่รองรับ env(safe-area-inset-top) → fallback 36px */
-.platform-android:not(.native-app) .pt-safe-header {
-  padding-top: 36px;
 }
 
 .pb-safe-content {
