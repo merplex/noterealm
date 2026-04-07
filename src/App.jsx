@@ -42,7 +42,13 @@ export default function App() {
     if (isNative) document.documentElement.classList.add('native-app');
 
     if (isNative && !isIOS) {
-      // Android: ปล่อย edge-to-edge, --sat inject จาก MainActivity.java
+      // Android: อ่านค่า status bar height จาก NativeInsets (inject โดย MainActivity.java)
+      if (window.NativeInsets) {
+        const top = window.NativeInsets.getTop();
+        const bottom = window.NativeInsets.getBottom();
+        document.documentElement.style.setProperty('--sat', top + 'px');
+        document.documentElement.style.setProperty('--sab', bottom + 'px');
+      }
       StatusBar.setStyle({ style: Style.Light }).catch(() => {});
       StatusBar.setBackgroundColor({ color: '#faf8f4' }).catch(() => {});
     }
