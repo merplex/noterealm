@@ -11,12 +11,12 @@ router.get('/', async (req, res) => {
     let rows;
     if (userId && since) {
       ({ rows } = await pool.query(
-        `SELECT * FROM notes WHERE user_id=$1 AND updated_at > $2 ORDER BY pinned DESC, updated_at DESC`,
+        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) AND updated_at > $2 ORDER BY pinned DESC, updated_at DESC`,
         [userId, since]
       ));
     } else if (userId) {
       ({ rows } = await pool.query(
-        `SELECT * FROM notes WHERE user_id=$1 ORDER BY pinned DESC, updated_at DESC`,
+        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) ORDER BY pinned DESC, updated_at DESC`,
         [userId]
       ));
     } else if (since) {

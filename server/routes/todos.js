@@ -11,9 +11,9 @@ router.get('/', async (req, res) => {
     const userId = req.headers['x-user-id'] || null;
     let rows;
     if (userId && since) {
-      ({ rows } = await pool.query(`SELECT * FROM todos WHERE user_id=$1 AND updated_at > $2 ${ORDER}`, [userId, since]));
+      ({ rows } = await pool.query(`SELECT * FROM todos WHERE (user_id=$1 OR user_id IS NULL) AND updated_at > $2 ${ORDER}`, [userId, since]));
     } else if (userId) {
-      ({ rows } = await pool.query(`SELECT * FROM todos WHERE user_id=$1 ${ORDER}`, [userId]));
+      ({ rows } = await pool.query(`SELECT * FROM todos WHERE (user_id=$1 OR user_id IS NULL) ${ORDER}`, [userId]));
     } else if (since) {
       ({ rows } = await pool.query(`SELECT * FROM todos WHERE updated_at > $1 ${ORDER}`, [since]));
     } else {
