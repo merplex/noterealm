@@ -3,18 +3,21 @@ import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { stripHtml } from '../../utils/diff';
 
-export default function ReferModal({ noteId, onSelect, onClose }) {
+export default function ReferModal({ noteId, currentRefs = [], onSelect, onClose }) {
   const { state } = useApp();
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
-    const others = state.notes.filter((n) => n.id !== noteId);
+    const refSet = new Set(currentRefs);
+    const others = state.notes.filter(
+      (n) => n.id !== noteId && !n.deletedAt && !refSet.has(n.id)
+    );
     if (!search) return others.slice(0, 20);
     const q = search.toLowerCase();
     return others.filter(
       (n) => n.title?.toLowerCase().includes(q) || stripHtml(n.content).toLowerCase().includes(q)
     );
-  }, [state.notes, search, noteId]);
+  }, [state.notes, search, noteId, currentRefs]);
 
   return (
     <div style={styles.overlay} onClick={onClose}>
