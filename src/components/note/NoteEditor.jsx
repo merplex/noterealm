@@ -373,7 +373,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       });
       setLastSaved(now);
     } catch { /* silent */ }
-  }, [isNew, note, title, content, tags, pinned, images, aiBlocks, group, actions]);
+  }, [isNew, note, title, content, tags, pinned, images, aiBlocks, group, refs, actions]);
 
   // Debounced auto-save on content change
   useEffect(() => {
@@ -381,7 +381,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(doAutoSave, 3000);
     return () => clearTimeout(autoSaveTimer.current);
-  }, [content, title, doAutoSave, isNew]);
+  }, [content, title, refs, doAutoSave, isNew]);
 
   // AI auto-fill title: เกิน 3 บรรทัด + หัวข้อว่าง + ยังไม่เคย AI fill → คิดชื่อให้ครั้งเดียว
   const aiTitleTimer = useRef(null);
@@ -415,6 +415,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   }, [content]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRefer = (refNote) => {
+    dirtyRef.current = true;
     setRefs((prev) => prev.includes(refNote.id) ? prev : [...prev, refNote.id]);
     setShowRefer(false);
   };
@@ -455,7 +456,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       archived: note?.archived || false,
       source: note?.source || 'manual',
       history: note?.history || [],
-      refs: (content.match(/\[\[([^:]+):/g) || []).map((m) => m.slice(2, -1)),
+      refs,
       createdAt: note?.createdAt || now,
       updatedAt: now,
     };
