@@ -28,11 +28,14 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const galleryRef = useRef(null);
   const [historyNote, setHistoryNote] = useState(null);
   const [tagInput, setTagInput] = useState('');
+  const tagInputRef = useRef(null);
   const textareaRef = useRef(null);
   const dirtyRef = useRef(false); // true เมื่อ user แก้ไขจริง — ป้องกัน auto-save ทับ webhook data
   const aiTitleDoneRef = useRef(false); // AI auto-fill title ทำแล้วครั้งเดียว ไม่ทำซ้ำ
   const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
   const [showInsertMenu, setShowInsertMenu] = useState(false);
+  const [showTagPicker, setShowTagPicker] = useState(false);
+  const [tagPickerSearch, setTagPickerSearch] = useState('');
   const [previewNote, setPreviewNote] = useState(null); // popup preview ของ relate note
   const [lastSaved, setLastSaved] = useState(note?.updatedAt || null);
   const autoSaveTimer = useRef(null);
@@ -500,10 +503,23 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
   };
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput('');
+  const handleAddTag = (val) => {
+    const v = (val ?? tagInput).trim();
+    if (v && !tags.includes(v)) {
+      setTags(prev => [...prev, v]);
+      dirtyRef.current = true;
+    }
+    setTagInput('');
+  };
+
+  const handleAddTagAction = () => {
+    setShowInsertMenu(false);
+    const selectedText = getSelectedText();
+    if (selectedText.trim()) {
+      handleAddTag(selectedText.trim());
+    } else {
+      setTagPickerSearch('');
+      setShowTagPicker(true);
     }
   };
 
@@ -577,6 +593,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleImageUpload(); }}>🖼️ รูปภาพ</button>
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); setShowRefer(true); }}>🔗 อ้างอิง</button>
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleAddAccordion(); }}>≡ กล่องข้อความ</button>
+                  <button style={styles.insertOption} onClick={handleAddTagAction}>🏷️ แท็ก</button>
                 </div>
               </>
             )}
@@ -778,15 +795,35 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
         {/* Sticky: Footer */}
         <div style={styles.footer}>
-          {!isNew && lastSaved && (
-            <span style={styles.saveInfo}>
-              อัพเดท {new Date(lastSaved).toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
-              {' จาก ver '}{(note?.history?.length || 0) + 1}
-            </span>
-          )}
-          <div style={{ flex: 1 }} />
-          <button style={styles.cancelBtn} onClick={() => { doAutoSave(); onClose(); }}>ออก</button>
-          <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
+          {/* Tag chips row */}
+          <div style={styles.tagRow}>
+            {tags.map((tag) => (
+              <span key={tag} style={styles.tagChip}>
+                <span style={styles.tagChipLabel}>#{tag}</span>
+                <button style={styles.tagChipRemove} onClick={() => { setTags(tags.filter(t => t !== tag)); dirtyRef.current = true; }}>✕</button>
+              </span>
+            ))}
+            <input
+              ref={tagInputRef}
+              placeholder="+ แท็ก"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
+              style={styles.tagInlineInput}
+            />
+          </div>
+          {/* Bottom row: info + buttons */}
+          <div style={styles.footerBottom}>
+            {!isNew && lastSaved && (
+              <span style={styles.saveInfo}>
+                อัพเดท {new Date(lastSaved).toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
+                {' ver '}{(note?.history?.length || 0) + 1}
+              </span>
+            )}
+            <div style={{ flex: 1 }} />
+            <button style={styles.cancelBtn} onClick={() => { doAutoSave(); onClose(); }}>ออก</button>
+            <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
+          </div>
         </div>
 
         {showRefer && (
@@ -796,6 +833,53 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             onSelect={handleRefer}
             onClose={() => setShowRefer(false)}
           />
+        )}
+
+        {/* Tag picker popup */}
+        {showTagPicker && (
+          <div style={styles.tagPickerOverlay} onClick={() => setShowTagPicker(false)}>
+            <div style={styles.tagPickerPopup} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.tagPickerTitle}>เพิ่มแท็ก</div>
+              <div style={styles.tagPickerInputRow}>
+                <input
+                  autoFocus
+                  placeholder="พิมพ์แท็กใหม่..."
+                  value={tagPickerSearch}
+                  onChange={(e) => setTagPickerSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && tagPickerSearch.trim()) {
+                      handleAddTag(tagPickerSearch.trim());
+                      setShowTagPicker(false);
+                    }
+                  }}
+                  style={styles.tagPickerInput}
+                />
+                <button
+                  style={styles.tagPickerAddBtn}
+                  onClick={() => { if (tagPickerSearch.trim()) { handleAddTag(tagPickerSearch.trim()); setShowTagPicker(false); } }}
+                >
+                  เพิ่ม
+                </button>
+              </div>
+              <div style={styles.tagPickerList}>
+                {(state.tags || [])
+                  .filter(t => !tags.includes(t) && (!tagPickerSearch.trim() || t.toLowerCase().includes(tagPickerSearch.toLowerCase())))
+                  .map((t) => (
+                    <button
+                      key={t}
+                      style={styles.tagPickerItem}
+                      onClick={() => { handleAddTag(t); setShowTagPicker(false); }}
+                    >
+                      #{t}
+                    </button>
+                  ))
+                }
+                {(state.tags || []).filter(t => !tags.includes(t)).length === 0 && !tagPickerSearch && (
+                  <p style={styles.tagPickerEmpty}>ยังไม่มีแท็กในระบบ</p>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Custom selection menu */}
@@ -971,15 +1055,94 @@ const styles = {
   },
   footer: {
     display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '10px 14px',
+    flexDirection: 'column',
+    padding: '8px 14px 10px',
     borderTop: `1px solid ${C.border}`,
     background: C.bg,
     position: 'sticky',
     bottom: 0,
-    flexWrap: 'nowrap',
-    overflow: 'hidden',
+    gap: 6,
+  },
+  tagRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 5,
+    alignItems: 'center',
+    minHeight: 28,
+  },
+  tagChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 3,
+    background: C.amberLight,
+    borderRadius: 12,
+    padding: '2px 8px 2px 8px',
+    fontSize: 12,
+    fontWeight: 500,
+  },
+  tagChipLabel: { color: C.amber, cursor: 'default' },
+  tagChipRemove: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: C.muted, fontSize: 11, padding: '0 0 0 2px', lineHeight: 1,
+  },
+  tagInlineInput: {
+    border: 'none', outline: 'none', background: 'transparent',
+    fontSize: 12, color: C.sub, fontFamily: C.font,
+    minWidth: 60, flex: 1,
+    padding: '2px 0',
+  },
+  footerBottom: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  tagPickerOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(0,0,0,0.25)',
+    zIndex: 120,
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  tagPickerPopup: {
+    background: C.bg,
+    borderRadius: '14px 14px 0 0',
+    width: '100%',
+    maxWidth: 480,
+    padding: 16,
+    maxHeight: '60vh',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  tagPickerTitle: {
+    fontSize: 15, fontWeight: 600, color: C.text,
+    marginBottom: 10, fontFamily: C.font,
+  },
+  tagPickerInputRow: {
+    display: 'flex', gap: 8, marginBottom: 10,
+  },
+  tagPickerInput: {
+    flex: 1, padding: '8px 12px', borderRadius: 8,
+    border: `1px solid ${C.border}`, fontSize: 14,
+    fontFamily: C.font, outline: 'none',
+  },
+  tagPickerAddBtn: {
+    padding: '8px 16px', borderRadius: 8, border: 'none',
+    background: C.amber, color: C.white, fontSize: 13,
+    fontWeight: 600, cursor: 'pointer', fontFamily: C.font,
+  },
+  tagPickerList: {
+    overflowY: 'auto', flex: 1,
+    display: 'flex', flexWrap: 'wrap', gap: 6, alignContent: 'flex-start',
+  },
+  tagPickerItem: {
+    padding: '6px 14px', borderRadius: 20,
+    border: `1px solid ${C.border}`, background: C.white,
+    fontSize: 13, cursor: 'pointer', fontFamily: C.font, color: C.sub,
+  },
+  tagPickerEmpty: {
+    fontSize: 13, color: C.muted, width: '100%', textAlign: 'center', padding: 12,
   },
   groupSelect: {
     padding: '5px 8px',
