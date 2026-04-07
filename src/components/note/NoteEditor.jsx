@@ -10,6 +10,7 @@ import AIBlock from './AIBlock';
 import AccordionBlock from './AccordionBlock';
 import { callAI } from '../../utils/callAI';
 import { stripHtml } from '../../utils/diff';
+import CachedImage from '../CachedImage';
 
 export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
@@ -711,10 +712,9 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           <div style={styles.galleryBar} ref={galleryRef}>
             <div style={styles.galleryScroll}>
               {allImages.map((src, i) => (
-                <img
+                <CachedImage
                   key={i}
                   src={src}
-                  alt=""
                   style={styles.galleryImg}
                   onClick={() => {
                     if (fullscreenImg === src) {
@@ -754,7 +754,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         {/* Fullscreen image overlay */}
         {fullscreenImg && (
           <div style={styles.fullscreenOverlay} onClick={() => setFullscreenImg(null)}>
-            <img src={fullscreenImg} alt="" style={styles.fullscreenImg} />
+            <CachedImage src={fullscreenImg} style={styles.fullscreenImg} />
           </div>
         )}
 

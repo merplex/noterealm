@@ -1,11 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
+import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
 
 export default function Settings({ onClose }) {
   const { state, dispatch } = useApp();
   const [lineConnecting, setLineConnecting] = useState(false);
+  const [cacheStats, setCacheStats] = useState(null);
+  const [clearingCache, setClearingCache] = useState(false);
+
+  useEffect(() => {
+    getImageCacheStats().then(setCacheStats);
+  }, []);
+
+  const handleClearImageCache = async () => {
+    setClearingCache(true);
+    await clearImageCache();
+    setCacheStats({ count: 0, size: 0 });
+    setClearingCache(false);
+  };
 
   const isLoggedIn = !!state.user;
   const isLineConnected = state.connections?.some((c) => c.type === 'line' && c.enabled);
@@ -169,6 +183,29 @@ export default function Settings({ onClose }) {
                 </div>
             </div>
           </>
+
+          <div style={styles.divider} />
+
+          {/* Image Cache */}
+          <div style={styles.row}>
+            <div>
+              <div style={styles.label}>รูปภาพในเครื่อง</div>
+              <div style={styles.desc}>
+                {cacheStats
+                  ? cacheStats.count > 0
+                    ? `${cacheStats.count} รูป · ${formatBytes(cacheStats.size)}`
+                    : 'ไม่มีรูปที่ cache ไว้'
+                  : 'กำลังโหลด...'}
+              </div>
+            </div>
+            <button
+              style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}`, opacity: cacheStats?.count === 0 ? 0.4 : 1 }}
+              onClick={handleClearImageCache}
+              disabled={clearingCache || cacheStats?.count === 0}
+            >
+              {clearingCache ? 'กำลังลบ...' : 'เคลียร์รูป'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
