@@ -14,6 +14,24 @@ function verifySecret(req, res) {
   return true;
 }
 
+// Decode MIME encoded-word (=?UTF-8?B?...?= or =?UTF-8?Q?...?=)
+function decodeMimeSubject(str) {
+  if (!str) return str;
+  return str.replace(/=\?([^?]+)\?(B|Q)\?([^?]+)\?=/gi, (_, charset, encoding, data) => {
+    try {
+      if (encoding.toUpperCase() === 'B') {
+        return Buffer.from(data, 'base64').toString('utf-8');
+      } else {
+        // Quoted-Printable: _ → space, =XX → byte
+        const decoded = data.replace(/_/g, ' ').replace(/=([0-9A-Fa-f]{2})/g, (__, hex) =>
+          String.fromCharCode(parseInt(hex, 16))
+        );
+        return Buffer.from(decoded, 'binary').toString('utf-8');
+      }
+    } catch { return data; }
+  });
+}
+
 // Parse sender name + email from "John Smith <john@example.com>" or "john@example.com"
 function parseSender(from) {
   const match = from.match(/^(?:"?([^"<]*)"?\s*)?<?([^>]+)>?$/);
@@ -50,10 +68,11 @@ function extractBody(raw) {
 router.post('/', async (req, res) => {
   if (!verifySecret(req, res)) return;
 
-  const { to, from, subject, raw } = req.body;
-  if (!from || !subject) return res.status(400).json({ error: 'Missing fields' });
+  const { to, from, subject: rawSubject, raw } = req.body;
+  if (!from || !rawSubject) return res.status(400).json({ error: 'Missing fields' });
 
   try {
+    const subject = decodeMimeSubject(rawSubject);
     const { name, email, domain } = parseSender(from);
     const body = raw ? extractBody(raw) : '(ไม่มีเนื้อหา)';
 
@@ -71,9 +90,10 @@ router.post('/', async (req, res) => {
       userId = userRes.rows[0]?.id || null;
     }
 
-    // tag อัตโนมัติ
-    const senderTag = `from:${email}`;
-    const autoTags = ['_email', senderTag, domain].filter(Boolean);
+    // tag อัตโนมัติ: "email" + ชื่อ sender (ส่วนก่อน @)
+    const senderLocal = email.split('@')[0] || email;
+    const senderTag = senderLocal;
+    const autoTags = ['email', senderTag].filter(Boolean);
 
     // timestamp สำหรับ append
     const timestamp = new Date().toLocaleString('th-TH', {

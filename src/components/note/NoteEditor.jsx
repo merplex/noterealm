@@ -611,7 +611,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     const menuWidth = 240; // approximate menu width
     const half = menuWidth / 2;
     const rawX = rect.left + rect.width / 2;
-    const x = Math.max(half + 8, Math.min(rawX, window.innerWidth - half - 8));
+    const x = Math.max(half + 16, Math.min(rawX, window.innerWidth - half - 16));
     setSelMenu({ x, y: rect.top });
   }, []);
 
@@ -970,9 +970,13 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             top: selMenu.y,
           }}>
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomCut(); }}>ตัด</button>
+            <span style={styles.selMenuDivider} />
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomCopy(); }}>คัดลอก</button>
+            <span style={styles.selMenuDivider} />
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomPaste(); }}>วาง</button>
+            <span style={styles.selMenuDivider} />
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAI(); setSelMenu(null); }}>✦ AI</button>
+            <span style={styles.selMenuDivider} />
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAccordion(); setSelMenu(null); }}>≡▼</button>
           </div>
         )}
@@ -1335,24 +1339,32 @@ const styles = {
     position: 'fixed',
     transform: 'translate(-50%, -110%)',
     display: 'flex',
-    gap: 2,
-    background: '#1f1f1f',
+    alignItems: 'center',
+    gap: 0,
+    background: '#f5f5f4',
     borderRadius: 10,
-    padding: '4px 4px',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+    padding: '2px 4px',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+    border: '1px solid #d6d3d1',
     zIndex: 200,
   },
   selMenuBtn: {
     background: 'transparent',
     border: 'none',
-    color: '#fff',
+    color: '#44403c',
     fontSize: 14,
-    padding: '10px 14px',
+    padding: '10px 12px',
     cursor: 'pointer',
     fontFamily: C.font,
     whiteSpace: 'nowrap',
     borderRadius: 8,
     minHeight: 44,
+  },
+  selMenuDivider: {
+    width: 1,
+    height: 20,
+    background: '#d6d3d1',
+    flexShrink: 0,
   },
   galleryBar: {
     borderTop: `1px solid ${C.border}`,
