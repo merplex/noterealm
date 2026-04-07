@@ -134,9 +134,6 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
         }}>
           {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
         </span>
-        <button style={styles.rescheduleBtn} onClick={() => onSelectTodo?.(todo)} title="เลื่อน">
-          🗓
-        </button>
       </div>
       {todo.note && !compact && <p style={styles.todoNote}>{todo.note}</p>}
       <div style={styles.shortcutRow}>
@@ -315,14 +312,6 @@ const styles = {
     fontWeight: 600,
     flexShrink: 0,
     whiteSpace: 'nowrap',
-  },
-  rescheduleBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: 14,
-    padding: 2,
-    flexShrink: 0,
   },
   todoNote: { fontSize: 12, color: C.sub, margin: '4px 0 0 24px', lineHeight: 1.3 },
   shortcutRow: {
