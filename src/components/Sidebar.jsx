@@ -29,6 +29,30 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
   return (
     <>
       <div style={styles.backdrop} onClick={onClose} />
+
+      {/* Rename popup — centered overlay */}
+      {renamingTag && (
+        <div style={styles.renameOverlay} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>
+          <div style={styles.renamePopup} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.renameTitle}>เปลี่ยนชื่อแท็ก</div>
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit(renamingTag);
+                if (e.key === 'Escape') { setRenamingTag(null); setRenameValue(''); }
+              }}
+              style={styles.renameInput}
+            />
+            <div style={styles.renameFooter}>
+              <button style={styles.renameCancelBtn} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>ยกเลิก</button>
+              <button style={styles.renameOkBtn} onClick={() => handleRenameSubmit(renamingTag)}>บันทึก</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <aside style={styles.sidebar}>
         <div style={styles.brand}>
           <span style={styles.brandText}>NoteRealm</span>
@@ -88,26 +112,6 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
               const nCount = noteTagCount(tag);
               const tCount = todoTagCount(tag);
               const isActive = activeFilter === `tag:${tag}`;
-
-              if (renamingTag === tag) {
-                return (
-                  <div key={tag} style={styles.renameRow}>
-                    <span style={styles.tagDot}>🏷</span>
-                    <input
-                      autoFocus
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleRenameSubmit(tag);
-                        if (e.key === 'Escape') { setRenamingTag(null); setRenameValue(''); }
-                      }}
-                      style={styles.renameInput}
-                    />
-                    <button style={styles.renameOkBtn} onClick={() => handleRenameSubmit(tag)}>✓</button>
-                    <button style={styles.renameCancelBtn} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>✕</button>
-                  </div>
-                );
-              }
 
               return (
                 <div key={tag} style={{ ...styles.tagRow, background: isActive ? C.amberLight : 'transparent' }}>
@@ -257,29 +261,40 @@ const styles = {
     background: 'none', border: 'none', cursor: 'pointer',
     fontSize: 13, padding: '4px 3px', flexShrink: 0, opacity: 0.7,
   },
-  // Rename inline row
-  renameRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '4px 8px 4px 12px',
-    borderRadius: 8,
-    background: C.amberLight,
-    marginBottom: 2,
+  // Rename centered popup
+  renameOverlay: {
+    position: 'fixed', inset: 0, zIndex: 300,
+    background: 'rgba(0,0,0,0.4)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 20,
+  },
+  renamePopup: {
+    background: C.bg, borderRadius: 14, padding: 20,
+    width: '100%', maxWidth: 340,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+    display: 'flex', flexDirection: 'column', gap: 12,
+  },
+  renameTitle: {
+    fontSize: 15, fontWeight: 600, color: C.text, fontFamily: C.font,
   },
   renameInput: {
-    flex: 1, border: `1px solid ${C.amber}`, borderRadius: 6,
-    padding: '4px 8px', fontSize: 13, outline: 'none',
+    border: `1px solid ${C.border}`, borderRadius: 8,
+    padding: '8px 12px', fontSize: 14, outline: 'none',
     fontFamily: C.font, background: C.white,
+    width: '100%',
+  },
+  renameFooter: {
+    display: 'flex', justifyContent: 'flex-end', gap: 8,
   },
   renameOkBtn: {
     background: C.amber, color: C.white, border: 'none',
-    borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
-    fontSize: 13, fontWeight: 700,
+    borderRadius: 8, padding: '7px 18px', cursor: 'pointer',
+    fontSize: 13, fontWeight: 600, fontFamily: C.font,
   },
   renameCancelBtn: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    fontSize: 13, color: C.muted, padding: '4px 4px',
+    background: C.white, border: `1px solid ${C.border}`,
+    borderRadius: 8, padding: '7px 14px', cursor: 'pointer',
+    fontSize: 13, color: C.sub, fontFamily: C.font,
   },
   tagDot2: { fontSize: 14 },
   groupDot: {
