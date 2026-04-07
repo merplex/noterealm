@@ -35,17 +35,28 @@ export default function Settings({ onClose }) {
     const listener = (e) => {
       if (e.data?.type === 'LOGIN_SUCCESS') {
         window.removeEventListener('message', listener);
-        dispatch({ type: 'SET_USER', payload: e.data.user });
-        // sync ทันทีหลัง login — ดึงโน้ตจาก server
-        sync().then(async () => {
+        const user = e.data.user;
+        dispatch({ type: 'SET_USER', payload: user });
+        // อัปเดต userId ให้โน้ต/todo เก่าที่ยังไม่มี userId แล้ว push ใหม่
+        (async () => {
           const { db } = await import('../db/localDb');
+          const [orphanNotes, orphanTodos] = await Promise.all([
+            db.notes.filter(n => !n.userId).toArray(),
+            db.todos.filter(t => !t.userId).toArray(),
+          ]);
+          await Promise.all([
+            ...orphanNotes.map(n => db.notes.update(n.id, { userId: user.id, dirty: true })),
+            ...orphanTodos.map(t => db.todos.update(t.id, { userId: user.id, dirty: true })),
+          ]);
+          // sync: push dirty (รวมที่เพิ่ง mark) → pull
+          await sync();
           const [notes, todos] = await Promise.all([
             db.notes.orderBy('updatedAt').reverse().toArray(),
             db.todos.orderBy('updatedAt').reverse().toArray(),
           ]);
           dispatch({ type: 'SET_NOTES', payload: notes });
           dispatch({ type: 'SET_TODOS', payload: todos });
-        }).catch(console.warn);
+        })().catch(console.warn);
       }
     };
     window.addEventListener('message', listener);
