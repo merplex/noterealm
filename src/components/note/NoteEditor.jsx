@@ -12,25 +12,6 @@ import { callAI } from '../../utils/callAI';
 import { stripHtml } from '../../utils/diff';
 import CachedImage from '../CachedImage';
 
-// [[id:title]] → chip span
-function refsToChips(html) {
-  return html.replace(/\[\[([^:]+):([^\]]+)\]\]/g, (_, id, title) =>
-    `<span data-ref="${id}" contenteditable="false" style="display:inline-flex;align-items:center;gap:3px;padding:1px 8px;border-radius:6px;background:#fef3c7;border:1px solid #f59e0b;font-size:13px;cursor:default;user-select:none;vertical-align:middle;">🔗 ${title}</span>`
-  );
-}
-
-// chip span → [[id:title]]
-function chipsToRefs(html) {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  div.querySelectorAll('[data-ref]').forEach((span) => {
-    const id = span.getAttribute('data-ref');
-    const title = span.textContent.replace(/^🔗\s*/, '').trim();
-    span.replaceWith(`[[${id}:${title}]]`);
-  });
-  return div.innerHTML;
-}
-
 export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
   const [title, setTitle] = useState(note?.title || '');
@@ -114,7 +95,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   useEffect(() => {
     if (textareaRef.current && !initializedRef.current) {
       initializedRef.current = true;
-      textareaRef.current.innerHTML = refsToChips(note?.content || '');
+      textareaRef.current.innerHTML = note?.content || '';
       // Auto-focus content area when creating new note
       if (isNew) {
         setTimeout(() => textareaRef.current?.focus(), 100);
@@ -368,8 +349,8 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     if (isNew) return; // Don't auto-save unsaved notes
     if (!dirtyRef.current) return; // ไม่ได้แก้ไข → ไม่ save ทับ (ป้องกันทับ webhook data)
     const el = textareaRef.current;
-    const rawContent = el ? el.innerHTML : content;
-    const cleanContent = chipsToRefs(rawContent).replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
+    const curContent = el ? el.innerHTML : content;
+    const cleanContent = curContent.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
     const textOnly = cleanContent.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, '').trim();
     if (!title.trim() && !textOnly) return;
 
@@ -427,27 +408,17 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   }, [content]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRefer = (refNote) => {
-    const title = refNote.title || 'Untitled';
-    const chipHtml = `<span data-ref="${refNote.id}" contenteditable="false" style="display:inline-flex;align-items:center;gap:3px;padding:1px 8px;border-radius:6px;background:#fef3c7;border:1px solid #f59e0b;font-size:13px;cursor:default;user-select:none;vertical-align:middle;">🔗 ${title}</span>`;
-    const el = textareaRef.current;
-    if (el) { el.focus(); document.execCommand('insertHTML', false, chipHtml); }
+    insertAtCursor(`[[${refNote.id}:${refNote.title || 'Untitled'}]]`);
     setShowRefer(false);
   };
 
-  // รวบรวม ref ids ที่มีอยู่แล้วใน content (ทั้ง [[]] และ chip)
   const currentRefIds = useMemo(() => {
-    const ids = [];
-    const el = textareaRef.current;
-    if (el) el.querySelectorAll('[data-ref]').forEach(s => ids.push(s.getAttribute('data-ref')));
-    const matches = content.matchAll(/\[\[([^:]+):/g);
-    for (const m of matches) ids.push(m[1]);
-    return ids;
+    return [...content.matchAll(/\[\[([^:]+):/g)].map(m => m[1]);
   }, [content]);
 
   const handleSave = async () => {
     const now = new Date().toISOString();
-    // Convert ref chips → [[id:title]] then clean AI_BLOCK markers
-    const cleanContent = chipsToRefs(content).replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
+    const cleanContent = content.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
     // Don't save empty notes
     const textOnly = cleanContent.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, '').trim();
     if (!title.trim() && !textOnly) {
