@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 
-export default function RelatePanel({ note, onNavigate }) {
+export default function RelatePanel({ note, onNavigate, onRemove }) {
   const { state } = useApp();
 
   const relates = useMemo(() => {
@@ -20,13 +20,14 @@ export default function RelatePanel({ note, onNavigate }) {
     <div style={styles.panel}>
       <div style={styles.section}>
         {relates.map((n) => (
-          <button
-            key={n.id}
-            style={styles.chip}
-            onClick={() => onNavigate?.(n)}
-          >
-            🔗 {n.title || 'Untitled'}
-          </button>
+          <span key={n.id} style={styles.chip}>
+            <span style={styles.chipLabel} onClick={() => onNavigate?.(n)}>
+              🔗 {n.title || 'Untitled'}
+            </span>
+            {onRemove && (
+              <button style={styles.chipRemove} onClick={() => onRemove(n.id)}>✕</button>
+            )}
+          </span>
         ))}
       </div>
     </div>
@@ -47,13 +48,26 @@ const styles = {
   chip: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 4,
-    padding: '4px 10px',
     borderRadius: 8,
     border: `1px solid #f59e0b`,
     background: '#fef3c7',
     fontSize: 12,
-    cursor: 'pointer',
     fontFamily: C.font,
+    overflow: 'hidden',
+  },
+  chipLabel: {
+    padding: '4px 8px',
+    cursor: 'pointer',
+  },
+  chipRemove: {
+    padding: '4px 7px',
+    background: 'none',
+    border: 'none',
+    borderLeft: '1px solid #f59e0b',
+    cursor: 'pointer',
+    fontSize: 10,
+    color: '#92400e',
+    fontFamily: C.font,
+    lineHeight: 1,
   },
 };

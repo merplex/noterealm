@@ -562,7 +562,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     <div style={styles.overlay}>
       <div style={styles.modal}>
         {/* Sticky: Related Notes */}
-        <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} />
+        <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} onRemove={removeRef} />
 
         {/* Sticky: Toolbar */}
         <div style={styles.toolbar}>
