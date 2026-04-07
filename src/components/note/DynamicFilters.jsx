@@ -22,7 +22,7 @@ export default function DynamicFilters({ activeFilter, onFilter }) {
               color: active ? C.white : C.sub,
               borderColor: active ? C.amber : C.border,
             }}
-            onClick={() => onFilter(f.key)}
+            onClick={() => onFilter(active ? 'all' : f.key)}
           >
             {f.icon && <span>{f.icon}</span>}
             {f.label}
