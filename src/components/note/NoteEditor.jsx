@@ -183,8 +183,10 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       wrappedContent: wrappedParts.length > 0 ? wrappedParts.join('\n') : null,
       wrappedImages: images.length > 0 ? images : undefined,
     };
-    // Blur active element to dismiss keyboard on mobile
+    // Clear selection + blur — ป้องกัน selectionchange re-trigger selMenu
+    window.getSelection()?.removeAllRanges();
     document.activeElement?.blur();
+    setSelMenu(null);
     setAiBlocks((prev) => [...prev, newBlock]);
   }, [state.aiSettings, getSelectedContent]);
 
