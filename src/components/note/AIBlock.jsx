@@ -13,8 +13,8 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
   const [showDismissMenu, setShowDismissMenu] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
 
-  const providerId = block.provider || 'claude';
-  const provider = AI_PROVIDERS[providerId] || AI_PROVIDERS.claude;
+  const providerId = AI_PROVIDERS[block.provider] ? block.provider : 'gemini';
+  const provider = AI_PROVIDERS[providerId] || AI_PROVIDERS.gemini;
   const enabledProviders = getEnabledProviders();
   const messages = block.messages || [];
   const hasWrapped = !!(wrappedContent || (wrappedImages && wrappedImages.length > 0));

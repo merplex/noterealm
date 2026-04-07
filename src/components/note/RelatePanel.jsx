@@ -22,7 +22,7 @@ export default function RelatePanel({ note, onNavigate, onRemove }) {
         {relates.map((n) => (
           <span key={n.id} style={styles.chip}>
             <span style={styles.chipLabel} onClick={() => onNavigate?.(n)}>
-              🔗 {n.title || 'Untitled'}
+              🔗 {(n.title || 'Untitled').slice(0, 10)}{(n.title || '').length > 10 ? '…' : ''}
             </span>
             {onRemove && (
               <button style={styles.chipRemove} onClick={() => onRemove(n.id)}>✕</button>
@@ -42,8 +42,11 @@ const styles = {
   },
   section: {
     display: 'flex',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: 6,
+    overflowX: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    paddingBottom: 2,
   },
   chip: {
     display: 'inline-flex',
