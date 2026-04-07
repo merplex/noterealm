@@ -3,12 +3,13 @@ import pool from '../models/db.js';
 
 const router = Router();
 
-// List notes
+// List notes (optional ?since= for incremental pull)
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC`
-    );
+    const { since } = req.query;
+    const { rows } = since
+      ? await pool.query(`SELECT * FROM notes WHERE updated_at > $1 ORDER BY pinned DESC, updated_at DESC`, [since])
+      : await pool.query(`SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC`);
     res.json(rows.map(mapNote));
   } catch (err) {
     res.status(500).json({ error: err.message });

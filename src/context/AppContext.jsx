@@ -2,6 +2,8 @@ import { createContext, useContext, useReducer, useEffect, useMemo, useRef } fro
 import { storage } from '../constants/storage';
 import { STORAGE_KEYS } from '../constants/providers';
 import { notesApi, todosApi } from '../utils/api';
+import { db } from '../db/localDb';
+import { sync, pushDirty, pull } from '../utils/syncService';
 
 const AppContext = createContext(null);
 
@@ -97,12 +99,12 @@ function reducer(state, action) {
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const stateRef = useRef(state);
-  stateRef.current = state; // อัปเดต ref ทุก render เพื่อกัน stale closure ใน actions
+  stateRef.current = state;
 
-  // Load non-API state from local storage + fetch notes/todos from API
+  // Load on startup: IndexedDB first (instant) → sync with server (background)
   useEffect(() => {
     (async () => {
-      // Load local-only settings
+      // 1. Load local settings
       const localKeys = ['aiSettings', 'connections', 'user', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab', 'lineTrim'];
       const loaded = {};
       for (const key of localKeys) {
@@ -111,15 +113,40 @@ export function AppProvider({ children }) {
       }
       dispatch({ type: 'LOAD_STATE', payload: loaded });
 
-      // Fetch notes & todos from backend
-      try {
-        const [notes, todos] = await Promise.all([notesApi.list(), todosApi.list()]);
+      // 2. Load from IndexedDB immediately (instant, offline-first)
+      const [localNotes, localTodos] = await Promise.all([
+        db.notes.orderBy('updatedAt').reverse().toArray(),
+        db.todos.orderBy('updatedAt').reverse().toArray(),
+      ]);
+      dispatch({ type: 'SET_NOTES', payload: localNotes });
+      dispatch({ type: 'SET_TODOS', payload: localTodos });
+
+      // 3. Sync with server in background (push dirty → pull newer)
+      sync().then(async () => {
+        const [notes, todos] = await Promise.all([
+          db.notes.orderBy('updatedAt').reverse().toArray(),
+          db.todos.orderBy('updatedAt').reverse().toArray(),
+        ]);
         dispatch({ type: 'SET_NOTES', payload: notes });
         dispatch({ type: 'SET_TODOS', payload: todos });
-      } catch (err) {
-        console.error('Failed to load from API:', err);
-      }
+      }).catch(console.warn);
     })();
+  }, []);
+
+  // Sync when app comes back to foreground
+  useEffect(() => {
+    const handleFocus = () => {
+      sync().then(async () => {
+        const [notes, todos] = await Promise.all([
+          db.notes.orderBy('updatedAt').reverse().toArray(),
+          db.todos.orderBy('updatedAt').reverse().toArray(),
+        ]);
+        dispatch({ type: 'SET_NOTES', payload: notes });
+        dispatch({ type: 'SET_TODOS', payload: todos });
+      }).catch(console.warn);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   // Save local-only state to storage
@@ -139,72 +166,137 @@ export function AppProvider({ children }) {
     storage.set(STORAGE_KEYS.lineTrim, state.lineTrim);
   }, [state.aiSettings, state.connections, state.user, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab, state.lineTrim]);
 
-  // Async actions that call API then update local state
   const actions = useMemo(() => ({
     addNote: async (noteData) => {
-      const saved = await notesApi.create(noteData);
-      dispatch({ type: 'ADD_NOTE', payload: saved });
-      return saved;
+      const note = { ...noteData, syncSource: 'local', dirty: true };
+      await db.notes.put(note);
+      dispatch({ type: 'ADD_NOTE', payload: note });
+      // Push to server in background
+      pushDirty().catch(console.warn);
+      return note;
     },
     updateNote: async (noteData) => {
-      const saved = await notesApi.update(noteData.id, noteData);
-      dispatch({ type: 'UPDATE_NOTE', payload: saved });
-      return saved;
+      const existing = await db.notes.get(noteData.id);
+      const note = {
+        ...noteData,
+        syncSource: existing?.syncSource || 'local',
+        dirty: true,
+      };
+      await db.notes.put(note);
+      dispatch({ type: 'UPDATE_NOTE', payload: note });
+      pushDirty().catch(console.warn);
+      return note;
     },
     deleteNote: async (id) => {
-      const note = stateRef.current.notes.find((n) => n.id === id);
+      const note = await db.notes.get(id);
       if (note) {
         const deletedAt = new Date().toISOString();
-        dispatch({ type: 'UPDATE_NOTE', payload: { ...note, deletedAt } });
-        await notesApi.softDelete(id, deletedAt);
+        const updated = { ...note, deletedAt, dirty: true };
+        await db.notes.put(updated);
+        dispatch({ type: 'UPDATE_NOTE', payload: updated });
+        if (note.syncSource === 'server') {
+          notesApi.softDelete(id, deletedAt).catch(console.warn);
+        }
       }
     },
     restoreNote: async (id) => {
-      const note = stateRef.current.notes.find((n) => n.id === id);
+      const note = await db.notes.get(id);
       if (note) {
-        dispatch({ type: 'UPDATE_NOTE', payload: { ...note, deletedAt: null } });
-        await notesApi.softDelete(id, null);
+        const updated = { ...note, deletedAt: null, dirty: true };
+        await db.notes.put(updated);
+        dispatch({ type: 'UPDATE_NOTE', payload: updated });
+        if (note.syncSource === 'server') {
+          notesApi.softDelete(id, null).catch(console.warn);
+        }
       }
     },
     permanentDeleteNote: async (id) => {
-      await notesApi.delete(id);
+      const note = await db.notes.get(id);
+      await db.notes.delete(id);
       dispatch({ type: 'DELETE_NOTE', payload: id });
+      if (note?.syncSource === 'server') {
+        notesApi.delete(id).catch(console.warn);
+      }
     },
     archiveNote: async (id) => {
-      const note = stateRef.current.notes.find((n) => n.id === id);
+      const note = await db.notes.get(id);
       if (!note) return;
-      const saved = await notesApi.update(id, { ...note, archived: true });
-      dispatch({ type: 'UPDATE_NOTE', payload: saved });
+      const updated = { ...note, archived: true, dirty: true };
+      await db.notes.put(updated);
+      dispatch({ type: 'UPDATE_NOTE', payload: updated });
+      if (note.syncSource === 'server') {
+        notesApi.update(id, { ...note, archived: true }).catch(console.warn);
+      }
     },
     unarchiveNote: async (id) => {
-      const note = stateRef.current.notes.find((n) => n.id === id);
+      const note = await db.notes.get(id);
       if (!note) return;
-      const saved = await notesApi.update(id, { ...note, archived: false });
-      dispatch({ type: 'UPDATE_NOTE', payload: saved });
+      const updated = { ...note, archived: false, dirty: true };
+      await db.notes.put(updated);
+      dispatch({ type: 'UPDATE_NOTE', payload: updated });
+      if (note.syncSource === 'server') {
+        notesApi.update(id, { ...note, archived: false }).catch(console.warn);
+      }
     },
     addTodo: async (todoData) => {
-      const saved = await todosApi.create(todoData);
-      dispatch({ type: 'ADD_TODO', payload: saved });
-      return saved;
+      const todo = { ...todoData, syncSource: 'local', dirty: true };
+      await db.todos.put(todo);
+      dispatch({ type: 'ADD_TODO', payload: todo });
+      pushDirty().catch(console.warn);
+      return todo;
     },
     updateTodo: async (todoData) => {
-      const saved = await todosApi.update(todoData.id, todoData);
-      dispatch({ type: 'UPDATE_TODO', payload: saved });
-      return saved;
+      const existing = await db.todos.get(todoData.id);
+      const todo = {
+        ...todoData,
+        syncSource: existing?.syncSource || 'local',
+        dirty: true,
+      };
+      await db.todos.put(todo);
+      dispatch({ type: 'UPDATE_TODO', payload: todo });
+      pushDirty().catch(console.warn);
+      return todo;
     },
     deleteTodo: async (id) => {
-      const deletedAt = new Date().toISOString();
-      dispatch({ type: 'UPDATE_TODO', payload: { id, deletedAt } });
-      await todosApi.softDelete(id, deletedAt);
+      const todo = await db.todos.get(id);
+      if (todo) {
+        const deletedAt = new Date().toISOString();
+        const updated = { ...todo, deletedAt, dirty: true };
+        await db.todos.put(updated);
+        dispatch({ type: 'UPDATE_TODO', payload: updated });
+        if (todo.syncSource === 'server') {
+          todosApi.softDelete(id, deletedAt).catch(console.warn);
+        }
+      }
     },
     restoreTodo: async (id) => {
-      dispatch({ type: 'UPDATE_TODO', payload: { id, deletedAt: null } });
-      await todosApi.softDelete(id, null);
+      const todo = await db.todos.get(id);
+      if (todo) {
+        const updated = { ...todo, deletedAt: null, dirty: true };
+        await db.todos.put(updated);
+        dispatch({ type: 'UPDATE_TODO', payload: updated });
+        if (todo.syncSource === 'server') {
+          todosApi.softDelete(id, null).catch(console.warn);
+        }
+      }
     },
     permanentDeleteTodo: async (id) => {
-      await todosApi.delete(id);
+      const todo = await db.todos.get(id);
+      await db.todos.delete(id);
       dispatch({ type: 'DELETE_TODO', payload: id });
+      if (todo?.syncSource === 'server') {
+        todosApi.delete(id).catch(console.warn);
+      }
     },
+    // Force full sync (เรียกได้จาก UI)
+    syncNow: () => sync().then(async () => {
+      const [notes, todos] = await Promise.all([
+        db.notes.orderBy('updatedAt').reverse().toArray(),
+        db.todos.orderBy('updatedAt').reverse().toArray(),
+      ]);
+      dispatch({ type: 'SET_NOTES', payload: notes });
+      dispatch({ type: 'SET_TODOS', payload: todos });
+    }),
   }), []);
 
   return (

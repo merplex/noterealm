@@ -3,15 +3,19 @@ import pool from '../models/db.js';
 
 const router = Router();
 
-// List todos
+// List todos (optional ?since= for incremental pull)
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT * FROM todos ORDER BY
-        CASE priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
-        due_date ASC NULLS LAST,
-        created_at DESC`
-    );
+    const { since } = req.query;
+    const { rows } = since
+      ? await pool.query(
+          `SELECT * FROM todos WHERE updated_at > $1 ORDER BY
+            CASE priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
+            due_date ASC NULLS LAST, created_at DESC`, [since])
+      : await pool.query(
+          `SELECT * FROM todos ORDER BY
+            CASE priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
+            due_date ASC NULLS LAST, created_at DESC`);
     res.json(rows.map(mapTodo));
   } catch (err) {
     res.status(500).json({ error: err.message });
