@@ -159,9 +159,9 @@ export default function App() {
                 </button>
               </div>
               {todoView === 'list' ? (
-                <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} />
+                <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} todoTagFilter={todoTagFilter} />
               ) : (
-                <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} />
+                <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
               )}
             </>
           )}
