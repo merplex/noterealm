@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import TodoItem from './TodoItem';
 import TodoEditor from './TodoEditor';
 import DatePickerPopup from './DatePickerPopup';
+import { parseQuery, matchQuery } from '../../utils/searchQuery';
 
 const SECTIONS = [
   { key: 'urgent', label: '🔴 เร่งด่วน' },
@@ -45,9 +46,9 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter }) {
     todos = todos.filter((t) => !t.deletedAt);
 
     if (searchText) {
-      const q = searchText.toLowerCase();
-      todos = todos.filter(
-        (t) => t.title?.toLowerCase().includes(q) || t.note?.toLowerCase().includes(q)
+      const pq = parseQuery(searchText);
+      todos = todos.filter((t) =>
+        matchQuery(t.title, pq) || matchQuery(t.note, pq)
       );
     }
 

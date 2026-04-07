@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import NoteCard from './NoteCard';
 import DynamicFilters from './DynamicFilters';
 import { C } from '../../constants/theme';
+import { parseQuery, matchQuery } from '../../utils/searchQuery';
 
 export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, onHistory }) {
   const { state, actions } = useApp();
@@ -53,12 +54,11 @@ export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, o
     }
 
     if (searchText) {
-      const q = searchText.toLowerCase();
-      notes = notes.filter(
-        (n) =>
-          n.title?.toLowerCase().includes(q) ||
-          n.content?.toLowerCase().includes(q) ||
-          n.tags?.some((t) => t.toLowerCase().includes(q))
+      const pq = parseQuery(searchText);
+      notes = notes.filter((n) =>
+        matchQuery(n.title, pq) ||
+        matchQuery(n.content, pq) ||
+        (n.tags || []).some((t) => matchQuery(t, pq))
       );
     }
 

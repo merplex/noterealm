@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { parseQuery, matchQuery } from '../utils/searchQuery';
 
 const SORT_OPTIONS = [
   { key: 'updated', label: 'แก้ไขล่าสุด' },
@@ -18,12 +19,12 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
 
   const searchResults = useMemo(() => {
     if (!searchText.trim()) return [];
-    const q = searchText.toLowerCase();
+    const pq = parseQuery(searchText);
     const results = [];
 
     // Notes — ทุก state
     state.notes.forEach((n) => {
-      if (!n.title?.toLowerCase().includes(q) && !n.content?.toLowerCase().includes(q)) return;
+      if (!matchQuery(n.title, pq) && !matchQuery(n.content, pq)) return;
       let tag, tagColor, tagBg;
       if (n.deletedAt) { tag = 'Note / ลบ'; tagColor = '#fff'; tagBg = '#dc2626'; }
       else if (n.archived) { tag = 'Note / Archive'; tagColor = C.sub; tagBg = '#e7e5e4'; }
@@ -33,7 +34,7 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
 
     // Todos — ทุก state
     state.todos.forEach((t) => {
-      if (!t.title?.toLowerCase().includes(q) && !t.note?.toLowerCase().includes(q)) return;
+      if (!matchQuery(t.title, pq) && !matchQuery(t.note, pq)) return;
       let tag, tagColor, tagBg;
       if (t.deletedAt) { tag = 'Todo / ลบ'; tagColor = '#fff'; tagBg = '#dc2626'; }
       else { tag = 'Todo'; tagColor = '#fff'; tagBg = '#1e3a5f'; }
