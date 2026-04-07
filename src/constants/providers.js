@@ -11,14 +11,6 @@
  */
 
 export const AI_PROVIDERS = {
-  claude: {
-    id: 'claude',
-    icon: '✦',
-    color: '#d97706',
-    label: 'Claude',
-    authType: 'server',
-    enabled: true,
-  },
   gemini: {
     id: 'gemini',
     icon: '◈',

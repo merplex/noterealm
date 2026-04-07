@@ -8,11 +8,9 @@
  *   แค่นั้น — ไม่ต้องแก้ route หรือ AIBlock component
  */
 
-import claude from './claude.js';
 import gemini from './gemini.js';
 
 const registry = {
-  claude,
   gemini,
   // เพิ่ม AI ใหม่ตรงนี้:
   // mistral: (await import('./mistral.js')).default,
