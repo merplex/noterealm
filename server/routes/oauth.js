@@ -137,6 +137,22 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
+// Get inbox token by user id
+router.get('/inbox-token', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'No user id' });
+  try {
+    const result = await pool.query(
+      `SELECT inbox_token FROM users WHERE id = $1 LIMIT 1`,
+      [userId]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'User not found' });
+    res.json({ inboxToken: result.rows[0].inbox_token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Step 3: Refresh token
 router.post('/google/refresh', async (req, res) => {
   const { refreshToken } = req.body;

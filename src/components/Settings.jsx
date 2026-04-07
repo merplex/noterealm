@@ -33,6 +33,22 @@ export default function Settings({ onClose }) {
     return () => window.removeEventListener('sync-updated', refreshSyncInfo);
   }, []);
 
+  // ดึง inboxToken จาก server ถ้ายังไม่มีใน state
+  useEffect(() => {
+    if (!state.user?.id || state.user?.inboxToken) return;
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    fetch(`${apiUrl}/api/oauth/inbox-token`, {
+      headers: { 'x-user-id': state.user.id },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.inboxToken) {
+          dispatch({ type: 'SET_USER', payload: { ...state.user, inboxToken: data.inboxToken } });
+        }
+      })
+      .catch(() => {});
+  }, [state.user?.id]);
+
   const handleSyncToggle = () => {
     const next = !syncAuto;
     setSyncAuto(next);
