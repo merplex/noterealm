@@ -368,8 +368,8 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     if (isNew) return; // Don't auto-save unsaved notes
     if (!dirtyRef.current) return; // ไม่ได้แก้ไข → ไม่ save ทับ (ป้องกันทับ webhook data)
     const el = textareaRef.current;
-    const curContent = el ? el.innerHTML : content;
-    const cleanContent = curContent.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
+    const rawContent = el ? el.innerHTML : content;
+    const cleanContent = chipsToRefs(rawContent).replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
     const textOnly = cleanContent.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, '').trim();
     if (!title.trim() && !textOnly) return;
 
@@ -380,7 +380,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         title: title.trim() || note.title,
         content: cleanContent,
         tags, pinned, images, aiBlocks, group,
-        refs: (curContent.match(/\[\[([^:]+):/g) || []).map((m) => m.slice(2, -1)),
+        refs: (cleanContent.match(/\[\[([^:]+):/g) || []).map((m) => m.slice(2, -1)),
         updatedAt: now,
       });
       setLastSaved(now);
