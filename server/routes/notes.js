@@ -29,13 +29,13 @@ router.get('/:id', async (req, res) => {
 
 // Create note
 router.post('/', async (req, res) => {
-  const { id, title, content, tags, pinned, archived, images, aiBlocks, group, source, refs, history } = req.body;
+  const { id, title, content, tags, pinned, archived, images, aiBlocks, group, source, refs, history, userId } = req.body;
   try {
     const { rows } = await pool.query(
-      `INSERT INTO notes (id, title, content, tags, pinned, archived, images, ai_blocks, "group", source, refs, history)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      `INSERT INTO notes (id, user_id, title, content, tags, pinned, archived, images, ai_blocks, "group", source, refs, history)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING *`,
-      [id, title, content, tags || [], pinned || false, archived || false, images || [], JSON.stringify(aiBlocks || []), group, source || 'manual', refs || [], JSON.stringify(history || [])]
+      [id, userId || null, title, content, tags || [], pinned || false, archived || false, images || [], JSON.stringify(aiBlocks || []), group, source || 'manual', refs || [], JSON.stringify(history || [])]
     );
     res.status(201).json(mapNote(rows[0]));
   } catch (err) {
@@ -88,6 +88,7 @@ router.delete('/:id', async (req, res) => {
 function mapNote(row) {
   return {
     id: row.id,
+    userId: row.user_id || null,
     title: row.title,
     content: row.content,
     tags: row.tags,

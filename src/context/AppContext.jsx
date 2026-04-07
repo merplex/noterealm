@@ -168,17 +168,19 @@ export function AppProvider({ children }) {
 
   const actions = useMemo(() => ({
     addNote: async (noteData) => {
-      const note = { ...noteData, syncSource: 'local', dirty: true };
+      const userId = stateRef.current.user?.id || null;
+      const note = { ...noteData, userId, syncSource: 'local', dirty: true };
       await db.notes.put(note);
       dispatch({ type: 'ADD_NOTE', payload: note });
-      // Push to server in background
       pushDirty().catch(console.warn);
       return note;
     },
     updateNote: async (noteData) => {
       const existing = await db.notes.get(noteData.id);
+      const userId = existing?.userId || stateRef.current.user?.id || null;
       const note = {
         ...noteData,
+        userId,
         syncSource: existing?.syncSource || 'local',
         dirty: true,
       };
