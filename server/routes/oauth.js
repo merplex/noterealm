@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import pool from '../models/db.js';
 
 const router = Router();
@@ -71,14 +70,14 @@ router.get('/google/callback', async (req, res) => {
       // Upsert user into DB
       const result = await pool.query(
         `INSERT INTO users (id, google_id, email, name, picture, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW())
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
          ON CONFLICT (google_id) DO UPDATE
            SET email = EXCLUDED.email,
                name = EXCLUDED.name,
                picture = EXCLUDED.picture,
                updated_at = NOW()
          RETURNING id`,
-        [uuidv4(), profile.id, profile.email, profile.name, profile.picture || null]
+        [profile.id, profile.email, profile.name, profile.picture || null]
       );
       const dbUserId = result.rows[0].id;
 
