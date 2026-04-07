@@ -28,7 +28,7 @@ function MarqueeChip({ text, onClick }) {
       <span ref={textRef} style={{
         display: 'inline-block',
         whiteSpace: 'nowrap',
-        animation: overflow ? 'nr-chip-marquee 4s linear infinite' : 'none',
+        animation: overflow ? 'nr-chip-marquee 8s linear infinite' : 'none',
       }}>
         {overflow ? <>{label}{'\u00a0\u00a0'}{label}{'\u00a0\u00a0'}</> : label}
       </span>

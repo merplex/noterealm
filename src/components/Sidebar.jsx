@@ -76,8 +76,8 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
             <span>ปักหมุด</span>
           </button>
           <button
-            style={{ ...styles.navItem, background: activeFilter === 'archived' ? C.amberLight : 'transparent' }}
-            onClick={() => { onFilterTag('archived'); onClose(); }}
+            style={{ ...styles.navItem, background: activeFilter === 'archive' ? C.amberLight : 'transparent' }}
+            onClick={() => { onFilterTag('archive'); onClose(); }}
           >
             <span>📦</span>
             <span>เก็บถาวร</span>
