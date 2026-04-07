@@ -1014,9 +1014,11 @@ const styles = {
     background: 'rgba(0,0,0,0.35)',
     zIndex: 150,
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
     padding: 16,
+    paddingTop: 60,
+    overflowY: 'auto',
   },
   aiPopup: {
     background: C.bg,
