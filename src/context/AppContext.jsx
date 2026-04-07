@@ -241,7 +241,9 @@ export function AppProvider({ children }) {
       }
     },
     addTodo: async (todoData) => {
-      const todo = { ...todoData, syncSource: 'local', dirty: true };
+      const userId = stateRef.current.user?.id || null;
+      const now = new Date().toISOString();
+      const todo = { ...todoData, userId, updatedAt: todoData.updatedAt || now, createdAt: todoData.createdAt || now, syncSource: 'local', dirty: true };
       await db.todos.put(todo);
       dispatch({ type: 'ADD_TODO', payload: todo });
       pushDirty().catch(console.warn);
@@ -249,8 +251,12 @@ export function AppProvider({ children }) {
     },
     updateTodo: async (todoData) => {
       const existing = await db.todos.get(todoData.id);
+      const userId = existing?.userId || stateRef.current.user?.id || null;
+      const now = new Date().toISOString();
       const todo = {
         ...todoData,
+        userId,
+        updatedAt: now,
         syncSource: existing?.syncSource || 'local',
         dirty: true,
       };

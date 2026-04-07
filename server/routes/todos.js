@@ -24,12 +24,17 @@ router.get('/', async (req, res) => {
 
 // Create todo
 router.post('/', async (req, res) => {
-  const { id, title, note, priority, dueDate, dueTime, tags, done, linkedNoteId, source } = req.body;
+  const { id, title, note, priority, dueDate, dueTime, tags, done, linkedNoteId, source, userId } = req.body;
   try {
     const { rows } = await pool.query(
-      `INSERT INTO todos (id, title, note, priority, due_date, due_time, tags, done, linked_note_id, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [id, title, note, priority || 'normal', dueDate || null, dueTime || null, tags || [], done || false, linkedNoteId || null, source || 'manual']
+      `INSERT INTO todos (id, user_id, title, note, priority, due_date, due_time, tags, done, linked_note_id, source)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       ON CONFLICT (id) DO UPDATE SET
+         title=EXCLUDED.title, note=EXCLUDED.note, priority=EXCLUDED.priority,
+         due_date=EXCLUDED.due_date, due_time=EXCLUDED.due_time, tags=EXCLUDED.tags,
+         done=EXCLUDED.done, linked_note_id=EXCLUDED.linked_note_id, updated_at=NOW()
+       RETURNING *`,
+      [id, userId || null, title, note, priority || 'normal', dueDate || null, dueTime || null, tags || [], done || false, linkedNoteId || null, source || 'manual']
     );
     res.status(201).json(mapTodo(rows[0]));
   } catch (err) {
@@ -82,6 +87,7 @@ router.delete('/:id', async (req, res) => {
 function mapTodo(row) {
   return {
     id: row.id,
+    userId: row.user_id || null,
     title: row.title,
     note: row.note,
     priority: row.priority,
