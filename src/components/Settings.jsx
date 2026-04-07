@@ -24,6 +24,9 @@ export default function Settings({ onClose }) {
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | syncing | ok | error
   const [syncInfo, setSyncInfo] = useState(() => getSyncInfo());
 
+  const [emailFilterSpam, setEmailFilterSpam] = useState(false);
+  const [emailFilterSummary, setEmailFilterSummary] = useState(false);
+
   const refreshSyncInfo = () => setSyncInfo(getSyncInfo());
 
   useEffect(() => {
@@ -31,6 +34,34 @@ export default function Settings({ onClose }) {
     window.addEventListener('sync-updated', refreshSyncInfo);
     return () => window.removeEventListener('sync-updated', refreshSyncInfo);
   }, []);
+
+  // Fetch email filter settings from server
+  useEffect(() => {
+    if (!state.user?.id) return;
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    fetch(`${apiUrl}/api/oauth/email-filter`, {
+      headers: { 'x-user-id': state.user.id },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setEmailFilterSpam(data.filterSpam || false);
+        setEmailFilterSummary(data.filterSummary || false);
+      })
+      .catch(() => {});
+  }, [state.user?.id]);
+
+  const handleEmailFilterToggle = (key, value) => {
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    const newSpam = key === 'spam' ? value : emailFilterSpam;
+    const newSummary = key === 'summary' ? value : emailFilterSummary;
+    if (key === 'spam') setEmailFilterSpam(value);
+    if (key === 'summary') setEmailFilterSummary(value);
+    fetch(`${apiUrl}/api/oauth/email-filter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': state.user.id },
+      body: JSON.stringify({ filterSpam: newSpam, filterSummary: newSummary }),
+    }).catch(() => {});
+  };
 
   // ดึง inboxToken จาก server ถ้ายังไม่มีใน state
   useEffect(() => {
@@ -250,6 +281,24 @@ export default function Settings({ onClose }) {
                   }}
                 >
                   คัดลอก
+                </button>
+              </div>
+              <div style={styles.row}>
+                <div>
+                  <div style={styles.label}>🛡️ กรองสแปม</div>
+                  <div style={styles.desc}>AI ตรวจอีเมลขยะ/โฆษณา ไม่สร้าง note</div>
+                </div>
+                <button onClick={() => handleEmailFilterToggle('spam', !emailFilterSpam)} style={styles.toggle(emailFilterSpam)}>
+                  <span style={styles.toggleKnob(emailFilterSpam)} />
+                </button>
+              </div>
+              <div style={styles.row}>
+                <div>
+                  <div style={styles.label}>📝 สรุปอัตโนมัติ</div>
+                  <div style={styles.desc}>AI สรุปเนื้อหาอีเมลให้สั้นกระชับ</div>
+                </div>
+                <button onClick={() => handleEmailFilterToggle('summary', !emailFilterSummary)} style={styles.toggle(emailFilterSummary)}>
+                  <span style={styles.toggleKnob(emailFilterSummary)} />
                 </button>
               </div>
             </>

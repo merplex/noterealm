@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from '../models/db.js';
 import { v4 as uuidv4 } from 'uuid';
+import gemini from '../providers/gemini.js';
 
 const router = Router();
 
@@ -125,6 +126,29 @@ function decodePartBody(body, headers) {
   return body;
 }
 
+// AI filter: ใช้ Gemini วิเคราะห์อีเมล
+async function aiFilterEmail(subject, body, filters) {
+  const tasks = [];
+  if (filters.email_filter_spam) tasks.push('ถ้าเป็นอีเมลสแปม โฆษณา ขายของ โปรโมชัน หรือข้อความขยะ ให้ตอบ skip: true');
+  if (filters.email_filter_summary) tasks.push('สรุปเนื้อหาอีเมลให้กระชับ 2-3 บรรทัด เก็บข้อมูลสำคัญไว้ ใส่ใน summary');
+
+  const prompt = `วิเคราะห์อีเมลนี้:\nหัวข้อ: ${subject}\nเนื้อหา: ${body.slice(0, 2000)}\n\n${tasks.join('\n')}\n\nตอบเป็น JSON เท่านั้น: {"skip": true/false, "summary": "..." หรือ null}`;
+
+  const result = await gemini({
+    messages: [{ role: 'user', content: prompt }],
+    systemPrompt: 'คุณเป็น AI กรองอีเมล ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย',
+  });
+
+  // Parse JSON from AI response
+  const jsonMatch = result.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return { skip: false, summary: null };
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    return { skip: false, summary: null };
+  }
+}
+
 // POST /api/webhooks/email — รับจาก Cloudflare Worker
 router.post('/', async (req, res) => {
   if (!verifySecret(req, res)) return;
@@ -144,12 +168,31 @@ router.post('/', async (req, res) => {
 
     // หา user จาก inbox token
     let userId = null;
+    let userFilters = { email_filter_spam: false, email_filter_summary: false };
     if (inboxToken) {
       const userRes = await pool.query(
-        `SELECT id FROM users WHERE inbox_token = $1 LIMIT 1`,
+        `SELECT id, email_filter_spam, email_filter_summary FROM users WHERE inbox_token = $1 LIMIT 1`,
         [inboxToken]
       );
-      userId = userRes.rows[0]?.id || null;
+      if (userRes.rows[0]) {
+        userId = userRes.rows[0].id;
+        userFilters = userRes.rows[0];
+      }
+    }
+
+    // AI filter: กรองสแปม + สรุป (ถ้า user เปิด)
+    let finalBody = body;
+    if (userId && (userFilters.email_filter_spam || userFilters.email_filter_summary)) {
+      try {
+        const aiResult = await aiFilterEmail(subject, body, userFilters);
+        if (aiResult.skip) {
+          console.log('Email skipped by AI (spam):', subject);
+          return res.json({ ok: true, skipped: true });
+        }
+        if (aiResult.summary) finalBody = aiResult.summary;
+      } catch (err) {
+        console.error('AI filter error (proceeding without filter):', err.message);
+      }
     }
 
     // tag อัตโนมัติ: "email" + ชื่อ sender (ส่วนก่อน @)
@@ -162,7 +205,7 @@ router.post('/', async (req, res) => {
       day: 'numeric', month: 'short', year: '2-digit',
       hour: '2-digit', minute: '2-digit',
     });
-    const newBlock = `\n\n─── ${timestamp} ───\nเรื่อง: ${subject}\n${body}`;
+    const newBlock = `\n\n─── ${timestamp} ───\nเรื่อง: ${subject}\n${finalBody}`;
 
     // หา note ที่มี senderTag อยู่แล้ว (ของ user นี้)
     let existingNote = null;

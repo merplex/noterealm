@@ -153,6 +153,41 @@ router.get('/inbox-token', async (req, res) => {
   }
 });
 
+// Get email filter settings
+router.get('/email-filter', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'No user id' });
+  try {
+    const result = await pool.query(
+      `SELECT email_filter_spam, email_filter_summary FROM users WHERE id = $1 LIMIT 1`,
+      [userId]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'User not found' });
+    res.json({
+      filterSpam: result.rows[0].email_filter_spam || false,
+      filterSummary: result.rows[0].email_filter_summary || false,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update email filter settings
+router.post('/email-filter', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'No user id' });
+  const { filterSpam, filterSummary } = req.body;
+  try {
+    await pool.query(
+      `UPDATE users SET email_filter_spam = $1, email_filter_summary = $2, updated_at = NOW() WHERE id = $3`,
+      [!!filterSpam, !!filterSummary, userId]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Step 3: Refresh token
 router.post('/google/refresh', async (req, res) => {
   const { refreshToken } = req.body;
