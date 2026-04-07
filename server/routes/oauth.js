@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import pool from '../models/db.js';
 
 const router = Router();
 
@@ -59,12 +61,26 @@ router.get('/google/callback', async (req, res) => {
       return res.status(400).json({ error: tokens.error_description || tokens.error });
     }
 
-    // Login mode: fetch user profile and return user info
+    // Login mode: fetch user profile, upsert to DB, return user info
     if (mode === 'login') {
       const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       });
       const profile = await profileRes.json();
+
+      // Upsert user into DB
+      const result = await pool.query(
+        `INSERT INTO users (id, google_id, email, name, picture, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT (google_id) DO UPDATE
+           SET email = EXCLUDED.email,
+               name = EXCLUDED.name,
+               picture = EXCLUDED.picture,
+               updated_at = NOW()
+         RETURNING id`,
+        [uuidv4(), profile.id, profile.email, profile.name, profile.picture || null]
+      );
+      const dbUserId = result.rows[0].id;
 
       return res.send(`
         <html>
@@ -74,7 +90,8 @@ router.get('/google/callback', async (req, res) => {
             window.opener.postMessage({
               type: 'LOGIN_SUCCESS',
               user: {
-                id: ${JSON.stringify(profile.id)},
+                id: ${JSON.stringify(dbUserId)},
+                googleId: ${JSON.stringify(profile.id)},
                 email: ${JSON.stringify(profile.email)},
                 name: ${JSON.stringify(profile.name)},
                 picture: ${JSON.stringify(profile.picture || null)}
