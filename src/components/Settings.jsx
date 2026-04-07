@@ -3,7 +3,7 @@ import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
 import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
-import { sync, isAutoSyncEnabled, getSyncInfo, SYNC_AUTO_KEY } from '../utils/syncService';
+import { sync, isAutoSyncEnabled, getSyncInfo, SYNC_AUTO_KEY, setUserId } from '../utils/syncService';
 
 function formatSyncTime(iso) {
   if (!iso) return null;
@@ -78,6 +78,7 @@ export default function Settings({ onClose }) {
         window.removeEventListener('message', listener);
         const user = e.data.user;
         dispatch({ type: 'SET_USER', payload: user });
+        setUserId(user.id);
         // อัปเดต userId ให้โน้ต/todo เก่าที่ยังไม่มี userId แล้ว push ใหม่
         (async () => {
           const { db } = await import('../db/localDb');
@@ -105,6 +106,7 @@ export default function Settings({ onClose }) {
 
   const handleLogout = () => {
     dispatch({ type: 'SET_USER', payload: null });
+    setUserId(null);
   };
 
   const handleLineConnect = async () => {

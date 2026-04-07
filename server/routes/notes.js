@@ -3,13 +3,30 @@ import pool from '../models/db.js';
 
 const router = Router();
 
-// List notes (optional ?since= for incremental pull)
+// List notes (optional ?since= for incremental pull, filtered by X-User-Id header)
 router.get('/', async (req, res) => {
   try {
     const { since } = req.query;
-    const { rows } = since
-      ? await pool.query(`SELECT * FROM notes WHERE updated_at > $1 ORDER BY pinned DESC, updated_at DESC`, [since])
-      : await pool.query(`SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC`);
+    const userId = req.headers['x-user-id'] || null;
+    let rows;
+    if (userId && since) {
+      ({ rows } = await pool.query(
+        `SELECT * FROM notes WHERE user_id=$1 AND updated_at > $2 ORDER BY pinned DESC, updated_at DESC`,
+        [userId, since]
+      ));
+    } else if (userId) {
+      ({ rows } = await pool.query(
+        `SELECT * FROM notes WHERE user_id=$1 ORDER BY pinned DESC, updated_at DESC`,
+        [userId]
+      ));
+    } else if (since) {
+      ({ rows } = await pool.query(
+        `SELECT * FROM notes WHERE updated_at > $1 ORDER BY pinned DESC, updated_at DESC`,
+        [since]
+      ));
+    } else {
+      ({ rows } = await pool.query(`SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC`));
+    }
     res.json(rows.map(mapNote));
   } catch (err) {
     res.status(500).json({ error: err.message });

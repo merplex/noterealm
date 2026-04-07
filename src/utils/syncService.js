@@ -4,10 +4,24 @@ const BASE = import.meta.env.VITE_API_URL ?? '';
 const LAST_SYNC_KEY = 'nk_last_sync_at';
 const SYNC_DIRECTION_KEY = 'nk_sync_direction'; // 'server' | 'local'
 export const SYNC_AUTO_KEY = 'nk_sync_auto';
+const USER_ID_KEY = 'nk_user_id';
+
+export function setUserId(id) {
+  if (id) localStorage.setItem(USER_ID_KEY, id);
+  else localStorage.removeItem(USER_ID_KEY);
+}
+
+export function getUserId() {
+  return localStorage.getItem(USER_ID_KEY) || null;
+}
 
 async function req(path, options = {}) {
+  const userId = getUserId();
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(userId ? { 'X-User-Id': userId } : {}),
+    },
     ...options,
   });
   if (!res.ok) {
@@ -127,8 +141,9 @@ export function getSyncInfo() {
   };
 }
 
-// Auto sync — เรียกจาก AppContext (ตรวจ toggle ก่อน)
+// Auto sync — เรียกจาก AppContext (ตรวจ toggle + user ก่อน)
 export async function autoSync() {
   if (!isAutoSyncEnabled()) return;
+  if (!getUserId()) return; // ไม่ sync ถ้าไม่ได้ login
   await sync();
 }

@@ -3,7 +3,7 @@ import { storage } from '../constants/storage';
 import { STORAGE_KEYS } from '../constants/providers';
 import { notesApi, todosApi } from '../utils/api';
 import { db } from '../db/localDb';
-import { sync, autoSync, pushDirty, pull } from '../utils/syncService';
+import { sync, autoSync, pushDirty, pull, setUserId } from '../utils/syncService';
 
 const AppContext = createContext(null);
 
@@ -112,6 +112,8 @@ export function AppProvider({ children }) {
         if (val !== null) loaded[key] = val;
       }
       dispatch({ type: 'LOAD_STATE', payload: loaded });
+      // Restore userId for sync (sync ใช้ localStorage key แยก)
+      if (loaded.user?.id) setUserId(loaded.user.id);
 
       // 2. Load from IndexedDB immediately (instant, offline-first)
       const [localNotes, localTodos] = await Promise.all([
