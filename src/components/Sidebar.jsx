@@ -117,7 +117,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
                 <div key={tag} style={{ ...styles.tagRow, background: isActive ? C.amberLight : 'transparent' }}>
                   <button
                     style={styles.tagMainBtn}
-                    onClick={() => { onFilterTag(`tag:${tag}`); onClose(); }}
+                    onClick={() => { onFilterTag(isActive ? null : `tag:${tag}`); onClose(); }}
                   >
                     <span style={styles.tagDot}>🏷</span>
                     <span style={styles.tagName}>{tag}</span>
