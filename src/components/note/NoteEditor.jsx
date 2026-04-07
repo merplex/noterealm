@@ -43,6 +43,16 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const isNew = !note?.id;
   const initializedRef = useRef(false);
 
+  // Landscape detection (mobile เท่านั้น — width < 1024)
+  const [isLandscape, setIsLandscape] = useState(
+    () => window.innerWidth > window.innerHeight && window.innerWidth < 1024
+  );
+  useEffect(() => {
+    const update = () => setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth < 1024);
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
   // Extract inline images from content for gallery
   const inlineImages = useMemo(() => {
     if (!content) return [];
@@ -577,9 +587,14 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     setSelMenu(null);
   }, [syncContent]);
 
+  // landscape + มีรูป → right panel แทน gallery bar ด้านล่าง
+  const showRightPanel = isLandscape && allImages.length > 0;
+
   return (
     <div style={styles.overlay}>
-      <div style={styles.modal}>
+      <div style={{ ...styles.modal, flexDirection: isLandscape ? 'row' : 'column' }}>
+        {/* Left column (หรือ full column ใน portrait) */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         {/* Sticky: Related Notes */}
         <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} onRemove={removeRef} />
 
@@ -744,8 +759,8 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
         </div>
 
-        {/* Image Gallery Bar */}
-        {hasGallery && (
+        {/* Image Gallery Bar — ซ่อนเมื่อ landscape มี right panel แล้ว */}
+        {hasGallery && !showRightPanel && (
           <div style={styles.galleryBar} ref={galleryRef}>
             <div style={styles.galleryScroll}>
               {allImages.map((src, i) => (
@@ -937,6 +952,23 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                 style={styles.previewBody}
                 dangerouslySetInnerHTML={{ __html: previewNote.content || '<p style="color:#a8a29e">ไม่มีเนื้อหา</p>' }}
               />
+            </div>
+          </div>
+        )}
+        </div>{/* end left column */}
+
+        {/* Right panel: แสดงรูปทั้งหมดใน landscape mode */}
+        {showRightPanel && (
+          <div style={styles.rightPanel}>
+            <div style={styles.rightPanelScroll}>
+              {allImages.map((src, i) => (
+                <CachedImage
+                  key={i}
+                  src={src}
+                  style={styles.rightPanelImg}
+                  onClick={() => setFullscreenImg(src)}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -1372,5 +1404,27 @@ const styles = {
     lineHeight: 1.6,
     color: C.text,
     wordBreak: 'break-word',
+  },
+  rightPanel: {
+    width: '38%',
+    borderLeft: `1px solid ${C.border}`,
+    background: C.bg,
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
+    paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))',
+    paddingBottom: 'var(--sab, env(safe-area-inset-bottom, 0px))',
+  },
+  rightPanelScroll: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    padding: 10,
+  },
+  rightPanelImg: {
+    width: '100%',
+    borderRadius: 8,
+    display: 'block',
+    cursor: 'pointer',
   },
 };

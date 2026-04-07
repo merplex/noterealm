@@ -361,7 +361,8 @@ const styles = {
     margin: '0 auto',
     background: C.bg,
     borderRadius: '20px 20px 0 0',
-    paddingBottom: 'env(safe-area-inset-bottom)',
+    paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))',
+    paddingBottom: 'var(--sab, env(safe-area-inset-bottom, 0px))',
   },
   handle: {
     width: 36,
