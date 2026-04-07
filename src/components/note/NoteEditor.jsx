@@ -462,19 +462,27 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     };
 
     // Save history entry
-    if (!isNew && note.content !== cleanContent) {
-      noteData.history = [
-        {
-          timestamp: now,
-          content: note.content,
-          diff: {
-            added: cleanContent.length - note.content.length > 0 ? cleanContent.length - note.content.length : 0,
-            deleted: note.content.length - cleanContent.length > 0 ? note.content.length - cleanContent.length : 0,
-            edited: 1,
-          },
+    const prevRefs = note?.refs || [];
+    const refsAdded = refs.filter(id => !prevRefs.includes(id));
+    const refsRemoved = prevRefs.filter(id => !refs.includes(id));
+    const refsChanged = refsAdded.length > 0 || refsRemoved.length > 0;
+    const contentChanged = !isNew && note.content !== cleanContent;
+
+    if (!isNew && (contentChanged || refsChanged)) {
+      const entry = {
+        timestamp: now,
+        content: note.content,
+        diff: {
+          added: contentChanged ? Math.max(0, cleanContent.length - note.content.length) : 0,
+          deleted: contentChanged ? Math.max(0, note.content.length - cleanContent.length) : 0,
+          edited: contentChanged ? 1 : 0,
         },
-        ...noteData.history,
-      ];
+      };
+      if (refsChanged) {
+        entry.refsAdded = refsAdded.map(id => ({ id, title: state.notes.find(n => n.id === id)?.title || 'Untitled' }));
+        entry.refsRemoved = refsRemoved.map(id => ({ id, title: state.notes.find(n => n.id === id)?.title || 'Untitled' }));
+      }
+      noteData.history = [entry, ...noteData.history];
     }
 
     try {

@@ -40,6 +40,17 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
     };
   }, [selectedIdx, currentContent, history, totalVers]);
 
+  // Relate changes for the selected version
+  // history[0] = most recent save → its refsAdded/refsRemoved = what changed in "current"
+  // history[i-1] = changes made when saving version i
+  const relateChanges = useMemo(() => {
+    const entry = selectedIdx === -1 ? history[0] : history[selectedIdx - 1];
+    return {
+      added: entry?.refsAdded || [],
+      removed: entry?.refsRemoved || [],
+    };
+  }, [selectedIdx, history]);
+
   // Compute diff segments
   const segments = useMemo(() => {
     if (prevContent === null) {
@@ -92,6 +103,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
             const idx = i + 1;
             const isSelected = selectedIdx === idx;
             const verNum = totalVers - idx;
+            const hasRefChange = ver.refsAdded?.length > 0 || ver.refsRemoved?.length > 0;
             return (
               <div
                 key={i}
@@ -112,6 +124,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
                   fontWeight: isSelected ? 600 : 400,
                 }}>
                   ver{verNum} — {new Date(ver.timestamp).toLocaleString('th-TH')}
+                  {hasRefChange && <span style={styles.refBadge}>🔗</span>}
                 </span>
                 <button
                   style={styles.restoreBtn}
@@ -129,6 +142,17 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
 
         {/* Diff view */}
         <div style={styles.diffContent}>
+          {/* Relate changes */}
+          {(relateChanges.added.length > 0 || relateChanges.removed.length > 0) && (
+            <div style={styles.refChanges}>
+              {relateChanges.added.map(r => (
+                <span key={r.id} style={styles.refAdded}>+ 🔗 {r.title}</span>
+              ))}
+              {relateChanges.removed.map(r => (
+                <span key={r.id} style={styles.refRemoved}>− 🔗 {r.title}</span>
+              ))}
+            </div>
+          )}
           {prevLabel && (
             <div style={styles.diffLabel}>
               เปรียบเทียบ {selLabel} กับ {prevLabel}
@@ -252,6 +276,37 @@ const styles = {
     flexShrink: 0,
   },
   empty: { color: C.muted, textAlign: 'center', padding: 20, fontSize: 13 },
+  refBadge: { marginLeft: 4, fontSize: 10 },
+  refChanges: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottom: `1px solid ${C.border}`,
+  },
+  refAdded: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '3px 8px',
+    borderRadius: 8,
+    background: '#f0fdf4',
+    color: '#16a34a',
+    fontSize: 12,
+    fontWeight: 500,
+    border: '1px solid #86efac',
+  },
+  refRemoved: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '3px 8px',
+    borderRadius: 8,
+    background: '#fef2f2',
+    color: '#dc2626',
+    fontSize: 12,
+    fontWeight: 500,
+    border: '1px solid #fca5a5',
+  },
   diffContent: {
     flex: 1,
     overflowY: 'auto',
