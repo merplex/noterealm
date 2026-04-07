@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
@@ -67,41 +68,55 @@ export default function Settings({ onClose }) {
   const isLineConnected = state.connections?.some((c) => c.type === 'line' && c.enabled);
 
   const handleLogin = () => {
-    const w = 500, h = 600;
-    const left = (screen.width - w) / 2, top = (screen.height - h) / 2;
-    const popup = window.open(
-      `${import.meta.env.VITE_API_URL || ''}/api/oauth/google?mode=login`,
-      'login', `width=${w},height=${h},left=${left},top=${top}`
-    );
-    const listener = (e) => {
-      if (e.data?.type === 'LOGIN_SUCCESS') {
-        window.removeEventListener('message', listener);
-        const user = e.data.user;
-        dispatch({ type: 'SET_USER', payload: user });
-        setUserId(user.id);
-        // อัปเดต userId ให้โน้ต/todo เก่าที่ยังไม่มี userId แล้ว push ใหม่
-        (async () => {
-          const { db } = await import('../db/localDb');
-          const [orphanNotes, orphanTodos] = await Promise.all([
-            db.notes.filter(n => !n.userId).toArray(),
-            db.todos.filter(t => !t.userId).toArray(),
-          ]);
-          await Promise.all([
-            ...orphanNotes.map(n => db.notes.update(n.id, { userId: user.id, dirty: true })),
-            ...orphanTodos.map(t => db.todos.update(t.id, { userId: user.id, dirty: true })),
-          ]);
-          // sync: push dirty (รวมที่เพิ่ง mark) → pull
-          await sync();
-          const [notes, todos] = await Promise.all([
-            db.notes.orderBy('updatedAt').reverse().toArray(),
-            db.todos.orderBy('updatedAt').reverse().toArray(),
-          ]);
-          dispatch({ type: 'SET_NOTES', payload: notes });
-          dispatch({ type: 'SET_TODOS', payload: todos });
-        })().catch(console.warn);
-      }
+    const isNative = Capacitor.isNativePlatform();
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    const platform = isNative ? 'android' : 'web';
+    const oauthUrl = `${apiUrl}/api/oauth/google?mode=login&platform=${platform}`;
+
+    const handleUser = async (user) => {
+      dispatch({ type: 'SET_USER', payload: user });
+      setUserId(user.id);
+      (async () => {
+        const { db } = await import('../db/localDb');
+        const [orphanNotes, orphanTodos] = await Promise.all([
+          db.notes.filter(n => !n.userId).toArray(),
+          db.todos.filter(t => !t.userId).toArray(),
+        ]);
+        await Promise.all([
+          ...orphanNotes.map(n => db.notes.update(n.id, { userId: user.id, dirty: true })),
+          ...orphanTodos.map(t => db.todos.update(t.id, { userId: user.id, dirty: true })),
+        ]);
+        await sync();
+        const [notes, todos] = await Promise.all([
+          db.notes.orderBy('updatedAt').reverse().toArray(),
+          db.todos.orderBy('updatedAt').reverse().toArray(),
+        ]);
+        dispatch({ type: 'SET_NOTES', payload: notes });
+        dispatch({ type: 'SET_TODOS', payload: todos });
+      })().catch(console.warn);
     };
-    window.addEventListener('message', listener);
+
+    if (isNative) {
+      // Android: เปิด OAuth ใน browser ภายนอก → deep link noterealm:// ส่งกลับ
+      const listener = (e) => {
+        window.removeEventListener('nativeOAuth', listener);
+        handleUser(e.detail);
+      };
+      window.addEventListener('nativeOAuth', listener);
+      window.open(oauthUrl, '_system'); // _system = เปิด browser ภายนอก
+    } else {
+      // Web browser: popup + postMessage
+      const w = 500, h = 600;
+      const left = (screen.width - w) / 2, top = (screen.height - h) / 2;
+      window.open(oauthUrl, 'login', `width=${w},height=${h},left=${left},top=${top}`);
+      const listener = (e) => {
+        if (e.data?.type === 'LOGIN_SUCCESS') {
+          window.removeEventListener('message', listener);
+          handleUser(e.data.user);
+        }
+      };
+      window.addEventListener('message', listener);
+    }
   };
 
   const handleLogout = () => {

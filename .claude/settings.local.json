@@ -24,7 +24,13 @@
       "Bash(git checkout:*)",
       "Bash(git commit:*)",
       "Bash(npx cap:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew assembleDebug)",
+      "Bash(grep -o \"railway.app\" C:/Users/User/StudioProjects/noterealm/dist/assets/*.js)",
+      "Bash(grep -o \"railway\\\\|localhost\" C:/Users/User/StudioProjects/noterealm/dist/assets/index-*.js)",
+      "Bash(grep -o \"noterealm-production\\\\|localhost:3001\\\\|VITE_API\" C:/Users/User/StudioProjects/noterealm/dist/assets/index-*.js)",
+      "Bash(ls:*)",
+      "Bash(grep -o \"noterealm-production\" dist/assets/index-*.js)"
     ]
   }
 }

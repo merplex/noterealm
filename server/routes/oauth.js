@@ -17,6 +17,7 @@ router.get('/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const redirectUri = `${process.env.SERVER_URL || 'http://localhost:3001'}/api/oauth/google/callback`;
   const mode = req.query.mode || 'gemini';
+  const platform = req.query.platform || 'web'; // 'android' | 'web'
 
   if (!clientId) return res.status(500).json({ error: 'GOOGLE_CLIENT_ID not configured' });
 
@@ -27,15 +28,17 @@ router.get('/google', (req, res) => {
   url.searchParams.set('scope', mode === 'login' ? LOGIN_SCOPES : GEMINI_SCOPES);
   url.searchParams.set('access_type', 'offline');
   url.searchParams.set('prompt', 'consent');
-  url.searchParams.set('state', mode);
+  url.searchParams.set('state', `${mode}__${platform}`); // เก็บ platform ใน state
 
   res.redirect(url.toString());
 });
 
 // Step 2: Handle callback
 router.get('/google/callback', async (req, res) => {
-  const { code, state: mode } = req.query;
+  const { code, state: rawState } = req.query;
   if (!code) return res.status(400).json({ error: 'No code provided' });
+
+  const [mode, platform] = (rawState || 'gemini__web').split('__');
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -81,21 +84,27 @@ router.get('/google/callback', async (req, res) => {
       );
       const dbUserId = result.rows[0].id;
 
+      const user = {
+        id: dbUserId,
+        googleId: profile.id,
+        email: profile.email,
+        name: profile.name,
+        picture: profile.picture || null,
+      };
+
+      // Android native: redirect ผ่าน deep link (browser ไม่มี window.opener)
+      if (platform === 'android') {
+        const encoded = encodeURIComponent(JSON.stringify(user));
+        return res.redirect(`noterealm://login?user=${encoded}`);
+      }
+
+      // Web browser: postMessage + close popup
       return res.send(`
         <html>
         <body>
           <p>เข้าสู่ระบบสำเร็จ กำลังกลับไปแอป...</p>
           <script>
-            window.opener.postMessage({
-              type: 'LOGIN_SUCCESS',
-              user: {
-                id: ${JSON.stringify(dbUserId)},
-                googleId: ${JSON.stringify(profile.id)},
-                email: ${JSON.stringify(profile.email)},
-                name: ${JSON.stringify(profile.name)},
-                picture: ${JSON.stringify(profile.picture || null)}
-              }
-            }, '*');
+            window.opener.postMessage({ type: 'LOGIN_SUCCESS', user: ${JSON.stringify(user)} }, '*');
             window.close();
           </script>
         </body>

@@ -1028,7 +1028,6 @@ const styles = {
     cursor: 'pointer',
     fontFamily: C.font,
     textAlign: 'left',
-    fontFamily: C.font,
   },
   body: {
     flex: 1,
