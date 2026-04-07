@@ -404,7 +404,7 @@ const styles = {
     flexDirection: 'column',
     gap: 6,
     padding: '8px 12px',
-    minHeight: 400,
+    minHeight: 250,
     maxHeight: 400,
     overflowY: 'auto',
   },
