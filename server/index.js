@@ -47,7 +47,7 @@ if (existsSync(distPath)) {
 }
 
 app.listen(PORT, async () => {
-  console.log(`NoteRealm server running on port ${PORT}`);
+  console.log(`NoteRealm server running on port ${PORT} [email-to-note enabled]`);
   const dbOk = await checkDbConnection();
   if (!dbOk) {
     console.error('WARNING: Database is not accessible. Notes will not load. Check DATABASE_URL on Railway.');
