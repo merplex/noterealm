@@ -12,6 +12,38 @@ import { callAI } from '../../utils/callAI';
 import { stripHtml } from '../../utils/diff';
 import CachedImage from '../CachedImage';
 
+function AIOverlay({ children }) {
+  const overlayRef = useRef(null);
+  const [vvHeight, setVvHeight] = useState(null);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      setVvHeight(vv.height);
+      // scroll overlay so bottom is visible
+      if (overlayRef.current) {
+        overlayRef.current.scrollTop = overlayRef.current.scrollHeight;
+      }
+    };
+    update();
+    vv.addEventListener('resize', update);
+    return () => vv.removeEventListener('resize', update);
+  }, []);
+
+  return (
+    <div
+      ref={overlayRef}
+      style={{
+        ...styles.aiOverlay,
+        ...(vvHeight ? { height: vvHeight, top: window.visualViewport?.offsetTop || 0, bottom: 'auto' } : {}),
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
   const [title, setTitle] = useState(note?.title || '');
@@ -702,7 +734,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
           {/* Render AI Blocks as popup overlay */}
           {aiBlocks.filter((b) => b.type !== 'accordion').length > 0 && (
-            <div style={styles.aiOverlay} onTouchStart={() => document.activeElement?.blur()}>
+            <AIOverlay>
               <div style={styles.aiPopup} onClick={(e) => e.stopPropagation()}>
                 {aiBlocks.filter((b) => b.type !== 'accordion').map((block) => {
                   const updateBlock = (updated) =>
@@ -754,7 +786,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                   );
                 })}
               </div>
-            </div>
+            </AIOverlay>
           )}
 
           {/* Render Accordion Blocks inline */}
@@ -1010,14 +1042,16 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 const styles = {
   aiOverlay: {
     position: 'fixed',
-    inset: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     background: 'rgba(0,0,0,0.35)',
     zIndex: 150,
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
     justifyContent: 'center',
     padding: 16,
-    paddingTop: 60,
     overflowY: 'auto',
   },
   aiPopup: {
