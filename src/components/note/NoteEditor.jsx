@@ -875,7 +875,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           <div style={styles.tagRow}>
             {tags.filter(t => !t.startsWith('_')).map((tag) => (
               <span key={tag} style={styles.tagChip}>
-                <span style={styles.tagChipLabel}>#{tag}</span>
+                <span style={styles.tagChipLabel}>{tag}</span>
                 <button style={styles.tagChipRemove} onClick={() => { setTags(tags.filter(t => t !== tag)); dirtyRef.current = true; }}>✕</button>
               </span>
             ))}

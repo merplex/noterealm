@@ -32,36 +32,96 @@ function decodeMimeSubject(str) {
   });
 }
 
-// Parse sender name + email from "John Smith <john@example.com>" or "john@example.com"
+// Parse sender name + email from various formats
 function parseSender(from) {
-  const match = from.match(/^(?:"?([^"<]*)"?\s*)?<?([^>]+)>?$/);
-  const name = match?.[1]?.trim() || '';
-  const email = match?.[2]?.trim() || from;
+  // Try to extract email in angle brackets first: ... <email@example.com>
+  const angleBracket = from.match(/<([^>]+@[^>]+)>/);
+  if (angleBracket) {
+    const email = angleBracket[1].trim();
+    const name = from.slice(0, from.indexOf('<')).replace(/^["'\s]+|["'\s]+$/g, '').trim();
+    const domain = email.split('@')[1] || '';
+    return { name: decodeMimeSubject(name), email, domain };
+  }
+  // Fallback: treat entire string as email or find email pattern
+  const emailMatch = from.match(/[\w.+-]+@[\w.-]+/);
+  const email = emailMatch ? emailMatch[0] : from.trim();
   const domain = email.split('@')[1] || '';
-  return { name, email, domain };
+  return { name: '', email, domain };
 }
 
-// Extract plain text from raw email (simple approach)
+// Extract plain text from raw email — supports multipart MIME
 function extractBody(raw) {
-  // ตัด headers ออก
-  const bodyStart = raw.indexOf('\r\n\r\n') !== -1
-    ? raw.indexOf('\r\n\r\n') + 4
-    : raw.indexOf('\n\n') + 2;
-  let body = raw.slice(bodyStart);
+  if (!raw) return '(ไม่มีเนื้อหา)';
 
-  // ถ้าเป็น base64 encoded
-  if (body.match(/^[A-Za-z0-9+/\r\n]+=*$/m) && body.length > 100) {
-    try {
-      body = Buffer.from(body.replace(/\s/g, ''), 'base64').toString('utf-8');
-    } catch {}
+  // Find Content-Type header to detect multipart
+  const headerEnd = raw.indexOf('\r\n\r\n') !== -1
+    ? raw.indexOf('\r\n\r\n')
+    : raw.indexOf('\n\n');
+  const headers = raw.slice(0, headerEnd);
+
+  // Check for multipart boundary
+  const boundaryMatch = headers.match(/boundary="?([^"\r\n;]+)"?/i);
+  if (boundaryMatch) {
+    const boundary = boundaryMatch[1];
+    const parts = raw.split('--' + boundary);
+
+    // Find text/plain part first, then text/html
+    let textPart = null;
+    let htmlPart = null;
+    for (const part of parts) {
+      const partHeaderEnd = part.indexOf('\r\n\r\n') !== -1
+        ? part.indexOf('\r\n\r\n')
+        : part.indexOf('\n\n');
+      if (partHeaderEnd < 0) continue;
+      const partHeaders = part.slice(0, partHeaderEnd).toLowerCase();
+      const partBody = part.slice(partHeaderEnd + (part.indexOf('\r\n\r\n') !== -1 ? 4 : 2));
+
+      if (partHeaders.includes('content-type: text/plain') || partHeaders.includes('content-type:text/plain')) {
+        textPart = decodePartBody(partBody, partHeaders);
+      } else if (partHeaders.includes('content-type: text/html') || partHeaders.includes('content-type:text/html')) {
+        htmlPart = decodePartBody(partBody, partHeaders);
+      }
+      // Nested multipart — recurse
+      const nestedBoundary = partHeaders.match(/boundary="?([^"\r\n;]+)"?/i);
+      if (nestedBoundary) {
+        const nested = extractBody(part);
+        if (nested && nested !== '(ไม่มีเนื้อหา)') textPart = textPart || nested;
+      }
+    }
+
+    let body = textPart || '';
+    if (!body && htmlPart) {
+      body = htmlPart.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ');
+    }
+    body = body.split('\n').filter(l => !l.trim().startsWith('>')).join('\n');
+    return body.trim().slice(0, 5000) || '(ไม่มีเนื้อหา)';
   }
 
-  // ลบ HTML tags ถ้ามี
-  body = body.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ');
-  // ลบ quoted reply (บรรทัดที่ขึ้นต้นด้วย >)
-  body = body.split('\n').filter(l => !l.trim().startsWith('>')).join('\n');
+  // Simple single-part email
+  const bodyStart = headerEnd + (raw.indexOf('\r\n\r\n') !== -1 ? 4 : 2);
+  let body = raw.slice(bodyStart);
 
-  return body.trim().slice(0, 5000); // จำกัด 5000 ตัวอักษร
+  // Check Content-Transfer-Encoding in headers
+  body = decodePartBody(body, headers.toLowerCase());
+
+  body = body.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ');
+  body = body.split('\n').filter(l => !l.trim().startsWith('>')).join('\n');
+  return body.trim().slice(0, 5000) || '(ไม่มีเนื้อหา)';
+}
+
+// Decode part body based on Content-Transfer-Encoding
+function decodePartBody(body, headers) {
+  try {
+    if (headers.includes('content-transfer-encoding: base64') || headers.includes('content-transfer-encoding:base64')) {
+      return Buffer.from(body.replace(/\s/g, ''), 'base64').toString('utf-8');
+    }
+    if (headers.includes('content-transfer-encoding: quoted-printable') || headers.includes('content-transfer-encoding:quoted-printable')) {
+      return body
+        .replace(/=\r?\n/g, '') // soft line breaks
+        .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    }
+  } catch {}
+  return body;
 }
 
 // POST /api/webhooks/email — รับจาก Cloudflare Worker
@@ -74,6 +134,7 @@ router.post('/', async (req, res) => {
   try {
     const subject = decodeMimeSubject(rawSubject);
     const { name, email, domain } = parseSender(from);
+    console.log('Email webhook from:', JSON.stringify(from), '→ parsed:', { name, email, domain });
     const body = raw ? extractBody(raw) : '(ไม่มีเนื้อหา)';
 
     // หา inbox token จาก to address เช่น notes-abc123@neverjod.com
