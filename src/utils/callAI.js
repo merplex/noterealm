@@ -13,9 +13,12 @@ export async function callAI({ provider, messages, wrappedContent, wrappedImages
   const providerConfig = AI_PROVIDERS[provider];
   if (!providerConfig) throw new Error(`Unknown provider: ${provider}`);
 
+  const today = new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const dateContext = `วันนี้คือ ${today}`;
+
   let systemPrompt;
   if (autoAnalyze && wrappedContent) {
-    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n\n` +
+    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n${dateContext}\n\n` +
       `ข้อความที่ผู้ใช้เลือก:\n${wrappedContent}\n\n` +
       `คำสั่ง: วิเคราะห์ข้อความข้างต้นแล้วทำสิ่งที่เหมาะสมที่สุด:\n` +
       `- ถ้าเป็นคำถาม → ตอบจากความรู้ที่มี\n` +
@@ -25,13 +28,13 @@ export async function callAI({ provider, messages, wrappedContent, wrappedImages
       `- ถ้าเป็นหัวข้อทั่วไป → ให้ข้อมูลที่เป็นประโยชน์จากความรู้ที่มี\n` +
       `ตอบตรงๆ ไม่ต้องบอกว่าทำอะไรไม่ได้ ให้ข้อมูลจากความรู้ที่มีเสมอ`;
   } else if (extraContext?.mode === 'inquiry') {
-    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n\n` +
+    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n${dateContext}\n\n` +
       `โน้ตของผู้ใช้:\n${extraContext.notes || '(ไม่มีโน้ต)'}\n\n` +
       `Todo ของผู้ใช้:\n${extraContext.todos || '(ไม่มี todo)'}\n\n` +
       `คำสั่ง: ค้นหาคำตอบจากโน้ตและ todo ของผู้ใช้ก่อน ถ้าพบข้อมูลที่เกี่ยวข้องให้ตอบจากข้อมูลนั้น ถ้าไม่พบให้ค้นหาจากเว็บและตอบจากความรู้ทั่วไป ทุกคำตอบต้องมีลิงก์แหล่งที่มา (ถ้ามี) ในรูปแบบ [ชื่อแหล่ง](URL)` +
       (wrappedContent ? `\n\nข้อความที่คลุมไว้:\n${wrappedContent}` : '');
   } else if (extraContext?.mode === 'check') {
-    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n\n` +
+    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n${dateContext}\n\n` +
       `โน้ตของผู้ใช้:\n${extraContext.notes || '(ไม่มีโน้ต)'}\n\n` +
       `Todo ของผู้ใช้:\n${extraContext.todos || '(ไม่มี todo)'}\n\n` +
       `คำสั่ง: ตรวจสอบข้อมูลจากโน้ต, todo และปฏิทินของผู้ใช้ แล้วตอบคำถาม สรุปสถานะ หรือแจ้งเตือนสิ่งที่เกี่ยวข้อง` +
@@ -39,7 +42,7 @@ export async function callAI({ provider, messages, wrappedContent, wrappedImages
   } else if (wrappedContent) {
     systemPrompt = `ข้อความที่ผู้ใช้คลุมไว้:\n${wrappedContent}\n\nช่วยตอบเกี่ยวกับข้อความข้างต้น ตอบจากความรู้ที่มี ไม่ต้องบอกว่าทำไม่ได้`;
   } else {
-    systemPrompt = 'คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm ตอบเป็นภาษาไทยหรือตามภาษาที่ผู้ใช้ถาม ตอบจากความรู้ที่มีเสมอ';
+    systemPrompt = `คุณเป็นผู้ช่วย AI สำหรับแอป NoteRealm\n${dateContext}\nตอบเป็นภาษาไทยหรือตามภาษาที่ผู้ใช้ถาม ตอบจากความรู้ที่มีเสมอ`;
   }
 
   // Resolve credentials based on authType
