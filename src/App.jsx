@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from './context/AppContext';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Settings from './components/Settings';
@@ -32,10 +34,18 @@ export default function App() {
     return () => window.removeEventListener('resize', handler);
   }, []);
 
-  // Platform detection — ตาม pattern neverjod2
+  // Platform detection + StatusBar setup
   useEffect(() => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     document.documentElement.classList.add(isIOS ? 'platform-ios' : 'platform-android');
+
+    // Android: ไม่ให้ WebView วาดทับ status bar → content เริ่มใต้ status bar เลย
+    // iOS: ปล่อย overlay ตามปกติ ใช้ CSS env(safe-area-inset-top) จัดการ
+    if (Capacitor.isNativePlatform() && !isIOS) {
+      StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+      StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+      StatusBar.setBackgroundColor({ color: '#faf8f4' }).catch(() => {});
+    }
   }, []);
 
   const handleAddNote = () => setEditingNote({});

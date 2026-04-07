@@ -18,7 +18,13 @@
       "Bash(git commit -m 'fix: strip base64 ใน previewHtml useMemo — กัน JS block บน LINE notes ที่มีรูป:*)",
       "Bash(git commit -m 'fix: แสดง ตัดโน้ต LINE เสมอ ไม่ต้องรอ LINE Connect OAuth:*)",
       "Bash(ls /image)",
-      "Read(//c//**)"
+      "Read(//c//**)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:THQIlDYyidhqQCEoGUpvrKLtaadgkqBH@maglev.proxy.rlwy.net:14020/railway\" npm run db:migrate)",
+      "Bash(grep -v \"import\\\\|//\")",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(npx cap:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
