@@ -568,7 +568,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         <div style={styles.toolbar}>
           <button style={styles.toolBtn} onClick={handleAddAI}>✦ AI</button>
           <div style={{ position: 'relative' }}>
-            <button style={{ ...styles.toolBtn, fontSize: 18 }} onClick={() => setShowInsertMenu(!showInsertMenu)}>+</button>
+            <button style={{ ...styles.toolBtn, fontSize: 18 }} onClick={() => { setSelMenu(null); setShowInsertMenu(!showInsertMenu); }}>+</button>
             {showInsertMenu && (
               <>
                 <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowInsertMenu(false)} />
@@ -580,7 +580,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
               </>
             )}
           </div>
-          <FormatMenu onFormat={handleFormat} />
+          <FormatMenu onFormat={handleFormat} onOpen={() => setSelMenu(null)} />
           <button
             style={{ ...styles.toolBtn, marginLeft: 'auto', color: pinned ? C.amber : C.muted }}
             onClick={() => setPinned(!pinned)}
@@ -1065,8 +1065,8 @@ const styles = {
     display: 'flex',
     gap: 2,
     background: '#1f1f1f',
-    borderRadius: 8,
-    padding: '4px 2px',
+    borderRadius: 10,
+    padding: '4px 4px',
     boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
     zIndex: 200,
   },
@@ -1074,12 +1074,13 @@ const styles = {
     background: 'transparent',
     border: 'none',
     color: '#fff',
-    fontSize: 12,
-    padding: '6px 10px',
+    fontSize: 14,
+    padding: '10px 14px',
     cursor: 'pointer',
     fontFamily: C.font,
     whiteSpace: 'nowrap',
-    borderRadius: 6,
+    borderRadius: 8,
+    minHeight: 44,
   },
   galleryBar: {
     borderTop: `1px solid ${C.border}`,

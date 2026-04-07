@@ -6,7 +6,7 @@ const FORMAT_COLORS = [
   '#3b82f6', '#8b5cf6', '#ec4899', '#1c1917',
 ];
 
-export default function FormatMenu({ onFormat }) {
+export default function FormatMenu({ onFormat, onOpen }) {
   const [open, setOpen] = useState(false);
   const [showColors, setShowColors] = useState(false);
   const ref = useRef(null);
@@ -28,7 +28,7 @@ export default function FormatMenu({ onFormat }) {
     <div style={styles.wrap} ref={ref}>
       <button
         style={styles.triggerBtn}
-        onClick={() => setOpen(!open)}
+        onClick={() => { if (!open) onOpen?.(); setOpen(!open); }}
       >
         STYLE
       </button>
