@@ -5,7 +5,6 @@ import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
 import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
 import { sync, isAutoSyncEnabled, getSyncInfo, SYNC_AUTO_KEY, setUserId } from '../utils/syncService';
-import { startOAuth } from '../utils/oauth';
 
 function formatSyncTime(iso) {
   if (!iso) return null;
@@ -84,51 +83,6 @@ export default function Settings({ onClose }) {
   const isLoggedIn = !!state.user;
   const isLineConnected = state.connections?.some((c) => c.type === 'line' && c.enabled);
 
-  // Gemini status
-  const [geminiStatus, setGeminiStatus] = useState('idle'); // idle | connecting | testing | connected | not_activated | error
-  const geminiToken = state.aiSettings?.geminiToken;
-
-  const testGeminiToken = async (token) => {
-    try {
-      setGeminiStatus('testing');
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setGeminiStatus('connected');
-      } else if (res.status === 403) {
-        setGeminiStatus('not_activated');
-      } else {
-        setGeminiStatus('error');
-      }
-    } catch {
-      setGeminiStatus('error');
-    }
-  };
-
-  useEffect(() => {
-    if (geminiToken) testGeminiToken(geminiToken);
-  }, [geminiToken]);
-
-  const handleGeminiConnect = async () => {
-    setGeminiStatus('connecting');
-    try {
-      const tokens = await startOAuth('google');
-      dispatch({
-        type: 'SET_AI_SETTINGS',
-        payload: { ...state.aiSettings, provider: 'gemini', geminiToken: tokens.accessToken, geminiRefreshToken: tokens.refreshToken },
-      });
-      await testGeminiToken(tokens.accessToken);
-    } catch {
-      setGeminiStatus('error');
-    }
-  };
-
-  const handleGeminiDisconnect = () => {
-    const { geminiToken: _, geminiRefreshToken: __, ...rest } = state.aiSettings || {};
-    dispatch({ type: 'SET_AI_SETTINGS', payload: rest });
-    setGeminiStatus('idle');
-  };
 
   const handleLogin = () => {
     const isNative = Capacitor.isNativePlatform();
@@ -300,55 +254,6 @@ export default function Settings({ onClose }) {
               </div>
             </>
           )}
-
-          <div style={styles.divider} />
-
-          {/* Gemini AI */}
-          <div style={styles.row}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={styles.label}>◈ Gemini AI</div>
-              <div style={styles.desc}>
-                {geminiStatus === 'idle' && !geminiToken && 'เชื่อมต่อเพื่อใช้ AI ใน note'}
-                {geminiStatus === 'connecting' && 'กำลังเชื่อมต่อ...'}
-                {geminiStatus === 'testing' && 'กำลังตรวจสอบ...'}
-                {geminiStatus === 'connected' && '✅ พร้อมใช้งาน'}
-                {geminiStatus === 'not_activated' && '⚠️ ยังไม่ได้เปิดใช้งาน — ต้องไป activate ที่ Google AI Studio'}
-                {geminiStatus === 'error' && '❌ เกิดข้อผิดพลาด ลองใหม่'}
-              </div>
-              {geminiStatus === 'not_activated' && (
-                <a
-                  href="https://aistudio.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: 12, color: C.amber, display: 'inline-block', marginTop: 4 }}
-                >
-                  เปิดใช้งานที่ Google AI Studio →
-                </a>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              {geminiStatus === 'not_activated' && (
-                <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}`, fontSize: 11 }}
-                  onClick={() => testGeminiToken(geminiToken)}>
-                  ลองใหม่
-                </button>
-              )}
-              {(geminiStatus === 'connected' || geminiToken) ? (
-                <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }}
-                  onClick={handleGeminiDisconnect}>
-                  ยกเลิก
-                </button>
-              ) : (
-                <button
-                  style={{ ...styles.actionBtn, background: '#1a73e8', color: C.white }}
-                  onClick={handleGeminiConnect}
-                  disabled={geminiStatus === 'connecting' || geminiStatus === 'testing'}
-                >
-                  {geminiStatus === 'connecting' || geminiStatus === 'testing' ? '...' : '🔗 เชื่อมต่อ'}
-                </button>
-              )}
-            </div>
-          </div>
 
           <div style={styles.divider} />
 

@@ -1,9 +1,10 @@
 /**
  * Gemini provider handler
- * authType: 'oauth' — uses Google OAuth access token from client
+ * authType: 'server' — ใช้ GEMINI_API_KEY จาก env (server-side)
  */
-export default async function gemini({ messages, systemPrompt, accessToken }) {
-  if (!accessToken) throw new Error('Google OAuth token required for Gemini');
+export default async function gemini({ messages, systemPrompt }) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
   const geminiMessages = messages.map((m) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
@@ -11,13 +12,10 @@ export default async function gemini({ messages, systemPrompt, accessToken }) {
   }));
 
   const res = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
         contents: geminiMessages,

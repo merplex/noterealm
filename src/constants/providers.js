@@ -16,8 +16,7 @@ export const AI_PROVIDERS = {
     icon: '◈',
     color: '#1a73e8',
     label: 'Gemini',
-    authType: 'oauth',
-    oauthProvider: 'google',
+    authType: 'server',
     enabled: true,
   },
   // เพิ่ม AI ใหม่ตรงนี้:
