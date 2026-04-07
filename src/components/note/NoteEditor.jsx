@@ -96,11 +96,17 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   useEffect(() => {
     if (textareaRef.current && !initializedRef.current) {
       initializedRef.current = true;
-      textareaRef.current.innerHTML = note?.content || '';
-      // Auto-focus content area when creating new note
-      if (isNew) {
-        setTimeout(() => textareaRef.current?.focus(), 100);
+      const raw = note?.content || '';
+      // ดึง [[id:title]] ที่อาจติดมาจากของเก่า → เพิ่มเข้า refs และลบออกจาก content
+      const legacyRefs = [...raw.matchAll(/\[\[([^:]+):[^\]]*\]\]/g)].map(m => m[1]);
+      if (legacyRefs.length > 0) {
+        setRefs(prev => {
+          const merged = [...new Set([...prev, ...legacyRefs])];
+          return merged;
+        });
       }
+      textareaRef.current.innerHTML = raw.replace(/\[\[[^\]]*\]\]/g, '');
+      if (isNew) setTimeout(() => textareaRef.current?.focus(), 100);
     }
   }, [note?.content, isNew]);
 
@@ -547,7 +553,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     <div style={styles.overlay}>
       <div style={styles.modal}>
         {/* Sticky: Related Notes */}
-        <RelatePanel note={{ ...note, content }} onNavigate={(n) => setPreviewNote(n)} />
+        <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} />
 
         {/* Sticky: Toolbar */}
         <div style={styles.toolbar}>
