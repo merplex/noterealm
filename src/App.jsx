@@ -42,8 +42,7 @@ export default function App() {
     if (isNative) document.documentElement.classList.add('native-app');
 
     if (isNative && !isIOS) {
-      // Android native: ไม่ให้ WebView วาดทับ status bar
-      StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+      // Android: ปล่อย edge-to-edge, --sat inject จาก MainActivity.java
       StatusBar.setStyle({ style: Style.Light }).catch(() => {});
       StatusBar.setBackgroundColor({ color: '#faf8f4' }).catch(() => {});
     }
