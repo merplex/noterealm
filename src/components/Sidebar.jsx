@@ -7,9 +7,9 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
   const [renamingTag, setRenamingTag] = useState(null); // tag string being renamed
   const [renameValue, setRenameValue] = useState('');
 
-  // Derive tags from both notes and todos
-  const noteTags = state.notes.flatMap((n) => n.tags || []);
-  const todoTags = state.todos.flatMap((t) => t.tags || []);
+  // Derive tags from both notes and todos — ซ่อน internal tags (ขึ้นต้นด้วย _)
+  const noteTags = state.notes.flatMap((n) => (n.tags || []).filter(t => !t.startsWith('_')));
+  const todoTags = state.todos.flatMap((t) => (t.tags || []).filter(t => !t.startsWith('_')));
   const allTags = [...new Set([...noteTags, ...todoTags])].sort();
 
   const noteTagCount = (tag) => state.notes.filter((n) => (n.tags || []).includes(tag)).length;

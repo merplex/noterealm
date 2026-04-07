@@ -795,9 +795,9 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
         {/* Sticky: Footer */}
         <div style={styles.footer}>
-          {/* Tag chips row */}
+          {/* Tag chips row — ซ่อน internal tags (_line_id, _line_trim, etc.) */}
           <div style={styles.tagRow}>
-            {tags.map((tag) => (
+            {tags.filter(t => !t.startsWith('_')).map((tag) => (
               <span key={tag} style={styles.tagChip}>
                 <span style={styles.tagChipLabel}>#{tag}</span>
                 <button style={styles.tagChipRemove} onClick={() => { setTags(tags.filter(t => t !== tag)); dirtyRef.current = true; }}>✕</button>
@@ -862,8 +862,12 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                 </button>
               </div>
               <div style={styles.tagPickerList}>
-                {(state.tags || [])
-                  .filter(t => !tags.includes(t) && (!tagPickerSearch.trim() || t.toLowerCase().includes(tagPickerSearch.toLowerCase())))
+                {[...new Set([
+                  ...state.notes.flatMap(n => n.tags || []),
+                  ...state.todos.flatMap(t => t.tags || []),
+                ]).values()]
+                  .filter(t => !t.startsWith('_') && !tags.includes(t) && (!tagPickerSearch.trim() || t.toLowerCase().includes(tagPickerSearch.toLowerCase())))
+                  .sort()
                   .map((t) => (
                     <button
                       key={t}
@@ -874,7 +878,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                     </button>
                   ))
                 }
-                {(state.tags || []).filter(t => !tags.includes(t)).length === 0 && !tagPickerSearch && (
+                {[...new Set([...state.notes.flatMap(n => n.tags || []), ...state.todos.flatMap(t => t.tags || [])])].filter(t => !t.startsWith('_') && !tags.includes(t)).length === 0 && !tagPickerSearch && (
                   <p style={styles.tagPickerEmpty}>ยังไม่มีแท็กในระบบ</p>
                 )}
               </div>

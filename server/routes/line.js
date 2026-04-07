@@ -105,47 +105,64 @@ async function findOrCreateLineNote(senderId, senderName) {
   const idTag = `_line_id:${senderId}`;
   const title = `LINE: ${senderName}`;
 
-  // หา note ที่ active (ไม่ archived, ไม่ deleted)
-  const { rows } = await pool.query(
-    `SELECT id, content, title, tags FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
-    [idTag]
-  );
+  // ใช้ advisory lock per-sender เพื่อป้องกัน race condition
+  // (LINE ส่งหลาย event พร้อมกัน → แต่ละ event ต้องรอกัน)
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // lock key = hash ของ senderId — serialize เฉพาะ sender เดียวกัน
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [senderId]);
 
-  if (rows.length > 0) {
-    const note = rows[0];
-    // เช็ค trim period จาก tag _line_trim:xxx
-    const trimTag = (note.tags || []).find((t) => t.startsWith('_line_trim:'));
-    const period = trimTag?.split(':')[1];
+    // หา note ที่ active (ไม่ archived, ไม่ deleted)
+    const { rows } = await client.query(
+      `SELECT id, content, title, tags FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
+      [idTag]
+    );
 
-    if (period && isNoteExpired(note.content, period)) {
-      // note เก่าเกิน → archive แล้วสร้างใหม่
-      await pool.query(`UPDATE notes SET archived=true, updated_at=NOW() WHERE id=$1`, [note.id]);
-      console.log('[LINE] archived note', note.id, '(exceeded', period, ')');
-      // fall through เพื่อสร้าง note ใหม่ด้านล่าง — inherit trim tag
-      return createLineNote(title, [idTag, `_line_trim:${period}`]);
+    let result;
+
+    if (rows.length > 0) {
+      const note = rows[0];
+      // เช็ค trim period จาก tag _line_trim:xxx
+      const trimTag = (note.tags || []).find((t) => t.startsWith('_line_trim:'));
+      const period = trimTag?.split(':')[1];
+
+      if (period && isNoteExpired(note.content, period)) {
+        // note เก่าเกิน → archive แล้วสร้างใหม่
+        await client.query(`UPDATE notes SET archived=true, updated_at=NOW() WHERE id=$1`, [note.id]);
+        console.log('[LINE] archived note', note.id, '(exceeded', period, ')');
+        result = await createLineNote(title, [idTag, `_line_trim:${period}`], client);
+      } else {
+        if (note.title !== title) {
+          await client.query(`UPDATE notes SET title=$1, updated_at=NOW() WHERE id=$2`, [title, note.id]);
+        }
+        result = note;
+      }
+    } else {
+      // ไม่มี active note → สร้างใหม่ inherit trim tag จากโน้ตล่าสุด
+      const { rows: prev } = await client.query(
+        `SELECT tags FROM notes WHERE source='line' AND $1=ANY(tags) ORDER BY updated_at DESC LIMIT 1`,
+        [idTag]
+      );
+      const prevTrimTag = (prev[0]?.tags || []).find((t) => t.startsWith('_line_trim:'));
+      const tags = [idTag];
+      if (prevTrimTag) tags.push(prevTrimTag);
+      result = await createLineNote(title, tags, client);
     }
 
-    if (note.title !== title) {
-      await pool.query(`UPDATE notes SET title=$1, updated_at=NOW() WHERE id=$2`, [title, note.id]);
-    }
-    return note;
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
-
-  // ไม่มี active note → สร้างใหม่เสมอ ไม่ revive deleted/archived
-  // inherit แค่ trim tag จากโน้ตล่าสุด (ไม่ว่าจะ archived หรือ deleted)
-  const { rows: prev } = await pool.query(
-    `SELECT tags FROM notes WHERE source='line' AND $1=ANY(tags) ORDER BY updated_at DESC LIMIT 1`,
-    [idTag]
-  );
-  const prevTrimTag = (prev[0]?.tags || []).find((t) => t.startsWith('_line_trim:'));
-  const tags = [idTag];
-  if (prevTrimTag) tags.push(prevTrimTag);
-
-  return createLineNote(title, tags);
 }
 
-async function createLineNote(title, tags) {
-  const { rows } = await pool.query(
+async function createLineNote(title, tags, client) {
+  const db = client || pool;
+  const { rows } = await db.query(
     `INSERT INTO notes (id, title, content, tags, pinned, archived, images, ai_blocks, source, refs, history)
      VALUES (gen_random_uuid(), $1, '', $2, false, false, '{}', '[]', 'line', '{}', '[]')
      RETURNING id, content, tags`,
