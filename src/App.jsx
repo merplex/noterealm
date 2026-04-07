@@ -37,11 +37,12 @@ export default function App() {
   // Platform detection + StatusBar setup
   useEffect(() => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isNative = Capacitor.isNativePlatform();
     document.documentElement.classList.add(isIOS ? 'platform-ios' : 'platform-android');
+    if (isNative) document.documentElement.classList.add('native-app');
 
-    // Android: ไม่ให้ WebView วาดทับ status bar → content เริ่มใต้ status bar เลย
-    // iOS: ปล่อย overlay ตามปกติ ใช้ CSS env(safe-area-inset-top) จัดการ
-    if (Capacitor.isNativePlatform() && !isIOS) {
+    if (isNative && !isIOS) {
+      // Android native: ไม่ให้ WebView วาดทับ status bar
       StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
       StatusBar.setStyle({ style: Style.Light }).catch(() => {});
       StatusBar.setBackgroundColor({ color: '#faf8f4' }).catch(() => {});

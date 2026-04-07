@@ -38,10 +38,14 @@ button {
 ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
 
 /* Safe-area utilities
-   --sat / --sab = injected by MainActivity.java (Android native insets)
-   fallback: env(safe-area-inset-*) สำหรับ iOS + browser */
+   Native app: env(safe-area-inset-*) ทำงานปกติ
+   Android browser: env() return 0 → ใช้ fallback 36px สำหรับ status bar */
 .pt-safe-header {
   padding-top: calc(8px + var(--sat, env(safe-area-inset-top, 0px)));
+}
+/* Android browser ไม่รองรับ env(safe-area-inset-top) → fallback 36px */
+.platform-android:not(.native-app) .pt-safe-header {
+  padding-top: 36px;
 }
 
 .pb-safe-content {

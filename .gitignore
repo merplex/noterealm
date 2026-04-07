@@ -27,6 +27,6 @@ dist-ssr
 .env
 server/.env
 
-# Capacitor
-android/
-ios/
+# Capacitor build artifacts
+android/app/build/
+ios/App/Pods/
