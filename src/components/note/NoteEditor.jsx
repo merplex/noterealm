@@ -21,6 +21,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const [images, setImages] = useState(note?.images || []);
   const [aiBlocks, setAiBlocks] = useState(note?.aiBlocks || []);
   const [group, setGroup] = useState(note?.group || '');
+  const [refs, setRefs] = useState(note?.refs || []);
   const [showRefer, setShowRefer] = useState(false);
   const [fullscreenImg, setFullscreenImg] = useState(null);
   const bodyRef = useRef(null);
@@ -361,7 +362,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         title: title.trim() || note.title,
         content: cleanContent,
         tags, pinned, images, aiBlocks, group,
-        refs: (cleanContent.match(/\[\[([^:]+):/g) || []).map((m) => m.slice(2, -1)),
+        refs,
         updatedAt: now,
       });
       setLastSaved(now);
@@ -408,13 +409,11 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   }, [content]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRefer = (refNote) => {
-    insertAtCursor(`[[${refNote.id}:${refNote.title || 'Untitled'}]]`);
+    setRefs((prev) => prev.includes(refNote.id) ? prev : [...prev, refNote.id]);
     setShowRefer(false);
   };
 
-  const currentRefIds = useMemo(() => {
-    return [...content.matchAll(/\[\[([^:]+):/g)].map(m => m[1]);
-  }, [content]);
+  const removeRef = (id) => setRefs((prev) => prev.filter((r) => r !== id));
 
   const handleSave = async () => {
     const now = new Date().toISOString();
@@ -777,7 +776,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         {showRefer && (
           <ReferModal
             noteId={note?.id}
-            currentRefs={currentRefIds}
+            currentRefs={refs}
             onSelect={handleRefer}
             onClose={() => setShowRefer(false)}
           />

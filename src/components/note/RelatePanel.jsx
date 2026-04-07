@@ -7,20 +7,10 @@ export default function RelatePanel({ note, onNavigate }) {
 
   const relates = useMemo(() => {
     if (!note) return [];
-
-    // Direct relates only: notes that reference each other via [[noteId:...]]
-    const refPattern = /\[\[([^:]+):/g;
-    const myRefs = new Set();
-    let match;
-    while ((match = refPattern.exec(note.content || '')) !== null) {
-      myRefs.add(match[1]);
-    }
-
+    const myRefs = new Set(note.refs || []);
     return state.notes.filter(
-      (n) =>
-        n.id !== note.id &&
-        !n.deletedAt &&
-        (myRefs.has(n.id) || (n.content || '').includes(`[[${note.id}:`))
+      (n) => n.id !== note.id && !n.deletedAt &&
+        (myRefs.has(n.id) || (n.refs || []).includes(note.id))
     );
   }, [note, state.notes]);
 
