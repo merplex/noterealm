@@ -245,9 +245,26 @@ export default function Settings({ onClose }) {
               </div>
             </div>
             {isLineConnected ? (
-              <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLineDisconnect}>
-                ยกเลิก
-              </button>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                {(() => {
+                  const lineConn = state.connections?.find((c) => c.type === 'line');
+                  if (!lineConn?.basicId) return null;
+                  const addUrl = `https://line.me/ti/p/~${lineConn.basicId}`;
+                  return (
+                    <a
+                      href={addUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ ...styles.actionBtn, background: '#06C755', color: C.white, textDecoration: 'none' }}
+                    >
+                      💬 เพิ่มเพื่อน
+                    </a>
+                  );
+                })()}
+                <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLineDisconnect}>
+                  ยกเลิก
+                </button>
+              </div>
             ) : (
               <button
                 style={{ ...styles.actionBtn, background: '#06C755', color: C.white }}
@@ -258,21 +275,6 @@ export default function Settings({ onClose }) {
               </button>
             )}
           </div>
-          {(() => {
-            const lineConn = state.connections?.find((c) => c.type === 'line');
-            if (!lineConn?.basicId) return null;
-            const addUrl = `https://line.me/ti/p/~${lineConn.basicId}`;
-            return (
-              <a
-                href={addUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={styles.lineAddBtn}
-              >
-                + เพิ่ม {lineConn.label} เป็นเพื่อน LINE
-              </a>
-            );
-          })()}
 
           <>
             <div style={styles.divider} />
@@ -403,19 +405,6 @@ const styles = {
     background: C.white, border: `1px solid ${C.amber}`,
     fontSize: 13, fontWeight: 600, fontFamily: C.font,
     cursor: 'pointer', color: C.amber,
-  },
-  lineAddBtn: {
-    display: 'block',
-    textAlign: 'center',
-    padding: '10px',
-    borderRadius: 8,
-    background: '#06C755',
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: C.font,
-    textDecoration: 'none',
-    marginBottom: 4,
   },
   actionBtn: {
     padding: '8px 16px',
