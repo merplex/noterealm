@@ -209,7 +209,9 @@ const styles = {
   header: {
     display: 'flex',
     alignItems: 'center',
-    padding: '8px 12px',
+    paddingRight: 12,
+    paddingBottom: 8,
+    paddingLeft: 12,
     background: C.bg,
     borderBottom: `1px solid ${C.border}`,
     position: 'sticky',
