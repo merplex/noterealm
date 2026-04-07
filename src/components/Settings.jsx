@@ -3,17 +3,15 @@ import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
 import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
-import { sync, isAutoSyncEnabled, SYNC_AUTO_KEY } from '../utils/syncService';
+import { sync, isAutoSyncEnabled, getSyncInfo, SYNC_AUTO_KEY } from '../utils/syncService';
 
 function formatSyncTime(iso) {
   if (!iso) return null;
   const d = new Date(iso);
-  const now = new Date();
-  const diff = Math.floor((now - d) / 1000);
-  if (diff < 60) return 'เมื่อกี้';
-  if (diff < 3600) return `${Math.floor(diff / 60)} นาทีที่แล้ว`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ชม.ที่แล้ว`;
-  return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  return d.toLocaleString('th-TH', {
+    day: 'numeric', month: 'short', year: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
 }
 
 export default function Settings({ onClose }) {
@@ -23,19 +21,14 @@ export default function Settings({ onClose }) {
   const [clearingCache, setClearingCache] = useState(false);
   const [syncAuto, setSyncAuto] = useState(() => isAutoSyncEnabled());
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | syncing | ok | error
-  const [lastSyncTime, setLastSyncTime] = useState(() => {
-    const t = localStorage.getItem('nk_last_sync_at');
-    return t ? formatSyncTime(t) : null;
-  });
+  const [syncInfo, setSyncInfo] = useState(() => getSyncInfo());
+
+  const refreshSyncInfo = () => setSyncInfo(getSyncInfo());
 
   useEffect(() => {
     getImageCacheStats().then(setCacheStats);
-    const onSyncUpdated = () => {
-      const t = localStorage.getItem('nk_last_sync_at');
-      if (t) setLastSyncTime(formatSyncTime(t));
-    };
-    window.addEventListener('sync-updated', onSyncUpdated);
-    return () => window.removeEventListener('sync-updated', onSyncUpdated);
+    window.addEventListener('sync-updated', refreshSyncInfo);
+    return () => window.removeEventListener('sync-updated', refreshSyncInfo);
   }, []);
 
   const handleSyncToggle = () => {
@@ -49,14 +42,14 @@ export default function Settings({ onClose }) {
     setSyncStatus('syncing');
     try {
       const { db } = await import('../db/localDb');
-      await sync();
+      await sync('local');
       const [notes, todos] = await Promise.all([
         db.notes.orderBy('updatedAt').reverse().toArray(),
         db.todos.orderBy('updatedAt').reverse().toArray(),
       ]);
       dispatch({ type: 'SET_NOTES', payload: notes });
       dispatch({ type: 'SET_TODOS', payload: todos });
-      setLastSyncTime(formatSyncTime(new Date().toISOString()));
+      refreshSyncInfo();
       setSyncStatus('ok');
     } catch {
       setSyncStatus('error');
@@ -209,7 +202,9 @@ export default function Settings({ onClose }) {
             <div>
               <div style={styles.label}>ซิงค์อัตโนมัติ</div>
               <div style={styles.desc}>
-                {lastSyncTime ? `ซิงค์ล่าสุด ${lastSyncTime}` : 'ยังไม่เคยซิงค์'}
+                {syncInfo.lastSyncAt
+                  ? `${formatSyncTime(syncInfo.lastSyncAt)} · จาก${syncInfo.direction === 'local' ? 'เครื่องนี้' : 'server'}`
+                  : 'ยังไม่เคยซิงค์'}
               </div>
             </div>
             <button onClick={handleSyncToggle} style={styles.toggle(syncAuto)}>
@@ -228,7 +223,13 @@ export default function Settings({ onClose }) {
           >
             <span style={{ display: 'inline-block', animation: syncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none' }}>⟳</span>
             {' '}
-            {syncStatus === 'syncing' ? 'กำลังซิงค์...' : syncStatus === 'error' ? 'ซิงค์ล้มเหลว ลองอีกครั้ง' : syncStatus === 'ok' ? 'ซิงค์สำเร็จ' : 'ซิงค์ตอนนี้'}
+            {syncStatus === 'syncing'
+              ? 'กำลังซิงค์...'
+              : syncStatus === 'error'
+              ? 'ซิงค์ล้มเหลว ลองอีกครั้ง'
+              : syncStatus === 'ok' && syncInfo.lastSyncAt
+              ? `ซิงค์สำเร็จ · ${formatSyncTime(syncInfo.lastSyncAt)} · จาก${syncInfo.direction === 'local' ? 'เครื่องนี้' : 'server'}`
+              : 'ซิงค์ตอนนี้'}
           </button>
 
           <div style={styles.divider} />

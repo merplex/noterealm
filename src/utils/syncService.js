@@ -2,6 +2,7 @@ import { db } from '../db/localDb';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 const LAST_SYNC_KEY = 'nk_last_sync_at';
+const SYNC_DIRECTION_KEY = 'nk_sync_direction'; // 'server' | 'local'
 export const SYNC_AUTO_KEY = 'nk_sync_auto';
 
 async function req(path, options = {}) {
@@ -112,10 +113,18 @@ export async function pull() {
 }
 
 // Full sync: push dirty → pull → emit event
-export async function sync() {
+export async function sync(direction = 'server') {
   await pushDirty();
   await pull();
+  localStorage.setItem(SYNC_DIRECTION_KEY, direction);
   emitSyncUpdated();
+}
+
+export function getSyncInfo() {
+  return {
+    lastSyncAt: localStorage.getItem(LAST_SYNC_KEY),
+    direction: localStorage.getItem(SYNC_DIRECTION_KEY) || 'server',
+  };
 }
 
 // Auto sync — เรียกจาก AppContext (ตรวจ toggle ก่อน)
