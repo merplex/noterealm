@@ -16,7 +16,7 @@ const SECTIONS = [
 
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 
-export default function TodoList({ searchText, todoFilter, onTodoFilter }) {
+export default function TodoList({ searchText, todoFilter, onTodoFilter, priorityFilter, onPriorityFilter }) {
   const { state, actions } = useApp();
   const isGrid = state.todoViewMode === 'grid';
   const isDeletedView = todoFilter === 'deleted';
@@ -52,6 +52,10 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter }) {
       );
     }
 
+    if (priorityFilter) {
+      todos = todos.filter((t) => t.priority === priorityFilter);
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     todos.sort((a, b) => {
@@ -64,7 +68,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter }) {
       return 0;
     });
     return todos;
-  }, [state.todos, searchText, isDeletedView]);
+  }, [state.todos, searchText, isDeletedView, priorityFilter]);
 
   const toggleCollapse = (key) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -156,6 +160,29 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter }) {
             style={styles.quickInput}
           />
           <button style={styles.quickBtn} onClick={handleQuickAdd}>เพิ่ม</button>
+        </div>
+      )}
+
+      {/* Priority filter chips */}
+      {!isDeletedView && (
+        <div style={styles.filterRow}>
+          {SECTIONS.map((s) => {
+            const active = priorityFilter === s.key;
+            return (
+              <button
+                key={s.key}
+                style={{
+                  ...styles.filterChip,
+                  background: active ? C.amber : C.white,
+                  color: active ? C.white : C.sub,
+                  borderColor: active ? C.amber : C.border,
+                }}
+                onClick={() => onPriorityFilter?.(active ? null : s.key)}
+              >
+                {s.label}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -333,6 +360,16 @@ const styles = {
     padding: '8px 16px', borderRadius: 8, border: 'none',
     background: C.amber, color: C.white, fontSize: 13, fontWeight: 600,
     cursor: 'pointer', fontFamily: C.font,
+  },
+  filterRow: {
+    display: 'flex', gap: 6, padding: '6px 14px 8px',
+    overflowX: 'auto', whiteSpace: 'nowrap',
+  },
+  filterChip: {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: '5px 12px', borderRadius: 20, border: '1px solid',
+    fontSize: 12, fontWeight: 500, cursor: 'pointer',
+    fontFamily: C.font, transition: 'all 0.15s', flexShrink: 0,
   },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, padding: 10 },
   gridCard: {

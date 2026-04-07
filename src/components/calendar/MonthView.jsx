@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, isSameMonth, isSameDay, format,
@@ -15,6 +15,32 @@ if (typeof document !== 'undefined' && !document.getElementById('nr-marquee-css'
   style.id = 'nr-marquee-css';
   style.textContent = `@keyframes nr-marquee { 0%,10% { transform: translateX(0); } 90%,100% { transform: translateX(calc(-50% - 1em)); } }`;
   document.head.appendChild(style);
+}
+
+function MarqueeText({ text }) {
+  const wrapRef = useRef(null);
+  const textRef = useRef(null);
+  const [overflow, setOverflow] = useState(false);
+
+  useEffect(() => {
+    if (wrapRef.current && textRef.current) {
+      setOverflow(textRef.current.scrollWidth > wrapRef.current.clientWidth + 1);
+    }
+  }, [text]);
+
+  return (
+    <span ref={wrapRef} style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+      <span ref={textRef} style={{
+        display: 'inline-block',
+        fontSize: 10,
+        color: C.text,
+        whiteSpace: 'nowrap',
+        animation: overflow ? 'nr-marquee 6s linear infinite' : 'none',
+      }}>
+        {overflow ? `${text}\u00a0\u00a0\u00a0\u00a0${text}` : text}
+      </span>
+    </span>
+  );
 }
 
 export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onToggleTodo }) {
@@ -101,11 +127,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                       ...styles.dot,
                       background: PRIORITY_COLORS[todo.priority] || C.muted,
                     }} />
-                    <span style={styles.todoTitleWrap}>
-                      <span style={styles.todoTitleMarquee}>
-                        {todo.title}&nbsp;&nbsp;&nbsp;&nbsp;{todo.title}
-                      </span>
-                    </span>
+                    <MarqueeText text={todo.title} />
                   </div>
                 ))}
                 {dayTodoList.length > 4 && (
@@ -240,18 +262,6 @@ const styles = {
     height: 6,
     borderRadius: '50%',
     flexShrink: 0,
-  },
-  todoTitleWrap: {
-    flex: 1,
-    overflow: 'hidden',
-    minWidth: 0,
-  },
-  todoTitleMarquee: {
-    display: 'inline-block',
-    fontSize: 10,
-    color: C.text,
-    whiteSpace: 'nowrap',
-    animation: 'nr-marquee 6s linear infinite',
   },
   more: {
     fontSize: 9,

@@ -14,7 +14,14 @@ const VIEWS = [
   { key: 'day', label: 'วัน' },
 ];
 
-export default function CalendarView({ onSelectTodo }) {
+const PRIORITY_FILTERS = [
+  { key: 'urgent', label: '🔴 เร่งด่วน' },
+  { key: 'high', label: '🟠 สำคัญ' },
+  { key: 'normal', label: '🟡 ปกติ' },
+  { key: 'low', label: '⚪ ต่ำ' },
+];
+
+export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityFilter }) {
   const { state, actions } = useApp();
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());
@@ -35,9 +42,13 @@ export default function CalendarView({ onSelectTodo }) {
     setDate(fn[view](date, 1));
   };
 
+  const filteredTodos = priorityFilter
+    ? state.todos.filter((t) => t.priority === priorityFilter)
+    : state.todos;
+
   const viewProps = {
     date,
-    todos: state.todos,
+    todos: filteredTodos,
     onSelectTodo,
     onToggleTodo: handleToggleTodo,
   };
@@ -65,6 +76,27 @@ export default function CalendarView({ onSelectTodo }) {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Priority filter chips */}
+      <div style={styles.filterRow}>
+        {PRIORITY_FILTERS.map((f) => {
+          const active = priorityFilter === f.key;
+          return (
+            <button
+              key={f.key}
+              style={{
+                ...styles.filterChip,
+                background: active ? C.amber : C.white,
+                color: active ? C.white : C.sub,
+                borderColor: active ? C.amber : C.border,
+              }}
+              onClick={() => onPriorityFilter?.(active ? null : f.key)}
+            >
+              {f.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Calendar content */}
@@ -132,6 +164,17 @@ const styles = {
     fontFamily: C.font,
     fontWeight: 500,
     transition: 'all 0.15s',
+  },
+  filterRow: {
+    display: 'flex', gap: 6, padding: '6px 14px 8px',
+    overflowX: 'auto', whiteSpace: 'nowrap',
+    borderBottom: `1px solid ${C.border}`,
+  },
+  filterChip: {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: '5px 12px', borderRadius: 20, border: '1px solid',
+    fontSize: 12, fontWeight: 500, cursor: 'pointer',
+    fontFamily: C.font, transition: 'all 0.15s', flexShrink: 0,
   },
   body: {
     flex: 1,

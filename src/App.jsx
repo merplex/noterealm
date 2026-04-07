@@ -22,6 +22,7 @@ export default function App() {
   const [editingTodo, setEditingTodo] = useState(null);
   const [todoView, setTodoView] = useState('list');
   const [todoFilter, setTodoFilter] = useState(null);
+  const [priorityFilter, setPriorityFilter] = useState(null);
   const [isWide, setIsWide] = useState(() => window.innerWidth >= 768);
 
   useEffect(() => {
@@ -65,9 +66,9 @@ export default function App() {
         </button>
       </div>
       {todoView === 'list' ? (
-        <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} />
+        <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
       ) : (
-        <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} />
+        <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
       )}
     </div>
   );
