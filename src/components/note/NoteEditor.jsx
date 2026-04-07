@@ -28,6 +28,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const [tagInput, setTagInput] = useState('');
   const textareaRef = useRef(null);
   const dirtyRef = useRef(false); // true เมื่อ user แก้ไขจริง — ป้องกัน auto-save ทับ webhook data
+  const aiTitleDoneRef = useRef(false); // AI auto-fill title ทำแล้วครั้งเดียว ไม่ทำซ้ำ
   const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
   const [showInsertMenu, setShowInsertMenu] = useState(false);
   const [previewNote, setPreviewNote] = useState(null); // popup preview ของ relate note
@@ -374,6 +375,37 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     return () => clearTimeout(autoSaveTimer.current);
   }, [content, title, doAutoSave, isNew]);
 
+  // AI auto-fill title: เกิน 3 บรรทัด + หัวข้อว่าง + ยังไม่เคย AI fill → คิดชื่อให้ครั้งเดียว
+  const aiTitleTimer = useRef(null);
+  useEffect(() => {
+    if (aiTitleDoneRef.current) return;
+    if (title.trim()) { aiTitleDoneRef.current = true; return; } // user ตั้งชื่อเองแล้ว
+    clearTimeout(aiTitleTimer.current);
+    aiTitleTimer.current = setTimeout(async () => {
+      const cleanContent = content.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
+      const lines = cleanContent
+        .split(/<br\s*\/?>|<\/p>|<\/div>/i)
+        .map(l => l.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim())
+        .filter(Boolean);
+      if (lines.length <= 3) return;
+      if (title.trim()) return; // user อาจพิมพ์ชื่อระหว่างรอ
+      try {
+        const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+        const providerId = state.aiSettings?.provider || 'claude';
+        const aiTitle = await callAI({
+          provider: providerId,
+          messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
+          settings: state.aiSettings,
+        });
+        const t = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
+        if (t) { setTitle(t); aiTitleDoneRef.current = true; }
+      } catch (e) {
+        console.warn('AI auto-title failed:', e.message);
+      }
+    }, 1500);
+    return () => clearTimeout(aiTitleTimer.current);
+  }, [content]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleRefer = (refNote) => {
     insertAtCursor(`[[${refNote.id}:${refNote.title || 'Untitled'}]]`);
     setShowRefer(false);
@@ -389,9 +421,8 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       onClose();
       return;
     }
-    // Auto-generate title if empty
+    // ถ้าหัวข้อยังว่าง → ใช้บรรทัดแรกของ content (AI ทำงานก่อนหน้าแล้วถ้าเกิน 3 บรรทัด)
     let finalTitle = title.trim();
-    let pendingAiTitle = false;
     if (!finalTitle && textOnly) {
       const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
       const lines = cleanContent
@@ -401,7 +432,6 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       const firstLine = lines[0] || readableText;
       const words = firstLine.split(/\s+/).filter(Boolean);
       finalTitle = (words.length > 20 ? words.slice(0, 20).join(' ') : firstLine).slice(0, 50);
-      if (lines.length > 3) pendingAiTitle = true; // AI จะอัปเดตหัวข้อ background หลัง save
     }
 
     const noteData = {
@@ -449,24 +479,6 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       return;
     }
 
-    // AI คิดหัวข้อ background หลัง save + close แล้ว
-    if (pendingAiTitle) {
-      const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
-      (async () => {
-        try {
-          const providerId = state.aiSettings?.provider || 'claude';
-          const aiTitle = await callAI({
-            provider: providerId,
-            messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
-            settings: state.aiSettings,
-          });
-          const updatedTitle = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
-          if (updatedTitle) await actions.updateNote({ ...noteData, title: updatedTitle });
-        } catch (e) {
-          console.warn('AI title generation failed:', e.message);
-        }
-      })();
-    }
   };
 
   const handleAddTag = () => {
