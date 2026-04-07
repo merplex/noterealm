@@ -27,7 +27,7 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
       let tag, tagColor, tagBg;
       if (n.deletedAt) { tag = 'Note / ลบ'; tagColor = '#fff'; tagBg = '#dc2626'; }
       else if (n.archived) { tag = 'Note / Archive'; tagColor = C.sub; tagBg = '#e7e5e4'; }
-      else { tag = 'Note'; tagColor = C.text; tagBg = C.amber; }
+      else { tag = 'Note'; tagColor = '#fff'; tagBg = C.amber; }
       results.push({ type: 'note', item: n, tag, tagColor, tagBg, order: n.deletedAt ? 2 : n.archived ? 1 : 0 });
     });
 

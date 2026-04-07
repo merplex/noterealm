@@ -195,7 +195,7 @@ const styles = {
     fontSize: 22,
     fontWeight: 300,
   },
-  fabNote: { background: C.amber, color: C.text, minWidth: 80, borderRadius: 26, width: 'auto', padding: '0 16px' },
+  fabNote: { background: C.amber, color: C.white, minWidth: 80, borderRadius: 26, width: 'auto', padding: '0 16px' },
   fabTodo: { background: '#1e3a5f', color: C.white, minWidth: 80, borderRadius: 26, width: 'auto', padding: '0 16px' },
   bottomNav: {
     position: 'fixed',
