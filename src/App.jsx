@@ -287,7 +287,7 @@ const styles = {
   },
   fabs: {
     position: 'fixed',
-    bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+    bottom: 'calc(24px + var(--sab, env(safe-area-inset-bottom, 0px)))',
     right: 'max(16px, calc((100vw - 480px) / 2 + 16px))',
     display: 'flex',
     gap: 10,
@@ -296,7 +296,7 @@ const styles = {
   },
   fabsWide: {
     position: 'fixed',
-    bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+    bottom: 'calc(24px + var(--sab, env(safe-area-inset-bottom, 0px)))',
     right: 16,
     display: 'flex',
     gap: 10,
@@ -305,7 +305,7 @@ const styles = {
   },
   fabTodoWide: {
     position: 'fixed',
-    bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+    bottom: 'calc(24px + var(--sab, env(safe-area-inset-bottom, 0px)))',
     left: 16,
     zIndex: 60,
   },
@@ -326,7 +326,7 @@ const styles = {
   fabTodo: { background: '#1e3a5f', color: C.white, minWidth: 80, borderRadius: 26, width: 'auto', padding: '0 16px' },
   bottomNav: {
     position: 'fixed',
-    bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+    bottom: 'calc(24px + var(--sab, env(safe-area-inset-bottom, 0px)))',
     left: 'max(16px, calc((100vw - 480px) / 2 + 16px))',
     display: 'flex',
     gap: 8,
