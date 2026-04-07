@@ -392,21 +392,30 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     // Auto-generate title if empty
     let finalTitle = title.trim();
     if (!finalTitle && textOnly) {
-      try {
-        const providerId = state.aiSettings?.provider || 'claude';
-        // Use readable text (with spaces preserved) for AI prompt
-        const readableText = cleanContent.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
-        const aiTitle = await callAI({
-          provider: providerId,
-          messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
-          settings: state.aiSettings,
-        });
-        finalTitle = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
-      } catch (e) {
-        console.warn('AI title generation failed:', e.message);
-      }
-      if (!finalTitle) {
-        finalTitle = '...AI คิดไม่ออก ช่วยกรอกเอง...';
+      const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+      const lines = cleanContent
+        .split(/<br\s*\/?>|<\/p>|<\/div>/i)
+        .map(l => l.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim())
+        .filter(Boolean);
+      if (lines.length > 3) {
+        // มีข้อมูลเกิน 3 บรรทัด → ใช้ AI คิดหัวข้อ
+        try {
+          const providerId = state.aiSettings?.provider || 'claude';
+          const aiTitle = await callAI({
+            provider: providerId,
+            messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
+            settings: state.aiSettings,
+          });
+          finalTitle = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
+        } catch (e) {
+          console.warn('AI title generation failed:', e.message);
+        }
+        if (!finalTitle) finalTitle = (lines[0] || readableText).slice(0, 50);
+      } else {
+        // 1-3 บรรทัด → ใช้บรรทัดแรก ตัดที่ 20 คำ
+        const firstLine = lines[0] || readableText;
+        const words = firstLine.split(/\s+/).filter(Boolean);
+        finalTitle = (words.length > 20 ? words.slice(0, 20).join(' ') : firstLine).slice(0, 50);
       }
     }
 
