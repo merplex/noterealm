@@ -3,7 +3,7 @@ import { storage } from '../constants/storage';
 import { STORAGE_KEYS } from '../constants/providers';
 import { notesApi, todosApi } from '../utils/api';
 import { db } from '../db/localDb';
-import { sync, pushDirty, pull } from '../utils/syncService';
+import { sync, autoSync, pushDirty, pull } from '../utils/syncService';
 
 const AppContext = createContext(null);
 
@@ -121,8 +121,8 @@ export function AppProvider({ children }) {
       dispatch({ type: 'SET_NOTES', payload: localNotes });
       dispatch({ type: 'SET_TODOS', payload: localTodos });
 
-      // 3. Sync with server in background (push dirty → pull newer)
-      sync().then(async () => {
+      // 3. Auto sync in background (ถ้า toggle เปิดอยู่)
+      autoSync().then(async () => {
         const [notes, todos] = await Promise.all([
           db.notes.orderBy('updatedAt').reverse().toArray(),
           db.todos.orderBy('updatedAt').reverse().toArray(),
@@ -136,7 +136,7 @@ export function AppProvider({ children }) {
   // Sync when app comes back to foreground
   useEffect(() => {
     const handleFocus = () => {
-      sync().then(async () => {
+      autoSync().then(async () => {
         const [notes, todos] = await Promise.all([
           db.notes.orderBy('updatedAt').reverse().toArray(),
           db.todos.orderBy('updatedAt').reverse().toArray(),

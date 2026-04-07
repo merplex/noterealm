@@ -3,17 +3,65 @@ import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
 import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
-import { sync } from '../utils/syncService';
+import { sync, isAutoSyncEnabled, SYNC_AUTO_KEY } from '../utils/syncService';
+
+function formatSyncTime(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'เมื่อกี้';
+  if (diff < 3600) return `${Math.floor(diff / 60)} นาทีที่แล้ว`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ชม.ที่แล้ว`;
+  return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+}
 
 export default function Settings({ onClose }) {
   const { state, dispatch } = useApp();
   const [lineConnecting, setLineConnecting] = useState(false);
   const [cacheStats, setCacheStats] = useState(null);
   const [clearingCache, setClearingCache] = useState(false);
+  const [syncAuto, setSyncAuto] = useState(() => isAutoSyncEnabled());
+  const [syncStatus, setSyncStatus] = useState('idle'); // idle | syncing | ok | error
+  const [lastSyncTime, setLastSyncTime] = useState(() => {
+    const t = localStorage.getItem('nk_last_sync_at');
+    return t ? formatSyncTime(t) : null;
+  });
 
   useEffect(() => {
     getImageCacheStats().then(setCacheStats);
+    const onSyncUpdated = () => {
+      const t = localStorage.getItem('nk_last_sync_at');
+      if (t) setLastSyncTime(formatSyncTime(t));
+    };
+    window.addEventListener('sync-updated', onSyncUpdated);
+    return () => window.removeEventListener('sync-updated', onSyncUpdated);
   }, []);
+
+  const handleSyncToggle = () => {
+    const next = !syncAuto;
+    setSyncAuto(next);
+    localStorage.setItem(SYNC_AUTO_KEY, next ? 'true' : 'false');
+  };
+
+  const handleManualSync = async () => {
+    if (syncStatus === 'syncing') return;
+    setSyncStatus('syncing');
+    try {
+      const { db } = await import('../db/localDb');
+      await sync();
+      const [notes, todos] = await Promise.all([
+        db.notes.orderBy('updatedAt').reverse().toArray(),
+        db.todos.orderBy('updatedAt').reverse().toArray(),
+      ]);
+      dispatch({ type: 'SET_NOTES', payload: notes });
+      dispatch({ type: 'SET_TODOS', payload: todos });
+      setLastSyncTime(formatSyncTime(new Date().toISOString()));
+      setSyncStatus('ok');
+    } catch {
+      setSyncStatus('error');
+    }
+  };
 
   const handleClearImageCache = async () => {
     setClearingCache(true);
@@ -156,6 +204,35 @@ export default function Settings({ onClose }) {
 
           <div style={styles.divider} />
 
+          {/* Sync */}
+          <div style={styles.row}>
+            <div>
+              <div style={styles.label}>ซิงค์อัตโนมัติ</div>
+              <div style={styles.desc}>
+                {lastSyncTime ? `ซิงค์ล่าสุด ${lastSyncTime}` : 'ยังไม่เคยซิงค์'}
+              </div>
+            </div>
+            <button onClick={handleSyncToggle} style={styles.toggle(syncAuto)}>
+              <span style={styles.toggleKnob(syncAuto)} />
+            </button>
+          </div>
+          <button
+            onClick={handleManualSync}
+            disabled={syncStatus === 'syncing'}
+            style={{
+              ...styles.syncBtn,
+              opacity: syncStatus === 'syncing' ? 0.6 : 1,
+              color: syncStatus === 'error' ? '#ef4444' : syncStatus === 'ok' ? '#16a34a' : C.amber,
+              borderColor: syncStatus === 'error' ? '#fca5a5' : syncStatus === 'ok' ? '#86efac' : C.amber,
+            }}
+          >
+            <span style={{ display: 'inline-block', animation: syncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none' }}>⟳</span>
+            {' '}
+            {syncStatus === 'syncing' ? 'กำลังซิงค์...' : syncStatus === 'error' ? 'ซิงค์ล้มเหลว ลองอีกครั้ง' : syncStatus === 'ok' ? 'ซิงค์สำเร็จ' : 'ซิงค์ตอนนี้'}
+          </button>
+
+          <div style={styles.divider} />
+
           {/* LINE Connect */}
           <div style={styles.row}>
             <div>
@@ -293,6 +370,24 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   divider: { height: 1, background: C.border },
+  toggle: (on) => ({
+    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0,
+    background: on ? C.amber : C.border,
+    display: 'flex', alignItems: 'center', padding: '0 3px',
+    transition: 'background 0.2s',
+  }),
+  toggleKnob: (on) => ({
+    width: 18, height: 18, borderRadius: '50%', background: C.white,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+    marginLeft: on ? 'auto' : 0,
+    transition: 'margin 0.2s',
+  }),
+  syncBtn: {
+    width: '100%', padding: '10px', borderRadius: 8, marginBottom: 4,
+    background: C.white, border: `1px solid ${C.amber}`,
+    fontSize: 13, fontWeight: 600, fontFamily: C.font,
+    cursor: 'pointer', color: C.amber,
+  },
   actionBtn: {
     padding: '8px 16px',
     borderRadius: 8,

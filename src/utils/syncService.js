@@ -2,6 +2,7 @@ import { db } from '../db/localDb';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 const LAST_SYNC_KEY = 'nk_last_sync_at';
+export const SYNC_AUTO_KEY = 'nk_sync_auto';
 
 async function req(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -13,6 +14,15 @@ async function req(path, options = {}) {
     throw new Error(err.error || `Request failed (${res.status})`);
   }
   return res.json();
+}
+
+// Emit event เมื่อ sync เสร็จ — Settings ฟังได้
+function emitSyncUpdated() {
+  window.dispatchEvent(new Event('sync-updated'));
+}
+
+export function isAutoSyncEnabled() {
+  return localStorage.getItem(SYNC_AUTO_KEY) !== 'false'; // default = true
 }
 
 // --- Push ---
@@ -28,6 +38,7 @@ async function pushNote(note) {
     await db.notes.update(note.id, { dirty: false, syncSource: 'server' });
   } catch (e) {
     console.warn(`[sync] push note ${note.id} failed:`, e.message);
+    throw e;
   }
 }
 
@@ -42,6 +53,7 @@ async function pushTodo(todo) {
     await db.todos.update(todo.id, { dirty: false, syncSource: 'server' });
   } catch (e) {
     console.warn(`[sync] push todo ${todo.id} failed:`, e.message);
+    throw e;
   }
 }
 
@@ -63,15 +75,12 @@ async function mergeNotes(serverNotes) {
   for (const sn of serverNotes) {
     const local = await db.notes.get(sn.id);
     if (!local) {
-      // ไม่มีใน local → เพิ่มเลย
       updates.push(db.notes.put({ ...sn, syncSource: 'server', dirty: false }));
     } else if (local.syncSource === 'server') {
-      // ทั้งคู่เป็น server → Last Write Wins
       if (new Date(sn.updatedAt) > new Date(local.updatedAt)) {
         updates.push(db.notes.put({ ...sn, syncSource: 'server', dirty: false }));
       }
     }
-    // local.syncSource === 'local' → keep local (pending push)
   }
   await Promise.all(updates);
 }
@@ -93,21 +102,24 @@ async function mergeTodos(serverTodos) {
 
 export async function pull() {
   const since = localStorage.getItem(LAST_SYNC_KEY) || '';
-  try {
-    const sinceParam = since ? `?since=${encodeURIComponent(since)}` : '';
-    const [serverNotes, serverTodos] = await Promise.all([
-      req(`/api/notes${sinceParam}`),
-      req(`/api/todos${sinceParam}`),
-    ]);
-    await Promise.all([mergeNotes(serverNotes), mergeTodos(serverTodos)]);
-    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
-  } catch (e) {
-    console.warn('[sync] pull failed:', e.message);
-  }
+  const sinceParam = since ? `?since=${encodeURIComponent(since)}` : '';
+  const [serverNotes, serverTodos] = await Promise.all([
+    req(`/api/notes${sinceParam}`),
+    req(`/api/todos${sinceParam}`),
+  ]);
+  await Promise.all([mergeNotes(serverNotes), mergeTodos(serverTodos)]);
+  localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 }
 
-// Full sync: push dirty first → then pull
+// Full sync: push dirty → pull → emit event
 export async function sync() {
   await pushDirty();
   await pull();
+  emitSyncUpdated();
+}
+
+// Auto sync — เรียกจาก AppContext (ตรวจ toggle ก่อน)
+export async function autoSync() {
+  if (!isAutoSyncEnabled()) return;
+  await sync();
 }
