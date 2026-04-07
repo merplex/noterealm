@@ -226,20 +226,19 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  // Tag row
+  // Tag row — fixed-width icon columns, all centered
   tagRow: {
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: '1fr 32px 32px',
     alignItems: 'center',
     borderRadius: 8,
     marginBottom: 2,
-    paddingRight: 4,
   },
   tagMainBtn: {
-    flex: 1,
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    padding: '8px 8px 8px 12px',
+    padding: '8px 6px 8px 12px',
     border: 'none',
     background: 'transparent',
     cursor: 'pointer',
@@ -248,6 +247,7 @@ const styles = {
     color: C.text,
     textAlign: 'left',
     minWidth: 0,
+    width: '100%',
   },
   tagDot: { fontSize: 14, flexShrink: 0 },
   tagName: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
@@ -258,8 +258,10 @@ const styles = {
     padding: '1px 5px', borderRadius: 8,
   },
   iconBtn: {
+    width: 32, height: 36,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'none', border: 'none', cursor: 'pointer',
-    fontSize: 13, padding: '4px 3px', flexShrink: 0, opacity: 0.7,
+    fontSize: 14, padding: 0, flexShrink: 0, opacity: 0.7,
   },
   // Rename centered popup
   renameOverlay: {

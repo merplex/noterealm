@@ -85,7 +85,7 @@ export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelect
             border: `2px solid ${isSelected ? C.amber : C.border}`,
             background: isSelected ? C.amber : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, marginTop: 1, color: '#fff', fontSize: 13, fontWeight: 700,
+            flexShrink: 0, color: '#fff', fontSize: 13, fontWeight: 700,
             cursor: 'pointer', transition: 'all 0.15s',
           }}
           onClick={() => onSelect?.(todo)}
@@ -149,7 +149,7 @@ export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelect
 const styles = {
   item: {
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
     padding: '10px 14px',
     borderBottom: `1px solid ${C.border}`,
@@ -165,7 +165,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    marginTop: 1,
   },
   check: { color: 'white', fontSize: 13, fontWeight: 700 },
   content: {
