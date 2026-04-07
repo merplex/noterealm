@@ -298,6 +298,45 @@ export function AppProvider({ children }) {
         todosApi.delete(id).catch(console.warn);
       }
     },
+    // Tag management — rename/delete across all notes & todos
+    renameTag: async (oldTag, newTag) => {
+      const trimmed = newTag.trim();
+      if (!trimmed || trimmed === oldTag) return;
+      const [notes, todos] = await Promise.all([
+        db.notes.filter(n => (n.tags || []).includes(oldTag)).toArray(),
+        db.todos.filter(t => (t.tags || []).includes(oldTag)).toArray(),
+      ]);
+      await Promise.all([
+        ...notes.map(n => {
+          const updated = { ...n, tags: n.tags.map(t => t === oldTag ? trimmed : t), dirty: true };
+          dispatch({ type: 'UPDATE_NOTE', payload: updated });
+          return db.notes.put(updated);
+        }),
+        ...todos.map(t => {
+          const updated = { ...t, tags: t.tags.map(tg => tg === oldTag ? trimmed : tg), dirty: true };
+          dispatch({ type: 'UPDATE_TODO', payload: updated });
+          return db.todos.put(updated);
+        }),
+      ]);
+    },
+    deleteTag: async (tag) => {
+      const [notes, todos] = await Promise.all([
+        db.notes.filter(n => (n.tags || []).includes(tag)).toArray(),
+        db.todos.filter(t => (t.tags || []).includes(tag)).toArray(),
+      ]);
+      await Promise.all([
+        ...notes.map(n => {
+          const updated = { ...n, tags: n.tags.filter(t => t !== tag), dirty: true };
+          dispatch({ type: 'UPDATE_NOTE', payload: updated });
+          return db.notes.put(updated);
+        }),
+        ...todos.map(t => {
+          const updated = { ...t, tags: t.tags.filter(tg => tg !== tag), dirty: true };
+          dispatch({ type: 'UPDATE_TODO', payload: updated });
+          return db.todos.put(updated);
+        }),
+      ]);
+    },
     // Force full sync (เรียกได้จาก UI)
     syncNow: () => sync().then(async () => {
       const [notes, todos] = await Promise.all([

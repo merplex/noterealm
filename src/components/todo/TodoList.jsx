@@ -16,7 +16,7 @@ const SECTIONS = [
 
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 
-export default function TodoList({ searchText, todoFilter, onTodoFilter, priorityFilter, onPriorityFilter }) {
+export default function TodoList({ searchText, todoFilter, onTodoFilter, priorityFilter, onPriorityFilter, todoTagFilter }) {
   const { state, actions } = useApp();
   const isGrid = state.todoViewMode === 'grid';
   const isDeletedView = todoFilter === 'deleted';
@@ -56,6 +56,10 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
       todos = todos.filter((t) => t.priority === priorityFilter);
     }
 
+    if (todoTagFilter) {
+      todos = todos.filter((t) => (t.tags || []).includes(todoTagFilter));
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     todos.sort((a, b) => {
@@ -68,7 +72,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
       return 0;
     });
     return todos;
-  }, [state.todos, searchText, isDeletedView, priorityFilter]);
+  }, [state.todos, searchText, isDeletedView, priorityFilter, todoTagFilter]);
 
   const toggleCollapse = (key) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));

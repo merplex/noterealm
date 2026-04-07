@@ -22,6 +22,7 @@ export default function App() {
   const [editingTodo, setEditingTodo] = useState(null);
   const [todoView, setTodoView] = useState('list');
   const [todoFilter, setTodoFilter] = useState(null);
+  const [todoTagFilter, setTodoTagFilter] = useState(null); // tag name (ไม่มี 'tag:' prefix)
   const [priorityFilter, setPriorityFilter] = useState(null);
   const [isWide, setIsWide] = useState(() => window.innerWidth >= 768);
 
@@ -66,7 +67,7 @@ export default function App() {
         </button>
       </div>
       {todoView === 'list' ? (
-        <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
+        <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} todoTagFilter={todoTagFilter} />
       ) : (
         <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
       )}
@@ -189,7 +190,17 @@ export default function App() {
         <Sidebar
           onClose={() => setShowSidebar(false)}
           activeFilter={activeFilter}
-          onFilterTag={setActiveFilter}
+          onFilterTag={(f) => {
+            setActiveFilter(f);
+            // ถ้าเป็น tag filter: set todo tag ด้วย (wide=ทั้งสองฝั่ง, mobile=ตาม active tab)
+            if (f?.startsWith('tag:')) {
+              const tag = f.slice(4);
+              if (isWide || state.activeTab === 'todo') setTodoTagFilter(tag);
+              else setTodoTagFilter(null);
+            } else {
+              setTodoTagFilter(null);
+            }
+          }}
           onFilterGroup={setActiveFilter}
           onTodoTrash={() => {
             dispatch({ type: 'SET_TAB', payload: 'todo' });
