@@ -80,3 +80,44 @@ git checkout main && git merge <feature-branch> && git push origin main && git c
 - ถ้าต้องการขยายตัวอักษร ให้ปรับ `fontSize` ในแต่ละ component แทน ห้ามใช้ zoom/transform:scale ที่ root
 - **ห้ามใช้ spacer div แยกในแต่ละ view** เพื่อเว้นระยะกับปุ่ม FAB — ให้ตั้ง `paddingBottom` ที่ scroll container (parent) จุดเดียว เพราะแต่ละ browser แสดง spacer ไม่เหมือนกัน (เช่น CalendarView body ใช้ `paddingBottom:80`)
 - **ห้ามใช้ `scrollIntoView`** ใน nested scroll context — มันจะ scroll parent containers ด้วย ทำให้ Header หายไป ให้ใช้ `scrollTo` บน scroll container ที่ต้องการแทน
+
+## Session Memo (7 เม.ย. 69) — สิ่งที่แก้ไขแล้ว
+
+### Gemini Provider
+- เปลี่ยน model จาก `gemini-2.0-flash` → `gemini-2.5-flash-lite` (2.0-flash ไม่ให้ user ใหม่ใช้แล้ว)
+- authType เปลี่ยนเป็น `server` — ใช้ `GEMINI_API_KEY` จาก env (ต้องสร้างจาก Google AI Studio ถึงจะได้ free tier)
+- **env ใหม่บน Railway**: `GEMINI_API_KEY` (แทน OAuth flow เดิม)
+
+### AIBlock (`src/components/note/AIBlock.jsx`)
+- Messages area: `minHeight: 250`, `maxHeight: 400`
+- ปุ่มแปล: prompt บอก AI ให้แปลเฉยๆ ไม่ต้องอธิบาย/ยกตัวอย่าง
+- Lang picker แสดงไม่ครบ → แก้ด้วย minHeight
+
+### AI Popup Overlay (`src/components/note/NoteEditor.jsx`)
+- ใช้ `AIOverlay` component + `visualViewport` API ทำให้ popup ติดคีย์บอร์ดเสมอ
+- Popup align `flex-end` (ชิดล่าง) → ช่องพิมพ์อยู่เหนือคีย์บอร์ด ส่วนบนเลื่อนดูได้
+
+### Selection Menu (ตัด/คัดลอก/วาง/AI)
+- เปลี่ยนจากสีดำ (`#1f1f1f`) → สีเทาอ่อน (`#f5f5f4`) เหมือนของระบบ
+- มีเส้น `|` (`selMenuDivider`) กั้นระหว่างปุ่ม
+- Clamp ขอบจอ padding 16px (จาก 8px)
+
+### RelatePanel Chips (`src/components/note/RelatePanel.jsx`)
+- ไม่ตัดที่ 10 ตัวอักษรแล้ว — แสดงชื่อเต็ม + marquee scroll วนเรื่อยๆ
+- ใช้ keyframe `nr-chip-marquee` แยก — `translateX(-50%)` seamless loop
+- 🔗 emoji อยู่ทั้ง 2 ชุดที่ซ้ำ + เว้น 2 ช่อง + ความเร็ว 8s/รอบ
+- Chip `maxWidth: 150px`, `flexShrink: 0`
+
+### Sidebar Archive Filter
+- bug: Sidebar ส่ง `'archived'` แต่ NoteGrid เช็ค `'archive'` → แก้ Sidebar เป็น `'archive'`
+
+### Email-to-Note (`server/routes/email.js`)
+- **Subject ต่างดาว**: เพิ่ม `decodeMimeSubject()` decode MIME encoded-word (=?UTF-8?B/Q?...?=)
+- **Body ต่างดาว**: เขียน `extractBody` ใหม่ รองรับ multipart MIME + decode base64/quoted-printable
+- **Infinite recursion fix**: depth limit = 3 + skip same boundary
+- **parseSender bug**: regex เดิม backtrack ทำให้ email เหลือแค่ตัวสุดท้าย (เช่น "m") → แก้ใช้ angle bracket `<email@domain>` extraction + fallback regex
+- **Tags**: เปลี่ยนจาก `['_email', 'from:email@x.com', 'domain']` → `['email', 'senderLocal']` (เช่น `['email', 'premsak.c']`)
+- **Tag display**: เอา `#` prefix ออกจาก NoteEditor
+
+### TODO ต่อไป
+- กรองเมลด้วย AI (สแปม/สรุป/จัดหมวด) — ยังไม่ได้ทำ รอตัดสินใจรูปแบบ
