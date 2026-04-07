@@ -3,6 +3,7 @@ import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
 import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
+import { sync } from '../utils/syncService';
 
 export default function Settings({ onClose }) {
   const { state, dispatch } = useApp();
@@ -35,6 +36,16 @@ export default function Settings({ onClose }) {
       if (e.data?.type === 'LOGIN_SUCCESS') {
         window.removeEventListener('message', listener);
         dispatch({ type: 'SET_USER', payload: e.data.user });
+        // sync ทันทีหลัง login — ดึงโน้ตจาก server
+        sync().then(async () => {
+          const { db } = await import('../db/localDb');
+          const [notes, todos] = await Promise.all([
+            db.notes.orderBy('updatedAt').reverse().toArray(),
+            db.todos.orderBy('updatedAt').reverse().toArray(),
+          ]);
+          dispatch({ type: 'SET_NOTES', payload: notes });
+          dispatch({ type: 'SET_TODOS', payload: todos });
+        }).catch(console.warn);
       }
     };
     window.addEventListener('message', listener);

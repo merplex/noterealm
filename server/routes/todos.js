@@ -43,7 +43,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `UPDATE todos SET title=$1, note=$2, priority=$3, due_date=$4, due_time=$5,
-       tags=$6, done=$7, linked_note_id=$8, source=$9
+       tags=$6, done=$7, linked_note_id=$8, source=$9, updated_at=NOW()
        WHERE id=$10 RETURNING *`,
       [title, note, priority, dueDate || null, dueTime || null, tags || [], done, linkedNoteId || null, source, req.params.id]
     );
@@ -59,7 +59,7 @@ router.patch('/:id/soft-delete', async (req, res) => {
   const { deletedAt } = req.body;
   try {
     const { rows } = await pool.query(
-      `UPDATE todos SET deleted_at=$1 WHERE id=$2 RETURNING *`,
+      `UPDATE todos SET deleted_at=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
       [deletedAt || null, req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
@@ -92,6 +92,7 @@ function mapTodo(row) {
     linkedNoteId: row.linked_note_id,
     source: row.source,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
     deletedAt: row.deleted_at || null,
   };
 }

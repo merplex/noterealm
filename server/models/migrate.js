@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS todos (
   done BOOLEAN DEFAULT false,
   linked_note_id UUID REFERENCES notes(id) ON DELETE SET NULL,
   source TEXT DEFAULT 'manual',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS groups (
@@ -76,6 +77,9 @@ DO $$ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='deleted_at') THEN
     ALTER TABLE todos ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='updated_at') THEN
+    ALTER TABLE todos ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW();
   END IF;
 END $$;
 
