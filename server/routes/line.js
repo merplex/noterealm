@@ -119,10 +119,28 @@ async function findOrCreateLineNote(senderId, senderName) {
       [idTag]
     );
 
+    // ถ้าหาด้วย _line_id tag ไม่เจอ → fallback หาด้วย title
+    // (กรณี tag ถูกลบออกจาก UI โดยไม่ตั้งใจ)
+    let foundRows = rows;
+    if (foundRows.length === 0) {
+      const { rows: byTitle } = await client.query(
+        `SELECT id, content, title, tags FROM notes WHERE source='line' AND title=$1 AND archived=false AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
+        [title]
+      );
+      if (byTitle.length > 0) {
+        // restore _line_id tag กลับ
+        const restoredTags = [...(byTitle[0].tags || []).filter(t => !t.startsWith('_line_id:')), idTag];
+        await client.query(`UPDATE notes SET tags=$1 WHERE id=$2`, [restoredTags, byTitle[0].id]);
+        byTitle[0].tags = restoredTags;
+        console.log('[LINE] restored _line_id tag on note', byTitle[0].id);
+        foundRows = byTitle;
+      }
+    }
+
     let result;
 
-    if (rows.length > 0) {
-      const note = rows[0];
+    if (foundRows.length > 0) {
+      const note = foundRows[0];
       // เช็ค trim period จาก tag _line_trim:xxx
       const trimTag = (note.tags || []).find((t) => t.startsWith('_line_trim:'));
       const period = trimTag?.split(':')[1];
@@ -141,8 +159,8 @@ async function findOrCreateLineNote(senderId, senderName) {
     } else {
       // ไม่มี active note → สร้างใหม่ inherit trim tag จากโน้ตล่าสุด
       const { rows: prev } = await client.query(
-        `SELECT tags FROM notes WHERE source='line' AND $1=ANY(tags) ORDER BY updated_at DESC LIMIT 1`,
-        [idTag]
+        `SELECT tags FROM notes WHERE source='line' AND title=$1 ORDER BY updated_at DESC LIMIT 1`,
+        [title]
       );
       const prevTrimTag = (prev[0]?.tags || []).find((t) => t.startsWith('_line_trim:'));
       const tags = [idTag];
