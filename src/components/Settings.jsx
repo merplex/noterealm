@@ -203,7 +203,7 @@ export default function Settings({ onClose }) {
               <div style={styles.label}>ซิงค์อัตโนมัติ</div>
               <div style={styles.desc}>
                 {syncInfo.lastSyncAt
-                  ? `${formatSyncTime(syncInfo.lastSyncAt)} · จาก${syncInfo.direction === 'local' ? 'เครื่องนี้' : 'server'}`
+                  ? `${formatSyncTime(syncInfo.lastSyncAt)} · จาก ${syncInfo.direction === 'local' ? 'client' : 'server'}`
                   : 'ยังไม่เคยซิงค์'}
               </div>
             </div>
@@ -228,7 +228,7 @@ export default function Settings({ onClose }) {
               : syncStatus === 'error'
               ? 'ซิงค์ล้มเหลว ลองอีกครั้ง'
               : syncStatus === 'ok' && syncInfo.lastSyncAt
-              ? `ซิงค์สำเร็จ · ${formatSyncTime(syncInfo.lastSyncAt)} · จาก${syncInfo.direction === 'local' ? 'เครื่องนี้' : 'server'}`
+              ? `ซิงค์สำเร็จ · ${formatSyncTime(syncInfo.lastSyncAt)} · จาก ${syncInfo.direction === 'local' ? 'client' : 'server'}`
               : 'ซิงค์ตอนนี้'}
           </button>
 
