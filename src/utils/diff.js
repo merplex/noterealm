@@ -77,6 +77,8 @@ export function stripHtml(html) {
   // Replace special contentEditable=false blocks with placeholders
   text = replaceNestedBlock(text, 'inline-accordion', '\n[box]\n');
   text = text.replace(/<span[^>]*inline-img-wrap[^>]*>[\s\S]*?<\/span>/gi, '[img]');
+  // Replace plain <img> tags with placeholder
+  text = text.replace(/<img[^>]*>/gi, '[img]');
   // Convert <br> to newlines
   text = text.replace(/<br\s*\/?>/gi, '\n');
   // Opening block tags represent a new block — add newline before content

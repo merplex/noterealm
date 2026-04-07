@@ -346,6 +346,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           el.appendChild(img);
         }
       }
+      dirtyRef.current = true;
       syncContent();
     };
     fileInput.click();
