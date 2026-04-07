@@ -358,9 +358,12 @@ const styles = {
   sheet: {
     width: '100%',
     maxWidth: 480,
+    maxHeight: '90vh',
     margin: '0 auto',
     background: C.bg,
     borderRadius: '20px 20px 0 0',
+    display: 'flex',
+    flexDirection: 'column',
     paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))',
     paddingBottom: 'var(--sab, env(safe-area-inset-bottom, 0px))',
   },
@@ -379,7 +382,7 @@ const styles = {
   },
   title: { fontSize: 18, fontWeight: 700, color: C.text },
   closeBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.muted },
-  body: { padding: '4px 20px 24px' },
+  body: { padding: '4px 20px 24px', overflowY: 'auto', flex: 1 },
   row: {
     display: 'flex',
     justifyContent: 'space-between',

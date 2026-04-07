@@ -47,10 +47,26 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const [isLandscape, setIsLandscape] = useState(
     () => window.innerWidth > window.innerHeight && window.innerWidth < 1024
   );
+  // อ่าน --sat / --sab จาก CSS var เพื่อใช้ใน inline style โดยตรง
+  const [sat, setSat] = useState(0);
+  const [sab, setSab] = useState(0);
   useEffect(() => {
     const update = () => setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth < 1024);
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
+  }, []);
+  useEffect(() => {
+    const read = () => {
+      const style = getComputedStyle(document.documentElement);
+      const satVal = parseInt(style.getPropertyValue('--sat')) || 0;
+      const sabVal = parseInt(style.getPropertyValue('--sab')) || 0;
+      setSat(satVal);
+      setSab(sabVal);
+    };
+    read();
+    // อ่านซ้ำหลัง 300ms เผื่อ NativeInsets inject ช้า
+    const t = setTimeout(read, 300);
+    return () => clearTimeout(t);
   }, []);
 
   // Extract inline images from content for gallery
@@ -594,7 +610,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     <div style={styles.overlay}>
       <div style={{ ...styles.modal, flexDirection: isLandscape ? 'row' : 'column' }}>
         {/* Left column (หรือ full column ใน portrait) */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', paddingTop: sat }}>
         {/* Sticky: Related Notes */}
         <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} onRemove={removeRef} />
 
@@ -811,7 +827,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         )}
 
         {/* Sticky: Footer */}
-        <div style={styles.footer}>
+        <div style={{ ...styles.footer, paddingBottom: 10 + sab }}>
           {/* Tag chips row — ซ่อน internal tags (_line_id, _line_trim, etc.) */}
           <div style={styles.tagRow}>
             {tags.filter(t => !t.startsWith('_')).map((tag) => (
@@ -1018,10 +1034,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 4,
-    paddingTop: 'calc(8px + var(--sat, env(safe-area-inset-top, 0px)))',
-    paddingRight: 10,
-    paddingBottom: 8,
-    paddingLeft: 10,
+    padding: '8px 10px',
     borderBottom: `1px solid ${C.border}`,
     background: C.bg,
     position: 'sticky',
