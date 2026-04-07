@@ -302,7 +302,7 @@ router.get('/status', async (req, res) => {
     });
     if (!r.ok) return res.json({ connected: false });
     const data = await r.json();
-    res.json({ connected: true, displayName: data.displayName, pictureUrl: data.pictureUrl });
+    res.json({ connected: true, displayName: data.displayName, pictureUrl: data.pictureUrl, basicId: data.basicId });
   } catch {
     res.json({ connected: false });
   }

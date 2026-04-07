@@ -113,7 +113,7 @@ export default function Settings({ onClose }) {
       const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/webhook/line/status`);
       const data = await res.json();
       if (data.connected) {
-        const conn = { type: 'line', enabled: true, label: data.displayName || 'LINE Bot', linkedAt: new Date().toISOString() };
+        const conn = { type: 'line', enabled: true, label: data.displayName || 'LINE Bot', basicId: data.basicId || null, linkedAt: new Date().toISOString() };
         const updated = [...(state.connections || []).filter((c) => c.type !== 'line'), conn];
         dispatch({ type: 'SET_CONNECTIONS', payload: updated });
       } else {
@@ -258,6 +258,21 @@ export default function Settings({ onClose }) {
               </button>
             )}
           </div>
+          {(() => {
+            const lineConn = state.connections?.find((c) => c.type === 'line');
+            if (!lineConn?.basicId) return null;
+            const addUrl = `https://line.me/ti/p/~${lineConn.basicId}`;
+            return (
+              <a
+                href={addUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.lineAddBtn}
+              >
+                + เพิ่ม {lineConn.label} เป็นเพื่อน LINE
+              </a>
+            );
+          })()}
 
           <>
             <div style={styles.divider} />
@@ -388,6 +403,19 @@ const styles = {
     background: C.white, border: `1px solid ${C.amber}`,
     fontSize: 13, fontWeight: 600, fontFamily: C.font,
     cursor: 'pointer', color: C.amber,
+  },
+  lineAddBtn: {
+    display: 'block',
+    textAlign: 'center',
+    padding: '10px',
+    borderRadius: 8,
+    background: '#06C755',
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 600,
+    fontFamily: C.font,
+    textDecoration: 'none',
+    marginBottom: 4,
   },
   actionBtn: {
     padding: '8px 16px',
