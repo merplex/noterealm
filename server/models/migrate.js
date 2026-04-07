@@ -81,6 +81,10 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='updated_at') THEN
     ALTER TABLE todos ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW();
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='inbox_token') THEN
+    ALTER TABLE users ADD COLUMN inbox_token TEXT UNIQUE;
+    UPDATE users SET inbox_token = substr(md5(random()::text), 1, 10) WHERE inbox_token IS NULL;
+  END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);

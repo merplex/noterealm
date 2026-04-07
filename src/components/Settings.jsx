@@ -259,6 +259,32 @@ export default function Settings({ onClose }) {
             )}
           </div>
 
+          {/* Email Inbox */}
+          {isLoggedIn && state.user?.inboxToken && (
+            <>
+              <div style={styles.divider} />
+              <div style={styles.row}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={styles.label}>📧 Email → Note</div>
+                  <div style={{ ...styles.desc, fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all' }}>
+                    notes-{state.user.inboxToken}@neverjod.com
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                    Forward email มาที่นี่ → บันทึกเป็น note อัตโนมัติ
+                  </div>
+                </div>
+                <button
+                  style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}`, fontSize: 12 }}
+                  onClick={() => {
+                    navigator.clipboard?.writeText(`notes-${state.user.inboxToken}@neverjod.com`);
+                  }}
+                >
+                  คัดลอก
+                </button>
+              </div>
+            </>
+          )}
+
           <div style={styles.divider} />
 
           {/* Gemini AI */}

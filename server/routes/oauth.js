@@ -72,17 +72,18 @@ router.get('/google/callback', async (req, res) => {
 
       // Upsert user into DB
       const result = await pool.query(
-        `INSERT INTO users (id, google_id, email, name, picture, updated_at)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
+        `INSERT INTO users (id, google_id, email, name, picture, inbox_token, updated_at)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, substr(md5(random()::text), 1, 10), NOW())
          ON CONFLICT (google_id) DO UPDATE
            SET email = EXCLUDED.email,
                name = EXCLUDED.name,
                picture = EXCLUDED.picture,
                updated_at = NOW()
-         RETURNING id`,
+         RETURNING id, inbox_token`,
         [profile.id, profile.email, profile.name, profile.picture || null]
       );
       const dbUserId = result.rows[0].id;
+      const inboxToken = result.rows[0].inbox_token;
 
       const user = {
         id: dbUserId,
@@ -90,6 +91,7 @@ router.get('/google/callback', async (req, res) => {
         email: profile.email,
         name: profile.name,
         picture: profile.picture || null,
+        inboxToken,
       };
 
       // Android native: redirect ผ่าน deep link (browser ไม่มี window.opener)

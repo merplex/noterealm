@@ -10,6 +10,7 @@ import todosRouter from './routes/todos.js';
 import aiRouter from './routes/ai.js';
 import oauthRouter from './routes/oauth.js';
 import lineRouter from './routes/line.js';
+import emailRouter from './routes/email.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -34,6 +35,9 @@ app.use('/api/oauth', oauthRouter);
 
 // LINE Webhook
 app.use('/webhook/line', lineRouter);
+
+// Email Webhook (จาก Cloudflare Worker)
+app.use('/api/webhooks/email', emailRouter);
 
 // Serve frontend static files (production)
 const distPath = join(__dirname, '../dist');
