@@ -129,7 +129,8 @@ function decodePartBody(body, headers) {
 // AI filter: ใช้ Gemini วิเคราะห์อีเมล
 async function aiFilterEmail(subject, body, filters) {
   const tasks = [];
-  if (filters.email_filter_spam) tasks.push('ถ้าเป็นอีเมลสแปม โฆษณา ขายของ โปรโมชัน หรือข้อความขยะ ให้ตอบ skip: true');
+  if (filters.email_filter_spam) tasks.push('ถ้าเป็นอีเมลสแปมหรือข้อความขยะ ให้ตอบ skip: true');
+  if (filters.email_filter_ads) tasks.push('ถ้าเป็นอีเมลโฆษณา โปรโมชัน ขายของ เสนอบริการ ให้ตอบ skip: true');
   if (filters.email_filter_summary) tasks.push('สรุปเนื้อหาอีเมลให้กระชับ 2-3 บรรทัด เก็บข้อมูลสำคัญไว้ ใส่ใน summary');
 
   const prompt = `วิเคราะห์อีเมลนี้:\nหัวข้อ: ${subject}\nเนื้อหา: ${body.slice(0, 2000)}\n\n${tasks.join('\n')}\n\nตอบเป็น JSON เท่านั้น: {"skip": true/false, "summary": "..." หรือ null}`;
@@ -168,10 +169,10 @@ router.post('/', async (req, res) => {
 
     // หา user จาก inbox token
     let userId = null;
-    let userFilters = { email_filter_spam: false, email_filter_summary: false };
+    let userFilters = { email_filter_spam: false, email_filter_ads: false, email_filter_summary: false };
     if (inboxToken) {
       const userRes = await pool.query(
-        `SELECT id, email_filter_spam, email_filter_summary FROM users WHERE inbox_token = $1 LIMIT 1`,
+        `SELECT id, email_filter_spam, email_filter_ads, email_filter_summary FROM users WHERE inbox_token = $1 LIMIT 1`,
         [inboxToken]
       );
       if (userRes.rows[0]) {
@@ -182,7 +183,7 @@ router.post('/', async (req, res) => {
 
     // AI filter: กรองสแปม + สรุป (ถ้า user เปิด)
     let finalBody = body;
-    if (userId && (userFilters.email_filter_spam || userFilters.email_filter_summary)) {
+    if (userId && (userFilters.email_filter_spam || userFilters.email_filter_ads || userFilters.email_filter_summary)) {
       try {
         const aiResult = await aiFilterEmail(subject, body, userFilters);
         if (aiResult.skip) {

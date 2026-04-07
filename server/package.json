@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch index.js",
+    "prestart": "node models/migrate.js",
     "start": "node index.js",
     "db:migrate": "node models/migrate.js",
     "build": "cd .. && npm install && npm run build"

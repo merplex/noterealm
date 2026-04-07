@@ -159,12 +159,13 @@ router.get('/email-filter', async (req, res) => {
   if (!userId) return res.status(400).json({ error: 'No user id' });
   try {
     const result = await pool.query(
-      `SELECT email_filter_spam, email_filter_summary FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT email_filter_spam, email_filter_ads, email_filter_summary FROM users WHERE id = $1 LIMIT 1`,
       [userId]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'User not found' });
     res.json({
       filterSpam: result.rows[0].email_filter_spam || false,
+      filterAds: result.rows[0].email_filter_ads || false,
       filterSummary: result.rows[0].email_filter_summary || false,
     });
   } catch (err) {
@@ -176,11 +177,11 @@ router.get('/email-filter', async (req, res) => {
 router.post('/email-filter', async (req, res) => {
   const userId = req.headers['x-user-id'];
   if (!userId) return res.status(400).json({ error: 'No user id' });
-  const { filterSpam, filterSummary } = req.body;
+  const { filterSpam, filterAds, filterSummary } = req.body;
   try {
     await pool.query(
-      `UPDATE users SET email_filter_spam = $1, email_filter_summary = $2, updated_at = NOW() WHERE id = $3`,
-      [!!filterSpam, !!filterSummary, userId]
+      `UPDATE users SET email_filter_spam = $1, email_filter_ads = $2, email_filter_summary = $3, updated_at = NOW() WHERE id = $4`,
+      [!!filterSpam, !!filterAds, !!filterSummary, userId]
     );
     res.json({ ok: true });
   } catch (err) {

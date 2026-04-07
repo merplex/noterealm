@@ -88,6 +88,9 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email_filter_spam') THEN
     ALTER TABLE users ADD COLUMN email_filter_spam BOOLEAN DEFAULT false;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email_filter_ads') THEN
+    ALTER TABLE users ADD COLUMN email_filter_ads BOOLEAN DEFAULT false;
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email_filter_summary') THEN
     ALTER TABLE users ADD COLUMN email_filter_summary BOOLEAN DEFAULT false;
   END IF;

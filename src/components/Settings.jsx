@@ -25,6 +25,7 @@ export default function Settings({ onClose }) {
   const [syncInfo, setSyncInfo] = useState(() => getSyncInfo());
 
   const [emailFilterSpam, setEmailFilterSpam] = useState(false);
+  const [emailFilterAds, setEmailFilterAds] = useState(false);
   const [emailFilterSummary, setEmailFilterSummary] = useState(false);
 
   const refreshSyncInfo = () => setSyncInfo(getSyncInfo());
@@ -45,6 +46,7 @@ export default function Settings({ onClose }) {
       .then((r) => r.json())
       .then((data) => {
         setEmailFilterSpam(data.filterSpam || false);
+        setEmailFilterAds(data.filterAds || false);
         setEmailFilterSummary(data.filterSummary || false);
       })
       .catch(() => {});
@@ -53,13 +55,15 @@ export default function Settings({ onClose }) {
   const handleEmailFilterToggle = (key, value) => {
     const apiUrl = import.meta.env.VITE_API_URL || '';
     const newSpam = key === 'spam' ? value : emailFilterSpam;
+    const newAds = key === 'ads' ? value : emailFilterAds;
     const newSummary = key === 'summary' ? value : emailFilterSummary;
     if (key === 'spam') setEmailFilterSpam(value);
+    if (key === 'ads') setEmailFilterAds(value);
     if (key === 'summary') setEmailFilterSummary(value);
     fetch(`${apiUrl}/api/oauth/email-filter`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-id': state.user.id },
-      body: JSON.stringify({ filterSpam: newSpam, filterSummary: newSummary }),
+      body: JSON.stringify({ filterSpam: newSpam, filterAds: newAds, filterSummary: newSummary }),
     }).catch(() => {});
   };
 
@@ -260,53 +264,7 @@ export default function Settings({ onClose }) {
             )}
           </div>
 
-          {/* Email Inbox */}
-          {isLoggedIn && state.user?.inboxToken && (
-            <>
-              <div style={styles.divider} />
-              <div style={styles.row}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={styles.label}>📧 Email → Note</div>
-                  <div style={{ ...styles.desc, fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all' }}>
-                    notes-{state.user.inboxToken}@neverjod.com
-                  </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                    Forward email มาที่นี่ → บันทึกเป็น note อัตโนมัติ
-                  </div>
-                </div>
-                <button
-                  style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}`, fontSize: 12 }}
-                  onClick={() => {
-                    navigator.clipboard?.writeText(`notes-${state.user.inboxToken}@neverjod.com`);
-                  }}
-                >
-                  คัดลอก
-                </button>
-              </div>
-              <div style={styles.row}>
-                <div>
-                  <div style={styles.label}>🛡️ กรองสแปม</div>
-                  <div style={styles.desc}>AI ตรวจอีเมลขยะ/โฆษณา ไม่สร้าง note</div>
-                </div>
-                <button onClick={() => handleEmailFilterToggle('spam', !emailFilterSpam)} style={styles.toggle(emailFilterSpam)}>
-                  <span style={styles.toggleKnob(emailFilterSpam)} />
-                </button>
-              </div>
-              <div style={styles.row}>
-                <div>
-                  <div style={styles.label}>📝 สรุปอัตโนมัติ</div>
-                  <div style={styles.desc}>AI สรุปเนื้อหาอีเมลให้สั้นกระชับ</div>
-                </div>
-                <button onClick={() => handleEmailFilterToggle('summary', !emailFilterSummary)} style={styles.toggle(emailFilterSummary)}>
-                  <span style={styles.toggleKnob(emailFilterSummary)} />
-                </button>
-              </div>
-            </>
-          )}
-
-          <div style={styles.divider} />
-
-          {/* Sync */}
+          {/* Sync — ใต้ Login */}
           <div style={styles.row}>
             <div>
               <div style={styles.label}>ซิงค์อัตโนมัติ</div>
@@ -340,6 +298,59 @@ export default function Settings({ onClose }) {
               ? `ซิงค์สำเร็จ · ${formatSyncTime(syncInfo.lastSyncAt)} · จาก ${syncInfo.direction === 'local' ? 'client' : 'server'}`
               : 'ซิงค์ตอนนี้'}
           </button>
+
+          {/* Email Inbox */}
+          {isLoggedIn && state.user?.inboxToken && (
+            <>
+              <div style={styles.divider} />
+              <div style={styles.row}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={styles.label}>📧 Email → Note</div>
+                  <div style={{ ...styles.desc, fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all' }}>
+                    notes-{state.user.inboxToken}@neverjod.com
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                    Forward email มาที่นี่ → บันทึกเป็น note อัตโนมัติ
+                  </div>
+                </div>
+                <button
+                  style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}`, fontSize: 12 }}
+                  onClick={() => {
+                    navigator.clipboard?.writeText(`notes-${state.user.inboxToken}@neverjod.com`);
+                  }}
+                >
+                  คัดลอก
+                </button>
+              </div>
+              <div style={styles.row}>
+                <div>
+                  <div style={styles.label}>🛡️ กรองสแปม</div>
+                  <div style={styles.desc}>AI กรองอีเมลขยะ ไม่สร้าง note</div>
+                </div>
+                <button onClick={() => handleEmailFilterToggle('spam', !emailFilterSpam)} style={styles.toggle(emailFilterSpam)}>
+                  <span style={styles.toggleKnob(emailFilterSpam)} />
+                </button>
+              </div>
+              <div style={styles.row}>
+                <div>
+                  <div style={styles.label}>🚫 กรองโฆษณา</div>
+                  <div style={styles.desc}>AI กรองอีเมลโปรโมชัน/ขายของ ไม่สร้าง note</div>
+                </div>
+                <button onClick={() => handleEmailFilterToggle('ads', !emailFilterAds)} style={styles.toggle(emailFilterAds)}>
+                  <span style={styles.toggleKnob(emailFilterAds)} />
+                </button>
+              </div>
+              <div style={styles.row}>
+                <div>
+                  <div style={styles.label}>📝 สรุปอัตโนมัติ</div>
+                  <div style={styles.desc}>AI สรุปเนื้อหาอีเมลให้สั้นกระชับ</div>
+                </div>
+                <button onClick={() => handleEmailFilterToggle('summary', !emailFilterSummary)} style={styles.toggle(emailFilterSummary)}>
+                  <span style={styles.toggleKnob(emailFilterSummary)} />
+                </button>
+              </div>
+            </>
+          )}
 
           <div style={styles.divider} />
 
