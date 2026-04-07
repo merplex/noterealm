@@ -79,6 +79,15 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const allImages = [...inlineImages, ...images];
   const hasGallery = allImages.length > 0;
 
+  const hasRelates = useMemo(() => {
+    if (!note) return false;
+    const myRefs = new Set(note.refs || []);
+    return state.notes.some(n =>
+      n.id !== note.id && !n.deletedAt &&
+      (myRefs.has(n.id) || (n.refs || []).includes(note.id))
+    );
+  }, [note, state.notes]);
+
   // Track nearest image on scroll and center it in gallery
   useEffect(() => {
     const body = bodyRef.current;
@@ -603,16 +612,18 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     setSelMenu(null);
   }, [syncContent]);
 
-  // landscape + มีรูป → right panel แทน gallery bar ด้านล่าง
-  const showRightPanel = isLandscape && allImages.length > 0;
+  // landscape + มีรูปหรือมี relate → right panel แทน gallery bar ด้านล่าง
+  const showRightPanel = isLandscape && (allImages.length > 0 || hasRelates);
 
   return (
     <div style={styles.overlay}>
       <div style={{ ...styles.modal, flexDirection: isLandscape ? 'row' : 'column' }}>
         {/* Left column (หรือ full column ใน portrait) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', paddingTop: sat }}>
-        {/* Sticky: Related Notes */}
-        <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} onRemove={removeRef} />
+        {/* Sticky: Related Notes — ซ่อนใน landscape เพราะย้ายไป right panel */}
+        {!showRightPanel && (
+          <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} onRemove={removeRef} />
+        )}
 
         {/* Sticky: Toolbar */}
         <div style={styles.toolbar}>
@@ -973,10 +984,13 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         )}
         </div>{/* end left column */}
 
-        {/* Right panel: แสดงรูปทั้งหมดใน landscape mode */}
+        {/* Right panel: relate + รูปทั้งหมดใน landscape mode */}
         {showRightPanel && (
           <div style={styles.rightPanel}>
             <div style={styles.rightPanelScroll}>
+              {/* RelatePanel อยู่ด้านบน */}
+              <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} onRemove={removeRef} />
+              {/* รูปภาพ */}
               {allImages.map((src, i) => (
                 <CachedImage
                   key={i}

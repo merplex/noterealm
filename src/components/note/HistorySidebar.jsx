@@ -390,7 +390,7 @@ const styles = {
     display: 'inline-block',
     fontSize: 10,
     color: '#92400e',
-    background: '#fef3c7',
+    background: 'transparent',
     border: '1px solid #f59e0b',
     borderRadius: 4,
     padding: '1px 6px',
