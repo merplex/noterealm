@@ -2,13 +2,11 @@ import { C } from '../../constants/theme';
 
 export default function DynamicFilters({ activeFilter, onFilter }) {
   const filters = [
-    { key: 'all', label: 'All', icon: '' },
     { key: 'pinned', label: 'Pin', icon: '📌' },
     { key: 'line', label: 'Line', icon: '💬' },
     { key: 'email', label: 'Email', icon: '📧' },
     { key: 'picture', label: 'Picture', icon: '🖼' },
     { key: 'archive', label: 'Archive', icon: '📦' },
-    { key: 'deleted', label: 'Trash', icon: '🗑' },
   ];
 
   return (
