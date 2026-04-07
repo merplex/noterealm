@@ -2,11 +2,11 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 
-// Inject marquee keyframe once (shared with MonthView)
-if (typeof document !== 'undefined' && !document.getElementById('nr-marquee-css')) {
+// Inject chip marquee keyframe once — translates exactly 50% for seamless loop
+if (typeof document !== 'undefined' && !document.getElementById('nr-chip-marquee-css')) {
   const style = document.createElement('style');
-  style.id = 'nr-marquee-css';
-  style.textContent = `@keyframes nr-marquee { 0%,10% { transform: translateX(0); } 90%,100% { transform: translateX(calc(-50% - 1em)); } }`;
+  style.id = 'nr-chip-marquee-css';
+  style.textContent = `@keyframes nr-chip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`;
   document.head.appendChild(style);
 }
 
@@ -21,14 +21,16 @@ function MarqueeChip({ text, onClick }) {
     }
   }, [text]);
 
+  const label = `🔗 ${text}`;
+
   return (
     <span ref={wrapRef} style={{ overflow: 'hidden', minWidth: 0, cursor: 'pointer', padding: '4px 8px' }} onClick={onClick}>
       <span ref={textRef} style={{
         display: 'inline-block',
         whiteSpace: 'nowrap',
-        animation: overflow ? 'nr-marquee 6s linear infinite' : 'none',
+        animation: overflow ? 'nr-chip-marquee 4s linear infinite' : 'none',
       }}>
-        {overflow ? `🔗 ${text}\u00a0\u00a0${text}` : `🔗 ${text}`}
+        {overflow ? <>{label}{'\u00a0\u00a0'}{label}{'\u00a0\u00a0'}</> : label}
       </span>
     </span>
   );
