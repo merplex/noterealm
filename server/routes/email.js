@@ -50,13 +50,14 @@ function parseSender(from) {
 }
 
 // Extract plain text from raw email — supports multipart MIME
-function extractBody(raw) {
-  if (!raw) return '(ไม่มีเนื้อหา)';
+function extractBody(raw, depth = 0) {
+  if (!raw || depth > 3) return '(ไม่มีเนื้อหา)';
 
   // Find Content-Type header to detect multipart
   const headerEnd = raw.indexOf('\r\n\r\n') !== -1
     ? raw.indexOf('\r\n\r\n')
     : raw.indexOf('\n\n');
+  if (headerEnd < 0) return raw.trim().slice(0, 5000) || '(ไม่มีเนื้อหา)';
   const headers = raw.slice(0, headerEnd);
 
   // Check for multipart boundary
@@ -81,10 +82,10 @@ function extractBody(raw) {
       } else if (partHeaders.includes('content-type: text/html') || partHeaders.includes('content-type:text/html')) {
         htmlPart = decodePartBody(partBody, partHeaders);
       }
-      // Nested multipart — recurse
+      // Nested multipart — recurse with depth limit
       const nestedBoundary = partHeaders.match(/boundary="?([^"\r\n;]+)"?/i);
-      if (nestedBoundary) {
-        const nested = extractBody(part);
+      if (nestedBoundary && nestedBoundary[1] !== boundary) {
+        const nested = extractBody(part, depth + 1);
         if (nested && nested !== '(ไม่มีเนื้อหา)') textPart = textPart || nested;
       }
     }
