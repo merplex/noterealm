@@ -101,7 +101,7 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
   };
 
   return (
-    <header style={styles.header}>
+    <header style={styles.header} className="pt-safe-header">
       <button style={styles.avatar} onClick={onSettings}>
         <span style={styles.avatarText}>N</span>
       </button>

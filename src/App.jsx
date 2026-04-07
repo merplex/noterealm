@@ -32,6 +32,12 @@ export default function App() {
     return () => window.removeEventListener('resize', handler);
   }, []);
 
+  // Platform detection — ตาม pattern neverjod2
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    document.documentElement.classList.add(isIOS ? 'platform-ios' : 'platform-android');
+  }, []);
+
   const handleAddNote = () => setEditingNote({});
   const handleAddTodo = () => {
     dispatch({ type: 'SET_TAB', payload: 'todo' });
@@ -107,19 +113,19 @@ export default function App() {
         /* ── Desktop / landscape: split view ── */
         <div style={styles.splitMain}>
           {/* Left: Todo */}
-          <div style={styles.splitCol}>
+          <div style={styles.splitCol} className="pb-safe-content">
             {todoPanel}
           </div>
           {/* Divider */}
           <div style={styles.splitDivider} />
           {/* Right: Note */}
-          <div style={styles.splitCol}>
+          <div style={styles.splitCol} className="pb-safe-content">
             {notePanel}
           </div>
         </div>
       ) : (
         /* ── Mobile: single tab ── */
-        <main style={styles.main}>
+        <main style={styles.main} className="pb-safe-content">
           {isNote ? notePanel : (
             <>
               <div style={styles.todoToggle}>
@@ -251,7 +257,7 @@ const styles = {
     position: 'relative',
     overflow: 'hidden',
   },
-  main: { flex: 1, overflowY: 'auto', paddingBottom: 80 },
+  main: { flex: 1, overflowY: 'auto' },
   splitMain: {
     flex: 1,
     display: 'flex',
@@ -261,7 +267,6 @@ const styles = {
   splitCol: {
     flex: 1,
     overflowY: 'auto',
-    paddingBottom: 80,
     position: 'relative',
   },
   splitPanel: {},
@@ -272,27 +277,25 @@ const styles = {
   },
   fabs: {
     position: 'fixed',
-    bottom: 24,
+    bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
     right: 'max(16px, calc((100vw - 480px) / 2 + 16px))',
     display: 'flex',
     gap: 10,
     alignItems: 'center',
     zIndex: 60,
-    paddingBottom: 'env(safe-area-inset-bottom)',
   },
   fabsWide: {
     position: 'fixed',
-    bottom: 24,
+    bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
     right: 16,
     display: 'flex',
     gap: 10,
     alignItems: 'center',
     zIndex: 60,
-    paddingBottom: 'env(safe-area-inset-bottom)',
   },
   fabTodoWide: {
     position: 'fixed',
-    bottom: 24,
+    bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
     left: 16,
     zIndex: 60,
   },
@@ -313,13 +316,12 @@ const styles = {
   fabTodo: { background: '#1e3a5f', color: C.white, minWidth: 80, borderRadius: 26, width: 'auto', padding: '0 16px' },
   bottomNav: {
     position: 'fixed',
-    bottom: 24,
+    bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
     left: 'max(16px, calc((100vw - 480px) / 2 + 16px))',
     display: 'flex',
     gap: 8,
     alignItems: 'center',
     zIndex: 60,
-    paddingBottom: 'env(safe-area-inset-bottom)',
   },
   navBtn: {
     width: 44,

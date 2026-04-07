@@ -37,9 +37,20 @@ button {
 ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
 
-/* Safe areas for mobile */
-.safe-area-top { padding-top: env(safe-area-inset-top); }
-.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+/* Safe-area utilities — ตาม pattern neverjod2 */
+/* Header: Android ใช้ full env(), iOS ใช้ env() เหมือนกัน (Dynamic Island อาจสูง) */
+.pt-safe-header {
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+}
+
+/* Bottom scroll content: เผื่อที่ให้ FAB + safe area */
+.pb-safe-content {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+/* iOS: gesture bar ~5px ไม่ต้องใช้ full env, 8px พอ */
+.platform-ios .pb-safe-content {
+  padding-bottom: calc(80px + 8px);
+}
 
 /* Masonry grid */
 .masonry-grid {
