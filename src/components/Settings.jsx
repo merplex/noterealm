@@ -6,6 +6,7 @@ import { lineApi, notesApi } from '../utils/api';
 import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
 import { sync, isAutoSyncEnabled, getSyncInfo, SYNC_AUTO_KEY, setUserId } from '../utils/syncService';
 import { useFontSize, setFontSizeLevel } from '../utils/useFontSize';
+import { useLocale, setLocale } from '../utils/useLocale';
 
 function formatSyncTime(iso) {
   if (!iso) return null;
@@ -19,6 +20,7 @@ function formatSyncTime(iso) {
 export default function Settings({ onClose }) {
   const { state, dispatch } = useApp();
   const fontLevel = useFontSize();
+  const { t, locale } = useLocale();
   const [lineConnecting, setLineConnecting] = useState(false);
   const [cacheStats, setCacheStats] = useState(null);
   const [clearingCache, setClearingCache] = useState(false);
@@ -224,16 +226,42 @@ export default function Settings({ onClose }) {
         <div style={styles.handle} />
 
         <div style={styles.header}>
-          <h2 style={styles.title}>ตั้งค่า</h2>
+          <h2 style={styles.title}>{t('settings.title')}</h2>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
         <div style={styles.body}>
+          {/* Language */}
+          <div style={styles.row}>
+            <div>
+              <div style={styles.label}>{t('settings.language')}</div>
+              <div style={styles.desc}>{t('settings.languageDesc')}</div>
+            </div>
+            <div style={styles.segmented}>
+              {[{ code: 'th', label: 'ไทย' }, { code: 'en', label: 'EN' }].map((lng) => (
+                <button
+                  key={lng.code}
+                  style={{
+                    ...styles.seg,
+                    background: locale === lng.code ? C.amber : C.white,
+                    color: locale === lng.code ? C.white : C.sub,
+                    minWidth: 40,
+                  }}
+                  onClick={() => setLocale(lng.code)}
+                >
+                  {lng.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={styles.divider} />
+
           {/* Font size */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>ขนาดตัวอักษร</div>
-              <div style={styles.desc}>ปรับขนาดข้อความทั่วทั้งแอป</div>
+              <div style={styles.label}>{t('settings.fontSize')}</div>
+              <div style={styles.desc}>{t('settings.fontSizeDesc')}</div>
             </div>
             <div style={styles.segmented}>
               {[
@@ -263,8 +291,8 @@ export default function Settings({ onClose }) {
           {/* Default view */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>หน้าเริ่มต้น</div>
-              <div style={styles.desc}>เข้าแอปแล้วจะเปิดหน้าไหนก่อน</div>
+              <div style={styles.label}>{t('settings.defaultView')}</div>
+              <div style={styles.desc}>{t('settings.defaultViewDesc')}</div>
             </div>
             <div style={styles.segmented}>
               <button
@@ -287,18 +315,18 @@ export default function Settings({ onClose }) {
           {/* Login for backup */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>Login</div>
+              <div style={styles.label}>{t('settings.login')}</div>
               <div style={styles.desc}>
-                {isLoggedIn ? `${state.user.name || state.user.email}` : 'เข้าสู่ระบบเพื่อ Backup ข้อมูล'}
+                {isLoggedIn ? `${state.user.name || state.user.email}` : t('settings.loginDesc')}
               </div>
             </div>
             {isLoggedIn ? (
               <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLogout}>
-                ออกจากระบบ
+                {t('settings.logout')}
               </button>
             ) : (
               <button style={styles.actionBtn} onClick={handleLogin}>
-                🔐 เข้าสู่ระบบ
+                {t('settings.signIn')}
               </button>
             )}
           </div>
@@ -306,11 +334,11 @@ export default function Settings({ onClose }) {
           {/* Sync — ใต้ Login */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>ซิงค์อัตโนมัติ</div>
+              <div style={styles.label}>{t('settings.autoSync')}</div>
               <div style={styles.desc}>
                 {syncInfo.lastSyncAt
-                  ? `${formatSyncTime(syncInfo.lastSyncAt)} · จาก ${syncInfo.direction === 'local' ? 'client' : 'server'}`
-                  : 'ยังไม่เคยซิงค์'}
+                  ? `${formatSyncTime(syncInfo.lastSyncAt)} · ${t('settings.syncFrom')} ${syncInfo.direction === 'local' ? t('settings.syncClient') : t('settings.syncServer')}`
+                  : t('settings.neverSynced')}
               </div>
             </div>
             <button onClick={handleSyncToggle} style={styles.toggle(syncAuto)}>
@@ -330,12 +358,12 @@ export default function Settings({ onClose }) {
             <span style={{ display: 'inline-block', animation: syncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none' }}>⟳</span>
             {' '}
             {syncStatus === 'syncing'
-              ? 'กำลังซิงค์...'
+              ? t('settings.syncing')
               : syncStatus === 'error'
-              ? 'ซิงค์ล้มเหลว ลองอีกครั้ง'
+              ? t('settings.syncFailed')
               : syncStatus === 'ok' && syncInfo.lastSyncAt
-              ? `ซิงค์สำเร็จ · ${formatSyncTime(syncInfo.lastSyncAt)} · จาก ${syncInfo.direction === 'local' ? 'client' : 'server'}`
-              : 'ซิงค์ตอนนี้'}
+              ? `${t('settings.syncSuccess')} · ${formatSyncTime(syncInfo.lastSyncAt)} · ${t('settings.syncFrom')} ${syncInfo.direction === 'local' ? t('settings.syncClient') : t('settings.syncServer')}`
+              : t('settings.syncNow')}
           </button>
 
           {/* Email Inbox */}
@@ -344,12 +372,12 @@ export default function Settings({ onClose }) {
               <div style={styles.divider} />
               <div style={styles.row}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={styles.label}>📧 Email → Note</div>
+                  <div style={styles.label}>{t('settings.emailNote')}</div>
                   <div style={{ ...styles.desc, fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all' }}>
                     notes-{state.user.inboxToken}@neverjod.com
                   </div>
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                    Forward email มาที่นี่ → บันทึกเป็น note อัตโนมัติ
+                    {t('settings.emailForwardDesc')}
                   </div>
                 </div>
                 <button
@@ -358,13 +386,13 @@ export default function Settings({ onClose }) {
                     navigator.clipboard?.writeText(`notes-${state.user.inboxToken}@neverjod.com`);
                   }}
                 >
-                  คัดลอก
+                  {t('common.copy')}
                 </button>
               </div>
               <div style={styles.row}>
                 <div>
-                  <div style={styles.label}>🛡️ กรองสแปม</div>
-                  <div style={styles.desc}>AI กรองอีเมลขยะ ไม่สร้าง note</div>
+                  <div style={styles.label}>{t('settings.filterSpam')}</div>
+                  <div style={styles.desc}>{t('settings.filterSpamDesc')}</div>
                 </div>
                 <button onClick={() => handleEmailFilterToggle('spam', !emailFilterSpam)} style={styles.toggle(emailFilterSpam)}>
                   <span style={styles.toggleKnob(emailFilterSpam)} />
@@ -372,8 +400,8 @@ export default function Settings({ onClose }) {
               </div>
               <div style={styles.row}>
                 <div>
-                  <div style={styles.label}>🚫 กรองโฆษณา</div>
-                  <div style={styles.desc}>AI กรองอีเมลโปรโมชัน/ขายของ ไม่สร้าง note</div>
+                  <div style={styles.label}>{t('settings.filterAds')}</div>
+                  <div style={styles.desc}>{t('settings.filterAdsDesc')}</div>
                 </div>
                 <button onClick={() => handleEmailFilterToggle('ads', !emailFilterAds)} style={styles.toggle(emailFilterAds)}>
                   <span style={styles.toggleKnob(emailFilterAds)} />
@@ -381,8 +409,8 @@ export default function Settings({ onClose }) {
               </div>
               <div style={styles.row}>
                 <div>
-                  <div style={styles.label}>📝 สรุปอัตโนมัติ</div>
-                  <div style={styles.desc}>AI สรุปเนื้อหาอีเมลให้สั้นกระชับ</div>
+                  <div style={styles.label}>{t('settings.autoSummary')}</div>
+                  <div style={styles.desc}>{t('settings.autoSummaryDesc')}</div>
                 </div>
                 <button onClick={() => handleEmailFilterToggle('summary', !emailFilterSummary)} style={styles.toggle(emailFilterSummary)}>
                   <span style={styles.toggleKnob(emailFilterSummary)} />
@@ -396,11 +424,11 @@ export default function Settings({ onClose }) {
           {/* LINE Connect */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>LINE Connect</div>
+              <div style={styles.label}>{t('settings.lineConnect')}</div>
               <div style={styles.desc}>
                 {isLineConnected
                   ? `💬 ${state.connections?.find((c) => c.type === 'line')?.label || 'LINE'}`
-                  : 'เชื่อมต่อ LINE เพื่อรับ-ส่งโน้ต'}
+                  : t('settings.lineConnectDesc')}
               </div>
             </div>
             {isLineConnected ? (
@@ -416,12 +444,12 @@ export default function Settings({ onClose }) {
                       rel="noopener noreferrer"
                       style={{ ...styles.actionBtn, background: '#06C755', color: C.white, textDecoration: 'none' }}
                     >
-                      💬 เพิ่มเพื่อน
+                      {t('settings.lineAddFriend')}
                     </a>
                   );
                 })()}
                 <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLineDisconnect}>
-                  ยกเลิก
+                  {t('settings.lineDisconnect')}
                 </button>
               </div>
             ) : (
@@ -430,7 +458,7 @@ export default function Settings({ onClose }) {
                 onClick={handleLineConnect}
                 disabled={lineConnecting}
               >
-                💬 {lineConnecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ LINE'}
+                {lineConnecting ? t('settings.lineConnecting') : t('settings.lineConnectBtn')}
               </button>
             )}
           </div>
@@ -439,14 +467,14 @@ export default function Settings({ onClose }) {
             <div style={styles.divider} />
             <div style={styles.row}>
               <div>
-                <div style={styles.label}>ตัดโน้ต LINE</div>
-                <div style={styles.desc}>เก็บข้อมูลย้อนหลัง</div>
+                <div style={styles.label}>{t('settings.lineTrim')}</div>
+                <div style={styles.desc}>{t('settings.lineTrimDesc')}</div>
               </div>
                 <div style={styles.segmented}>
                   {[
-                    { key: 'week', label: 'สัปดาห์' },
-                    { key: 'month', label: 'เดือน' },
-                    { key: 'year', label: 'ปี' },
+                    { key: 'week', label: t('settings.week') },
+                    { key: 'month', label: t('settings.month') },
+                    { key: 'year', label: t('settings.year') },
                   ].map((opt) => (
                     <button
                       key={opt.key}
@@ -465,13 +493,13 @@ export default function Settings({ onClose }) {
           {/* Image Cache */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>รูปภาพในเครื่อง</div>
+              <div style={styles.label}>{t('settings.imageCache')}</div>
               <div style={styles.desc}>
                 {cacheStats
                   ? cacheStats.count > 0
-                    ? `${cacheStats.count} รูป · ${formatBytes(cacheStats.size)}`
-                    : 'ไม่มีรูปที่ cache ไว้'
-                  : 'กำลังโหลด...'}
+                    ? `${cacheStats.count} · ${formatBytes(cacheStats.size)}`
+                    : t('settings.noCache')
+                  : t('settings.loadingCache')}
               </div>
             </div>
             <button
@@ -479,7 +507,7 @@ export default function Settings({ onClose }) {
               onClick={handleClearImageCache}
               disabled={clearingCache || cacheStats?.count === 0}
             >
-              {clearingCache ? 'กำลังลบ...' : 'เคลียร์รูป'}
+              {clearingCache ? t('settings.clearing') : t('settings.clearCache')}
             </button>
           </div>
         </div>

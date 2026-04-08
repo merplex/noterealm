@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { useLocale } from '../utils/useLocale';
 
 export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFilter, onTodoTrash }) {
   const { state, actions } = useApp();
+  const { t } = useLocale();
   const [renamingTag, setRenamingTag] = useState(null); // tag string being renamed
   const [renameValue, setRenameValue] = useState('');
 
@@ -34,7 +36,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
       {renamingTag && (
         <div style={styles.renameOverlay} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>
           <div style={styles.renamePopup} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.renameTitle}>เปลี่ยนชื่อแท็ก</div>
+            <div style={styles.renameTitle}>{t('sidebar.renameTag')}</div>
             <input
               autoFocus
               value={renameValue}
@@ -46,8 +48,8 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
               style={styles.renameInput}
             />
             <div style={styles.renameFooter}>
-              <button style={styles.renameCancelBtn} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>ยกเลิก</button>
-              <button style={styles.renameOkBtn} onClick={() => handleRenameSubmit(renamingTag)}>บันทึก</button>
+              <button style={styles.renameCancelBtn} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>{t('common.cancel')}</button>
+              <button style={styles.renameOkBtn} onClick={() => handleRenameSubmit(renamingTag)}>{t('common.save')}</button>
             </div>
           </div>
         </div>
@@ -66,28 +68,28 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
             onClick={() => { onFilterTag(null); onClose(); }}
           >
             <span>📝</span>
-            <span>โน้ตทั้งหมด</span>
+            <span>{t('sidebar.allNotes')}</span>
           </button>
           <button
             style={{ ...styles.navItem }}
             onClick={() => { onFilterTag('pinned'); onClose(); }}
           >
             <span>📌</span>
-            <span>ปักหมุด</span>
+            <span>{t('sidebar.pinned')}</span>
           </button>
           <button
             style={{ ...styles.navItem, background: activeFilter === 'archive' ? C.amberLight : 'transparent' }}
             onClick={() => { onFilterTag('archive'); onClose(); }}
           >
             <span>📦</span>
-            <span>เก็บถาวร</span>
+            <span>{t('sidebar.archived')}</span>
           </button>
           <button
             style={{ ...styles.navItem, background: activeFilter === 'deleted' ? C.amberLight : 'transparent' }}
             onClick={() => { onFilterTag('deleted'); onClose(); }}
           >
             <span>🗑</span>
-            <span>ถังขยะ</span>
+            <span>{t('sidebar.trash')}</span>
             <span style={styles.count}>{state.notes.filter((n) => n.deletedAt).length}</span>
           </button>
         </nav>
@@ -97,7 +99,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
           <div style={styles.sectionLabel}>Todo</div>
           <button style={styles.navItem} onClick={onTodoTrash}>
             <span>🗑</span>
-            <span>ถังขยะ Todo</span>
+            <span>{t('sidebar.todoTrash')}</span>
             {deletedTodoCount > 0 && (
               <span style={styles.count}>{deletedTodoCount}</span>
             )}
@@ -107,7 +109,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
         {/* Tags section */}
         {allTags.length > 0 && (
           <section style={styles.section}>
-            <div style={styles.sectionLabel}>แท็ก</div>
+            <div style={styles.sectionLabel}>{t('sidebar.tags')}</div>
             {allTags.map((tag) => {
               const nCount = noteTagCount(tag);
               const tCount = todoTagCount(tag);
@@ -137,7 +139,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
                     style={styles.iconBtn}
                     title="ลบแท็ก"
                     onClick={async () => {
-                      if (confirm(`ลบแท็ก "${tag}" ออกจากทุก note/todo?`)) {
+                      if (confirm(`${t('sidebar.deleteTagConfirm').replace('{tag}', tag)}`)) {
                         await actions.deleteTag(tag);
                         if (isActive) onFilterTag(null);
                       }
@@ -153,7 +155,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
 
         {groups.length > 0 && (
           <section style={styles.section}>
-            <div style={styles.sectionLabel}>กลุ่ม</div>
+            <div style={styles.sectionLabel}>{t('sidebar.groups')}</div>
             {groups.map((g) => (
               <button
                 key={g.id}

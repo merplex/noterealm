@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { C } from '../../constants/theme';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 
 const SOURCE_ICONS = {
   manual: '',
@@ -10,6 +11,7 @@ const SOURCE_ICONS = {
 };
 
 export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelecting, isSelected, onLongPress, onSelect }) {
+  const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const longPressTimer = useRef(null);
   const pointerStart = useRef(null);
@@ -26,7 +28,7 @@ export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelect
   const dateLabel = todo.dueDate
     ? new Date(todo.dueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) +
       (todo.dueTime ? ` ${todo.dueTime}` : '')
-    : 'ไม่ระบุ';
+    : t('todo.noDate');
 
   const dateBadgeStyle = todo.dueDate
     ? (isOverdue ? styles.overdueBadge : styles.dueBadge)
@@ -117,7 +119,7 @@ export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelect
         onPointerCancel={handlePointerUp}
         onContextMenu={(e) => { e.preventDefault(); onLongPress?.(todo); }}
       >
-        {isDeleted && <span style={styles.deletedBadge}>🗑 ถูกลบ</span>}
+        {isDeleted && <span style={styles.deletedBadge}>{t('notecard.deleted')}</span>}
         <span
           style={{
             ...styles.title,

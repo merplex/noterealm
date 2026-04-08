@@ -3,6 +3,7 @@ import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { parseQuery, matchQuery } from '../utils/searchQuery';
 import { useFontSize } from '../utils/useFontSize';
+import { useLocale } from '../utils/useLocale';
 
 const SORT_OPTIONS = [
   { key: 'updated', label: 'แก้ไขล่าสุด' },
@@ -13,6 +14,7 @@ const SORT_OPTIONS = [
 
 export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, onSelectTodo }) {
   const { state, dispatch } = useApp();
+  const { t, locale } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const [searchText, setSearchText] = useState('');
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -28,25 +30,25 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
     state.notes.forEach((n) => {
       if (!matchQuery(n.title, pq) && !matchQuery(n.content, pq)) return;
       let tag, tagColor, tagBg;
-      if (n.deletedAt) { tag = 'Note / ลบ'; tagColor = '#fff'; tagBg = '#dc2626'; }
-      else if (n.archived) { tag = 'Note / Archive'; tagColor = C.sub; tagBg = '#e7e5e4'; }
-      else { tag = 'Note'; tagColor = '#fff'; tagBg = C.amber; }
+      if (n.deletedAt) { tag = t('notecard.tagNoteDeleted'); tagColor = '#fff'; tagBg = '#dc2626'; }
+      else if (n.archived) { tag = t('notecard.tagNoteArchive'); tagColor = C.sub; tagBg = '#e7e5e4'; }
+      else { tag = t('notecard.tagNote'); tagColor = '#fff'; tagBg = C.amber; }
       results.push({ type: 'note', item: n, tag, tagColor, tagBg, order: n.deletedAt ? 2 : n.archived ? 1 : 0 });
     });
 
     // Todos — ทุก state
-    state.todos.forEach((t) => {
-      if (!matchQuery(t.title, pq) && !matchQuery(t.note, pq)) return;
+    state.todos.forEach((td) => {
+      if (!matchQuery(td.title, pq) && !matchQuery(td.note, pq)) return;
       let tag, tagColor, tagBg;
-      if (t.deletedAt) { tag = 'Todo / ลบ'; tagColor = '#fff'; tagBg = '#dc2626'; }
-      else { tag = 'Todo'; tagColor = '#fff'; tagBg = '#1e3a5f'; }
-      results.push({ type: 'todo', item: t, tag, tagColor, tagBg, order: t.deletedAt ? 2 : 0 });
+      if (td.deletedAt) { tag = t('notecard.tagTodoDeleted'); tagColor = '#fff'; tagBg = '#dc2626'; }
+      else { tag = t('notecard.tagTodo'); tagColor = '#fff'; tagBg = '#1e3a5f'; }
+      results.push({ type: 'todo', item: td, tag, tagColor, tagBg, order: td.deletedAt ? 2 : 0 });
     });
 
     // เรียง: ปกติก่อน → archive → ลบ
     results.sort((a, b) => a.order - b.order);
     return results.slice(0, 12);
-  }, [searchText, state.notes, state.todos]);
+  }, [searchText, state.notes, state.todos, locale]);
 
   const hasResults = searchResults.length > 0;
 
@@ -113,7 +115,7 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
           <span style={styles.searchIcon}>🔍</span>
           <input
             type="text"
-            placeholder="ค้นหา NoteRealm..."
+            placeholder={t('header.search')}
             value={searchText}
             onChange={handleSearch}
             onFocus={() => searchText.trim() && setShowResults(true)}
@@ -186,7 +188,7 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
                     style={{ ...styles.sortOption, background: state.sortBy === opt.key ? C.amberLight : 'transparent' }}
                     onClick={() => selectSort(opt.key)}
                   >
-                    {opt.label}
+                    {opt.key === 'updated' ? t('header.sortUpdated') : opt.key === 'created' ? t('header.sortCreated') : opt.key === 'alpha' ? t('header.sortAlpha') : t('header.sortHasImage')}
                     {state.sortBy === opt.key && <span style={{ color: C.amber }}>✓</span>}
                   </button>
                 ))}

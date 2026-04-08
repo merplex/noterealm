@@ -3,6 +3,7 @@ import { addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, addYears, s
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 import YearView from './YearView';
 import MonthView from './MonthView';
 import WeekView from './WeekView';
@@ -24,6 +25,7 @@ const PRIORITY_FILTERS = [
 
 export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityFilter }) {
   const { state, actions } = useApp();
+  const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());
@@ -60,7 +62,7 @@ export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityF
       {/* Navigation + View toggle */}
       <div style={styles.topBar}>
         <button style={styles.navBtn} onClick={() => navigate(-1)}>◀</button>
-        <button style={styles.todayBtn} onClick={() => setDate(new Date())}>วันนี้</button>
+        <button style={styles.todayBtn} onClick={() => setDate(new Date())}>{t('cal.today')}</button>
         <button style={styles.navBtn} onClick={() => navigate(1)}>▶</button>
 
         <div style={styles.viewToggle}>
@@ -75,7 +77,7 @@ export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityF
               }}
               onClick={() => setView(v.key)}
             >
-              {v.label}
+              {v.key === 'year' ? t('cal.year') : v.key === 'month' ? t('cal.month') : v.key === 'week' ? t('cal.week') : t('cal.day')}
             </button>
           ))}
         </div>
@@ -97,7 +99,7 @@ export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityF
               }}
               onClick={() => onPriorityFilter?.(active ? null : f.key)}
             >
-              {f.label}
+              {f.key === 'urgent' ? t('cal.filterUrgent') : f.key === 'high' ? t('cal.filterHigh') : f.key === 'normal' ? t('cal.filterNormal') : t('cal.filterLow')}
             </button>
           );
         })}

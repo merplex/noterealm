@@ -5,13 +5,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 
-const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 const SLOT_HEIGHT = 90;
 const HOURS = Array.from({ length: 12 }, (_, i) => i * 2); // 0,2,4,...,22
 
 export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
   const { state, actions } = useApp();
+  const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const scrollRef = useRef(null);
   const [linkTodo, setLinkTodo] = useState(null);
@@ -135,16 +136,16 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
           color: PRIORITY_COLORS[todo.priority] || C.muted,
           borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
         }}>
-          {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+          {t(`priority.${todo.priority}`) || t('priority.normal')}
         </span>
       </div>
       {todo.note && !compact && <p style={{ ...styles.todoNote, fontSize: 12 + d }}>{todo.note}</p>}
       <div style={styles.shortcutRow}>
         <button style={styles.shortcutBtn} onClick={() => setNoteConfirm(todo)}>
-          📝 เพิ่มใน Note
+          {t('dayview.addNote')}
         </button>
         <button style={styles.shortcutBtn} onClick={() => { setLinkTodo(todo); setNoteSearch(''); }}>
-          🔗 Link Note
+          {t('dayview.linkNote')}
         </button>
       </div>
     </div>
@@ -174,7 +175,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
         {/* Unscheduled todos with date but no time */}
         {unscheduledTodos.length > 0 && (
           <div style={styles.section}>
-            <div style={styles.sectionTitle}>ไม่ระบุเวลา</div>
+            <div style={styles.sectionTitle}>{t('cal.noTime')}</div>
             {unscheduledTodos.map((todo) => renderTodoCard(todo, false))}
           </div>
         )}
@@ -182,7 +183,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
         {/* No-date todos */}
         {noDateTodos.length > 0 && (
           <div style={styles.section}>
-            <div style={styles.sectionTitle}>ไม่ระบุวัน</div>
+            <div style={styles.sectionTitle}>{t('cal.noDate')}</div>
             {noDateTodos.map((todo) => renderTodoCard(todo, false))}
           </div>
         )}
@@ -192,13 +193,13 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
       {noteConfirm && (
         <div style={styles.overlay} onClick={() => setNoteConfirm(null)}>
           <div style={styles.popup} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.popupTitle}>เพิ่มเป็น Note ใหม่?</div>
+            <div style={styles.popupTitle}>{t('dayview.confirmTitle')}</div>
             <p style={styles.popupText}>
-              จะสร้าง Note ใหม่จาก Todo "{noteConfirm.title}"
+              {t('dayview.confirmText')} "{noteConfirm.title}"
             </p>
             <div style={styles.popupFooter}>
-              <button style={styles.cancelBtn} onClick={() => setNoteConfirm(null)}>ยกเลิก</button>
-              <button style={styles.saveBtn} onClick={() => handleAddToNote(noteConfirm)}>ยืนยัน</button>
+              <button style={styles.cancelBtn} onClick={() => setNoteConfirm(null)}>{t('common.cancel')}</button>
+              <button style={styles.saveBtn} onClick={() => handleAddToNote(noteConfirm)}>{t('common.confirm')}</button>
             </div>
           </div>
         </div>
@@ -208,17 +209,17 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
       {linkTodo && (
         <div style={styles.overlay} onClick={() => setLinkTodo(null)}>
           <div style={styles.popup} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.popupTitle}>เลือก Note เพื่อเชื่อมต่อ</div>
+            <div style={styles.popupTitle}>{t('dayview.linkTitle')}</div>
             <input
               style={styles.searchInput}
-              placeholder="ค้นหา Note..."
+              placeholder={t('dayview.searchNote')}
               value={noteSearch}
               onChange={(e) => setNoteSearch(e.target.value)}
               autoFocus
             />
             <div style={styles.noteList}>
               {filteredNotes.length === 0 ? (
-                <p style={styles.emptyList}>ไม่พบ Note</p>
+                <p style={styles.emptyList}>{t('dayview.noNote')}</p>
               ) : (
                 filteredNotes.map((note) => (
                   <div
@@ -229,7 +230,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
                     }}
                     onClick={() => handleLinkNote(linkTodo, note.id)}
                   >
-                    <span style={styles.noteItemTitle}>{note.title || 'ไม่มีชื่อ'}</span>
+                    <span style={styles.noteItemTitle}>{note.title || t('common.noItems')}</span>
                     <span style={styles.noteItemDate}>
                       {format(new Date(note.updatedAt || note.createdAt), 'd MMM', { locale: th })}
                     </span>
@@ -238,7 +239,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
               )}
             </div>
             <div style={styles.popupFooter}>
-              <button style={styles.cancelBtn} onClick={() => setLinkTodo(null)}>ปิด</button>
+              <button style={styles.cancelBtn} onClick={() => setLinkTodo(null)}>{t('common.close')}</button>
             </div>
           </div>
         </div>

@@ -3,10 +3,12 @@ import { startOfWeek, addDays, isSameDay, format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 
 export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
+  const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const today = new Date();
@@ -29,7 +31,7 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
   return (
     <div style={styles.container}>
       <div style={{ ...styles.header, fontSize: 14 + d }}>
-        สัปดาห์ {format(weekStart, 'd MMM', { locale: th })} -{' '}
+        {t('cal.week')} {format(weekStart, 'd MMM', { locale: th })} -{' '}
         {format(addDays(weekStart, 6), 'd MMM yyyy', { locale: th })}
       </div>
 
@@ -80,7 +82,7 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
                         color: PRIORITY_COLORS[todo.priority] || C.muted,
                         borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
                       }}>
-                        {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+                        {t(`priority.${todo.priority}`) || t('priority.normal')}
                       </span>
                       {todo.dueTime && <span style={{ ...styles.time, fontSize: 11 + d }}>{todo.dueTime}</span>}
                     </div>
@@ -94,7 +96,7 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
 
       {noDateTodos.length > 0 && (
         <div style={styles.noDateSection}>
-          <div style={{ ...styles.noDateHeader, fontSize: 12 + d }}>ไม่ระบุวัน</div>
+          <div style={{ ...styles.noDateHeader, fontSize: 12 + d }}>{t('cal.noDate')}</div>
           {noDateTodos.map((todo) => (
             <div key={todo.id} style={styles.noDateItem}>
               <button
@@ -120,7 +122,7 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
                 color: PRIORITY_COLORS[todo.priority] || C.muted,
                 borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
               }}>
-                {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+                {t(`priority.${todo.priority}`) || t('priority.normal')}
               </span>
             </div>
           ))}

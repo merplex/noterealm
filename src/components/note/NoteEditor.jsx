@@ -12,6 +12,7 @@ import { callAI } from '../../utils/callAI';
 import { stripHtml } from '../../utils/diff';
 import CachedImage from '../CachedImage';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 
 function AIOverlay({ children }) {
   const overlayRef = useRef(null);
@@ -140,6 +141,7 @@ function FullscreenViewer({ src, onClose }) {
 
 export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
+  const { t } = useLocale();
   const fsLevel = useFontSize();
   const d = (fsLevel - 1) * 2;
   const [title, setTitle] = useState(note?.title || '');
@@ -388,7 +390,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     toggleBtn.style.cssText = `width:24px;height:24px;border-radius:6px;border:1.5px solid ${C.amber};background:transparent;cursor:pointer;color:${C.amber};font-weight:700;font-size:16px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;`;
 
     const titleInput = document.createElement('input');
-    titleInput.placeholder = 'หัวข้อ...';
+    titleInput.placeholder = t('accordion.titlePlaceholder');
     titleInput.style.cssText = `border:none;outline:none;font-size:14px;font-weight:600;color:${C.text};background:transparent;flex:1;min-width:60px;`;
 
     const dismissBtn = document.createElement('button');
@@ -826,7 +828,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
               <>
                 <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowInsertMenu(false)} />
                 <div style={styles.insertMenu}>
-                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleImageUpload(); }}>🖼️ รูปภาพ</button>
+                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleImageUpload(); }}>{t('editor.insertImage')}</button>
                   <button style={styles.insertOption} onClick={() => { openUrlPopup(); }}>
                     <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:20, height:20, borderRadius:'50%', background:'#0ea5e9', marginRight:6, flexShrink:0, verticalAlign:'middle' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -835,10 +837,10 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); setShowRefer(true); }}>
                     <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:20, height:20, borderRadius:'50%', background:'#22c55e', marginRight:6, flexShrink:0, verticalAlign:'middle' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-                    </span>อ้างอิง
+                    </span>{t('editor.insertRef')}
                   </button>
-                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleAddAccordion(); }}>≡ กล่องข้อความ</button>
-                  <button style={styles.insertOption} onClick={handleAddTagAction}>🏷️ แท็ก</button>
+                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleAddAccordion(); }}>{t('editor.insertBox')}</button>
+                  <button style={styles.insertOption} onClick={handleAddTagAction}>{t('editor.insertTag')}</button>
                 </div>
               </>
             )}
@@ -864,7 +866,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         <div style={styles.body} ref={bodyRef}>
           <input
             type="text"
-            placeholder="หัวข้อ..."
+            placeholder={t('editor.titlePlaceholder')}
             value={title}
             onChange={(e) => { dirtyRef.current = true; setTitle(e.target.value); }}
             style={styles.titleInput}
@@ -874,7 +876,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             ref={textareaRef}
             contentEditable
             suppressContentEditableWarning
-            data-placeholder="เขียนโน้ต..."
+            data-placeholder={t('editor.contentPlaceholder')}
             onInput={(e) => { dirtyRef.current = true; setContent(e.currentTarget.innerHTML); }}
             onContextMenu={(e) => e.preventDefault()}
             onClick={(e) => {
@@ -1048,7 +1050,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             ))}
             <input
               ref={tagInputRef}
-              placeholder="+ แท็ก"
+              placeholder={t('editor.addTag')}
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
@@ -1059,13 +1061,13 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           <div style={styles.footerBottom}>
             {!isNew && lastSaved && (
               <span style={{ ...styles.saveInfo, fontSize: 11 + d }}>
-                อัพเดท {new Date(lastSaved).toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
+                {t('editor.updated')} {new Date(lastSaved).toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
                 {' ver '}{(note?.history?.length || 0) + 1}
               </span>
             )}
             <div style={{ flex: 1 }} />
-            <button style={{ ...styles.cancelBtn, fontSize: 15 + d }} onClick={() => { doAutoSave(); onClose(); }}>ออก</button>
-            <button style={{ ...styles.saveBtn, fontSize: 15 + d }} onClick={handleSave}>บันทึก</button>
+            <button style={{ ...styles.cancelBtn, fontSize: 15 + d }} onClick={() => { doAutoSave(); onClose(); }}>{t('editor.exit')}</button>
+            <button style={{ ...styles.saveBtn, fontSize: 15 + d }} onClick={handleSave}>{t('editor.save')}</button>
           </div>
         </div>
 
@@ -1082,11 +1084,11 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
         {showTagPicker && (
           <div style={styles.tagPickerOverlay} onClick={() => setShowTagPicker(false)}>
             <div style={styles.tagPickerPopup} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.tagPickerTitle}>เพิ่มแท็ก</div>
+              <div style={styles.tagPickerTitle}>{t('editor.addTagTitle')}</div>
               <div style={styles.tagPickerInputRow}>
                 <input
                   autoFocus
-                  placeholder="พิมพ์แท็กใหม่..."
+                  placeholder={t('editor.tagInputPlaceholder')}
                   value={tagPickerSearch}
                   onChange={(e) => setTagPickerSearch(e.target.value)}
                   onKeyDown={(e) => {
@@ -1101,7 +1103,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                   style={styles.tagPickerAddBtn}
                   onClick={() => { if (tagPickerSearch.trim()) { handleAddTag(tagPickerSearch.trim()); setShowTagPicker(false); } }}
                 >
-                  เพิ่ม
+                  {t('editor.addTagBtn')}
                 </button>
               </div>
               <div style={styles.tagPickerList}>
@@ -1122,7 +1124,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                   ))
                 }
                 {[...new Set([...state.notes.flatMap(n => n.tags || []), ...state.todos.flatMap(t => t.tags || [])])].filter(t => !t.startsWith('_') && !tags.includes(t)).length === 0 && !tagPickerSearch && (
-                  <p style={styles.tagPickerEmpty}>ยังไม่มีแท็กในระบบ</p>
+                  <p style={styles.tagPickerEmpty}>{t('editor.noTagsYet')}</p>
                 )}
               </div>
             </div>
@@ -1136,11 +1138,11 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             left: selMenu.x,
             top: selMenu.y,
           }}>
-            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomCut(); }}>ตัด</button>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomCut(); }}>{t('editor.cut')}</button>
             <span style={styles.selMenuDivider} />
-            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomCopy(); }}>คัดลอก</button>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomCopy(); }}>{t('editor.copy')}</button>
             <span style={styles.selMenuDivider} />
-            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomPaste(); }}>วาง</button>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleCustomPaste(); }}>{t('editor.paste')}</button>
             <span style={styles.selMenuDivider} />
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAI(); setSelMenu(null); }}>✦ AI</button>
             <span style={styles.selMenuDivider} />
@@ -1159,20 +1161,20 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             }}>
             <div style={{ background: '#fff', borderRadius: 12, padding: '20px 16px', width: 'min(90vw, 360px)', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
               onClick={(e) => e.stopPropagation()}>
-              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#1c1917' }}>แทรก URL</div>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#1c1917' }}>{t('editor.insertUrl')}</div>
               <input
                 autoFocus
                 type="url"
                 inputMode="url"
-                placeholder="https://example.com"
+                placeholder={t('editor.urlPlaceholder')}
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleInsertUrl(); if (e.key === 'Escape') setShowUrlPopup(false); }}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #d6d3d1', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
               />
               <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowUrlPopup(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #d6d3d1', background: 'transparent', fontSize: 14, cursor: 'pointer' }}>ยกเลิก</button>
-                <button onClick={handleInsertUrl} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#0284c7', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>แทรก</button>
+                <button onClick={() => setShowUrlPopup(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #d6d3d1', background: 'transparent', fontSize: 14, cursor: 'pointer' }}>{t('common.cancel')}</button>
+                <button onClick={handleInsertUrl} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#0284c7', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>{t('editor.insert')}</button>
               </div>
             </div>
           </div>
@@ -1203,14 +1205,14 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                   style={styles.previewEditBtn}
                   onClick={() => { doAutoSave(); onNavigateToNote?.(previewNote); }}
                 >
-                  แก้ไข
+                  {t('editor.editNote')}
                 </button>
                 <div style={styles.previewTitle}>{previewNote.title || 'Untitled'}</div>
                 <button style={styles.previewCloseBtn} onClick={() => setPreviewNote(null)}>✕</button>
               </div>
               <div
                 style={styles.previewBody}
-                dangerouslySetInnerHTML={{ __html: previewNote.content || '<p style="color:#a8a29e">ไม่มีเนื้อหา</p>' }}
+                dangerouslySetInnerHTML={{ __html: previewNote.content || `<p style="color:#a8a29e">${t('editor.noContent')}</p>` }}
               />
             </div>
           </div>

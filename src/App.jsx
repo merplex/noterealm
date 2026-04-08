@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from './context/AppContext';
 import { useFontSize } from './utils/useFontSize';
+import { useLocale } from './utils/useLocale';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import Header from './components/Header';
@@ -16,6 +17,7 @@ import { C } from './constants/theme';
 
 export default function App() {
   const { state, dispatch } = useApp();
+  const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const [searchText, setSearchText] = useState('');
   const [activeFilter, setActiveFilter] = useState(null);
@@ -81,13 +83,13 @@ export default function App() {
           style={{ ...styles.toggleBtn, fontSize: 13 + d, background: todoView === 'list' ? C.amber : C.white, color: todoView === 'list' ? C.white : C.sub }}
           onClick={() => setTodoView('list')}
         >
-          📋 รายการ
+          📋 {t('tabs.notes')}
         </button>
         <button
           style={{ ...styles.toggleBtn, fontSize: 13 + d, background: todoView === 'calendar' ? C.amber : C.white, color: todoView === 'calendar' ? C.white : C.sub }}
           onClick={() => setTodoView('calendar')}
         >
-          📅 ปฏิทิน
+          📅 {t('tabs.calendar')}
         </button>
       </div>
       {todoView === 'list' ? (
@@ -151,13 +153,13 @@ export default function App() {
                   style={{ ...styles.toggleBtn, fontSize: 13 + d, background: todoView === 'list' ? C.amber : C.white, color: todoView === 'list' ? C.white : C.sub }}
                   onClick={() => setTodoView('list')}
                 >
-                  📋 รายการ
+                  📋 {t('tabs.notes')}
                 </button>
                 <button
                   style={{ ...styles.toggleBtn, fontSize: 13 + d, background: todoView === 'calendar' ? C.amber : C.white, color: todoView === 'calendar' ? C.white : C.sub }}
                   onClick={() => setTodoView('calendar')}
                 >
-                  📅 ปฏิทิน
+                  📅 {t('tabs.calendar')}
                 </button>
               </div>
               {todoView === 'list' ? (

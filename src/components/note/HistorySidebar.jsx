@@ -2,8 +2,10 @@ import { useState, useMemo } from 'react';
 import { C } from '../../constants/theme';
 import { diffWords, stripHtml } from '../../utils/diff';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 
 export default function HistorySidebar({ note, onRestore, onClose }) {
+  const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const history = note?.history || [];
   const currentContent = stripHtml(note?.content || '');
@@ -20,7 +22,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
       return {
         selContent: currentContent,
         prevContent: history.length > 0 ? stripHtml(history[0].content || '') : null,
-        selLabel: 'ปัจจุบัน',
+        selLabel: t('history.current'),
         prevLabel: history.length > 0
           ? `ver${totalVers - 1}`
           : null,
@@ -66,7 +68,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.sidebar} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <h3 style={{ ...styles.title, fontSize: 16 + d }}>📋 ประวัติการแก้ไข</h3>
+          <h3 style={{ ...styles.title, fontSize: 16 + d }}>{t('history.title')}</h3>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
@@ -91,13 +93,13 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
               color: selectedIdx === -1 ? C.amber : C.sub,
               fontWeight: selectedIdx === -1 ? 600 : 400,
             }}>
-              ปัจจุบัน
+              {t('history.current')}
             </span>
             <button
               style={{ ...styles.restoreBtn, fontSize: 11 + d }}
               onClick={(e) => { e.stopPropagation(); onRestore?.({ content: note?.content }); }}
             >
-              ↩ กู้คืน
+              {t('history.restore')}
             </button>
           </div>
 
@@ -134,13 +136,13 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
                   style={{ ...styles.restoreBtn, fontSize: 11 + d }}
                   onClick={(e) => { e.stopPropagation(); onRestore?.(ver); }}
                 >
-                  ↩ กู้คืน
+                  {t('history.restore')}
                 </button>
               </div>
             );
           })}
           {history.length === 0 && (
-            <p style={styles.empty}>ยังไม่มีประวัติการแก้ไข</p>
+            <p style={styles.empty}>{t('history.empty')}</p>
           )}
         </div>
 
@@ -159,7 +161,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
           )}
           {prevLabel && (
             <div style={styles.diffLabel}>
-              เปรียบเทียบ {selLabel} กับ {prevLabel}
+              {t('history.comparing')} {selLabel} {t('history.with')} {prevLabel}
             </div>
           )}
           <div style={{ ...styles.diffBody, fontSize: 14 + d }}>

@@ -6,6 +6,7 @@ import {
 import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 
 const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
@@ -57,6 +58,7 @@ function MarqueeChip({ text, dotColor, fontSize }) {
 }
 
 export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onToggleTodo }) {
+  const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const today = new Date();
   const [selectedDay, setSelectedDay] = useState(
@@ -104,7 +106,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
       </div>
 
       <div style={styles.grid}>
-        {DAY_LABELS.map((lbl) => (
+        {t('cal.dayLabels').map((lbl) => (
           <div key={lbl} style={{ ...styles.dayLabel, fontSize: 11 + d }}>{lbl}</div>
         ))}
       </div>
@@ -146,7 +148,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                   </div>
                 ))}
                 {dayTodoList.length > 4 && (
-                  <span style={{ ...styles.more, fontSize: 9 + d }}>+{dayTodoList.length - 4} more</span>
+                  <span style={{ ...styles.more, fontSize: 9 + d }}>+{dayTodoList.length - 4} {t('common.more')}</span>
                 )}
               </div>
             );
@@ -161,7 +163,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
             {format(selectedDay, 'EEEE d MMMM yyyy', { locale: th })}
           </div>
           {dayTodos.length === 0 ? (
-            <p style={{ ...styles.noTodos, fontSize: 13 + d }}>ไม่มีรายการ</p>
+            <p style={{ ...styles.noTodos, fontSize: 13 + d }}>{t('cal.noItems')}</p>
           ) : (
             dayTodos.map((todo) => (
               <div key={todo.id} style={styles.dayTodoItem}>
@@ -192,7 +194,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                   color: PRIORITY_COLORS[todo.priority] || C.muted,
                   borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
                 }}>
-                  {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
+                  {t(`priority.${todo.priority}`) || t('priority.normal')}
                 </span>
                 {todo.dueTime && <span style={{ ...styles.timeLabel, fontSize: 11 + d }}>{todo.dueTime}</span>}
               </div>
@@ -204,7 +206,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
       {/* No-date todos */}
       {noDateTodos.length > 0 && (
         <div style={styles.dayPanel}>
-          <div style={{ ...styles.dayPanelHeader, fontSize: 14 + d }}>ไม่ระบุวัน</div>
+          <div style={{ ...styles.dayPanelHeader, fontSize: 14 + d }}>{t('cal.noDate')}</div>
           {noDateTodos.map((todo) => (
             <div key={todo.id} style={styles.dayTodoItem}>
               <button

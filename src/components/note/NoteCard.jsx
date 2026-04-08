@@ -1,10 +1,12 @@
 import { useRef, useMemo } from 'react';
 import { C } from '../../constants/theme';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 
 const REF_ICON = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#16a34a"/><rect x="4.5" y="3" width="7" height="9" rx="1" fill="white"/><line x1="6" y1="5.5" x2="10" y2="5.5" stroke="#16a34a" stroke-width=".6"/><line x1="6" y1="7.2" x2="10" y2="7.2" stroke="#16a34a" stroke-width=".6"/><line x1="6" y1="8.9" x2="8.5" y2="8.9" stroke="#16a34a" stroke-width=".6"/></svg>')}`;
 
 export default function NoteCard({ note, onClick, listMode, isSelecting, isSelected, onLongPress, onSelect, onTagClick }) {
+  const { t } = useLocale();
   const fsLevel = useFontSize();
   const d = (fsLevel - 1) * 2;
   const longPressTimer = useRef(null);
@@ -96,8 +98,8 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
         onPointerCancel={handlePointerUp}
         onContextMenu={(e) => { e.preventDefault(); onLongPress?.(note); }}
       >
-        {isArchived && <span style={styles.archiveBadge}>📦 ARCHIVED</span>}
-        {isDeleted && <span style={styles.deletedBadge}>🗑 ถูกลบ</span>}
+        {isArchived && <span style={styles.archiveBadge}>{t('notecard.archived')}</span>}
+        {isDeleted && <span style={styles.deletedBadge}>{t('notecard.deleted')}</span>}
 
         {note.pinned && !isDeleted && <span style={styles.pinBadge}>📌</span>}
 

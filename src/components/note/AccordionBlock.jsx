@@ -3,9 +3,11 @@ import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { callAI } from '../../utils/callAI';
 import { useFontSize } from '../../utils/useFontSize';
+import { useLocale } from '../../utils/useLocale';
 
 export default function AccordionBlock({ block, onUpdate, onDismiss }) {
   const { state } = useApp();
+  const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const [open, setOpen] = useState(block.open ?? true);
   const [titleLoading, setTitleLoading] = useState(false);
@@ -66,7 +68,7 @@ export default function AccordionBlock({ block, onUpdate, onDismiss }) {
           style={{ ...styles.titleInput, fontSize: 14 + d }}
           value={block.title || ''}
           onChange={handleTitleChange}
-          placeholder={titleLoading ? 'AI กำลังตั้งชื่อ...' : 'หัวข้อ...'}
+          placeholder={titleLoading ? t('accordion.aiTitle') : t('accordion.titlePlaceholder')}
           disabled={titleLoading}
         />
 
@@ -90,7 +92,7 @@ export default function AccordionBlock({ block, onUpdate, onDismiss }) {
             style={{ ...styles.contentArea, fontSize: 13 + d }}
             value={block.content || ''}
             onChange={handleContentChange}
-            placeholder="เนื้อหา..."
+            placeholder={t('accordion.contentPlaceholder')}
             rows={block.content ? undefined : 2}
           />
         </div>
