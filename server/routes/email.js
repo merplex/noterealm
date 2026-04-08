@@ -233,18 +233,21 @@ router.post('/', async (req, res) => {
 
     if (existingNote) {
       // Append ต่อท้าย note เดิม
+      console.log('Email APPEND to existing note:', existingNote.id);
       await pool.query(
         `UPDATE notes SET content = content || $1, updated_at = NOW() WHERE id = $2`,
         [newBlock, existingNote.id]
       );
     } else {
       // สร้าง note ใหม่
+      const newId = uuidv4();
       const displayName = name || email;
       const title = `${displayName}${domain ? ` (${domain})` : ''}`;
+      console.log('Email INSERT new note:', newId, 'title:', title, 'tags:', autoTags);
       await pool.query(
         `INSERT INTO notes (id, title, content, tags, user_id, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
-        [uuidv4(), title, newBlock.trim(), autoTags, userId]
+        [newId, title, newBlock.trim(), autoTags, userId]
       );
     }
 
