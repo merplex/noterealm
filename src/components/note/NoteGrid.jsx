@@ -38,7 +38,7 @@ export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, o
     } else if (activeFilter === 'line') {
       notes = notes.filter((n) => n.source === 'line');
     } else if (activeFilter === 'email') {
-      notes = notes.filter((n) => n.source === 'email');
+      notes = notes.filter((n) => n.source === 'email' || n.tags?.includes('email'));
     } else if (activeFilter === 'picture') {
       notes = notes.filter(
         (n) => n.images?.length > 0 || n.content?.includes('<img')

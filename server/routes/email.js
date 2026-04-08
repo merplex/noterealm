@@ -322,7 +322,7 @@ router.post('/', async (req, res) => {
     if (existingNote) {
       // Append ต่อท้าย note เดิม
       await pool.query(
-        `UPDATE notes SET content = $1 || content, updated_at = NOW() WHERE id = $2`,
+        `UPDATE notes SET content = $1 || content, source = 'email', updated_at = NOW() WHERE id = $2`,
         [newBlock, existingNote.id]
       );
     } else {
