@@ -338,6 +338,8 @@ router.post('/', async (req, res) => {
           const imgData = await fetchLineImage(event.message.id);
           if (imgData) {
             parts.push(`${senderLabel ? `<p style="margin:4px 0">${senderLabel}</p>` : ''}<img src="${imgData}" class="inline-note-img" style="height:1.2em;vertical-align:middle;border-radius:3px;margin:0 2px;cursor:default"/>`);
+          } else {
+            parts.push(`<p style="margin:4px 0">${senderLabel}📷 <span style="color:#a8a29e;font-size:11px">(โหลดรูปไม่สำเร็จ)</span></p>`);
           }
         } else if (event.message.type === 'file') {
           const fileName = (event.message.fileName || 'ไฟล์แนบ').replace(/</g, '&lt;');

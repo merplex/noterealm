@@ -24,6 +24,15 @@ export default function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
+
+  // sync editingNote กับ state.notes เพื่อให้ NoteEditor เห็น content ใหม่จาก LINE/email webhook
+  useEffect(() => {
+    if (!editingNote?.id) return;
+    const fresh = state.notes.find(n => n.id === editingNote.id);
+    if (fresh && fresh.updatedAt !== editingNote.updatedAt) {
+      setEditingNote(fresh);
+    }
+  }, [state.notes]);
   const [historyNote, setHistoryNote] = useState(null);
   const [editingTodo, setEditingTodo] = useState(null);
   const [todoView, setTodoView] = useState('list');

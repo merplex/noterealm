@@ -98,7 +98,14 @@ function FullscreenViewer({ src, onClose }) {
           s.scale = 1; s.tx = 0; s.ty = 0;
           setScale(1); setTranslate({ x: 0, y: 0 });
         }
-        if (!s.moved && s.scale <= 1.05) onClose();
+        if (!s.moved) {
+          if (s.scale > 1.05) {
+            s.scale = 1; s.tx = 0; s.ty = 0;
+            setScale(1); setTranslate({ x: 0, y: 0 });
+          } else {
+            onClose();
+          }
+        }
         s.pinching = false; s.dragging = false;
       } else if (e.touches.length === 1 && s.pinching) {
         s.pinching = false; s.dragging = true;
@@ -282,6 +289,18 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       if (isNew) setTimeout(() => textareaRef.current?.focus(), 100);
     }
   }, [note?.content, isNew]);
+
+  // อัปเดต content เมื่อ note เปลี่ยนจาก server (LINE/email webhook) และ user ไม่ได้แก้ไข
+  useEffect(() => {
+    if (!initializedRef.current) return;
+    if (dirtyRef.current) return;
+    if (!note?.id) return;
+    if (note.source !== 'line' && note.source !== 'email') return;
+    if (!textareaRef.current) return;
+    const raw = note?.content || '';
+    textareaRef.current.innerHTML = raw.replace(/\[\[[^\]]*\]\]/g, '');
+    setContent(raw);
+  }, [note?.content, note?.source, note?.id]);
 
   const insertAtCursor = useCallback((text) => {
     const el = textareaRef.current;
@@ -880,6 +899,13 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             onInput={(e) => { dirtyRef.current = true; setContent(e.currentTarget.innerHTML); }}
             onContextMenu={(e) => e.preventDefault()}
             onClick={(e) => {
+              // Handle link clicks — open URL (contenteditable blocks default navigation)
+              const anchor = e.target.tagName === 'A' ? e.target : e.target.closest?.('a');
+              if (anchor?.href) {
+                e.preventDefault();
+                window.open(anchor.href, '_blank', 'noopener,noreferrer');
+                return;
+              }
               // If clicked on an inline image, highlight it in gallery
               if (e.target.tagName === 'IMG' && galleryRef.current) {
                 const imgs = Array.from(textareaRef.current.querySelectorAll('img'));

@@ -295,7 +295,7 @@ router.post('/', async (req, res) => {
               console.error('Email attachment upload error:', err.message);
             }
           }
-          if (attParts.length > 0) attachmentHtml = '\n' + attParts.join('\n');
+          if (attParts.length > 0) attachmentHtml = attParts.map(p => `<p style="margin:4px 0">${p}</p>`).join('');
         } else {
           console.log(`Email has ${attachments.length} attachment(s) but R2 not configured — skipped`);
         }
@@ -307,7 +307,9 @@ router.post('/', async (req, res) => {
       day: 'numeric', month: 'short', year: '2-digit',
       hour: '2-digit', minute: '2-digit',
     });
-    const newBlock = `\n\n─── ${timestamp} ───\nเรื่อง: ${subject}\n${finalBody}${attachmentHtml}`;
+    const escapedSubject = subject.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escapedBody = finalBody.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+    const newBlock = `<p style="font-size:11px;color:#a8a29e;margin:10px 0 2px">─── ${timestamp} ───</p><p style="margin:2px 0 4px;font-weight:600">เรื่อง: ${escapedSubject}</p><p style="margin:4px 0 8px">${escapedBody}</p>${attachmentHtml}`;
 
     // หา note ที่มี senderTag อยู่แล้ว (ของ user นี้)
     let existingNote = null;
