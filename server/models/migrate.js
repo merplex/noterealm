@@ -1,5 +1,13 @@
 import 'dotenv/config';
-import pool from './db.js';
+import pg from 'pg';
+const { Pool } = pg;
+
+// ใช้ pool แยกสำหรับ migration — ไม่กระทบ pool หลักของ app
+const migratePool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000,
+});
 
 const migrations = `
 CREATE TABLE IF NOT EXISTS users (
@@ -109,12 +117,12 @@ CREATE INDEX IF NOT EXISTS idx_todos_priority ON todos(priority);
 
 async function migrate() {
   try {
-    await pool.query(migrations);
+    await migratePool.query(migrations);
     console.log('Migration completed successfully');
   } catch (err) {
     console.error('Migration failed:', err);
   } finally {
-    await pool.end();
+    await migratePool.end();
   }
 }
 
