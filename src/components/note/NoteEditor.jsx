@@ -66,6 +66,9 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const aiTitleDoneRef = useRef(false); // AI auto-fill title ทำแล้วครั้งเดียว ไม่ทำซ้ำ
   const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
   const [showInsertMenu, setShowInsertMenu] = useState(false);
+  const [showUrlPopup, setShowUrlPopup] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const savedRangeRef = useRef(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [tagPickerSearch, setTagPickerSearch] = useState('');
   const [previewNote, setPreviewNote] = useState(null); // popup preview ของ relate note
@@ -632,6 +635,41 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     setSelMenu(null);
   }, []);
 
+  const openUrlPopup = useCallback(() => {
+    // บันทึก selection ก่อน editor เสีย focus
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    } else {
+      savedRangeRef.current = null;
+    }
+    setUrlInput('');
+    setSelMenu(null);
+    setShowInsertMenu(false);
+    setShowUrlPopup(true);
+  }, []);
+
+  const handleInsertUrl = useCallback(() => {
+    let url = urlInput.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    const safe = url.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const html = `<a href="${safe}" target="_blank" rel="noopener noreferrer" style="color:#0284c7;word-break:break-all">${safe}</a>`;
+    const el = textareaRef.current;
+    if (el) {
+      el.focus();
+      if (savedRangeRef.current) {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(savedRangeRef.current);
+      }
+      document.execCommand('insertHTML', false, html);
+      syncContent();
+    }
+    setShowUrlPopup(false);
+    setUrlInput('');
+  }, [urlInput, syncContent]);
+
   const handleCustomPaste = useCallback(async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -667,7 +705,8 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                 <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowInsertMenu(false)} />
                 <div style={styles.insertMenu}>
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleImageUpload(); }}>🖼️ รูปภาพ</button>
-                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); setShowRefer(true); }}>🔗 อ้างอิง</button>
+                  <button style={styles.insertOption} onClick={() => { openUrlPopup(); }}>🔗 URL</button>
+                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); setShowRefer(true); }}>📎 อ้างอิง</button>
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleAddAccordion(); }}>≡ กล่องข้อความ</button>
                   <button style={styles.insertOption} onClick={handleAddTagAction}>🏷️ แท็ก</button>
                 </div>
@@ -978,6 +1017,33 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAI(); setSelMenu(null); }}>✦ AI</button>
             <span style={styles.selMenuDivider} />
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAccordion(); setSelMenu(null); }}>≡▼</button>
+            <span style={styles.selMenuDivider} />
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); openUrlPopup(); }}>🔗</button>
+          </div>
+        )}
+
+        {/* URL insert popup */}
+        {showUrlPopup && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}
+            onClick={() => setShowUrlPopup(false)}>
+            <div style={{ background: '#fff', borderRadius: 12, padding: '20px 16px', width: 'min(90vw, 360px)', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
+              onClick={(e) => e.stopPropagation()}>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#1c1917' }}>แทรก URL</div>
+              <input
+                autoFocus
+                type="url"
+                inputMode="url"
+                placeholder="https://example.com"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleInsertUrl(); if (e.key === 'Escape') setShowUrlPopup(false); }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #d6d3d1', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowUrlPopup(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #d6d3d1', background: 'transparent', fontSize: 14, cursor: 'pointer' }}>ยกเลิก</button>
+                <button onClick={handleInsertUrl} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#0284c7', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>แทรก</button>
+              </div>
+            </div>
           </div>
         )}
 
