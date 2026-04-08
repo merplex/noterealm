@@ -18,7 +18,7 @@ if (typeof document !== 'undefined' && !document.getElementById('nr-marquee-css'
   document.head.appendChild(style);
 }
 
-function MarqueeChip({ text, dotColor }) {
+function MarqueeChip({ text, dotColor, fontSize }) {
   const wrapRef = useRef(null);
   const measureRef = useRef(null);
   const [overflow, setOverflow] = useState(false);
@@ -27,22 +27,20 @@ function MarqueeChip({ text, dotColor }) {
     if (wrapRef.current && measureRef.current) {
       setOverflow(measureRef.current.offsetWidth > wrapRef.current.offsetWidth + 1);
     }
-  }, [text]);
+  }, [text, fontSize]);
 
-  // one "unit" = dot + text + trailing gap (เพื่อให้ -50% ลงตรง seamless)
   const unit = (i) => (
     <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, paddingRight: '1.5em' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0, display: 'inline-block' }} />
-      <span style={{ fontSize: 10, color: C.text, whiteSpace: 'nowrap' }}>{text}</span>
+      <span style={{ fontSize, color: C.text, whiteSpace: 'nowrap' }}>{text}</span>
     </span>
   );
 
   return (
     <div ref={wrapRef} style={{ flex: 1, overflow: 'hidden', minWidth: 0, position: 'relative' }}>
-      {/* hidden span เพื่อวัดขนาดจริง */}
       <span ref={measureRef} style={{
         position: 'absolute', visibility: 'hidden', pointerEvents: 'none',
-        whiteSpace: 'nowrap', fontSize: 10,
+        whiteSpace: 'nowrap', fontSize,
         display: 'inline-flex', alignItems: 'center', gap: 3,
       }}>
         <span style={{ width: 6, height: 6, display: 'inline-block' }} />{text}
@@ -143,6 +141,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                     <MarqueeChip
                       text={todo.title}
                       dotColor={PRIORITY_COLORS[todo.priority] || C.muted}
+                      fontSize={10 + Math.floor(d / 2)}
                     />
                   </div>
                 ))}
@@ -269,7 +268,7 @@ const styles = {
     cursor: 'pointer',
     overflow: 'hidden',
   },
-  dayNum: { fontSize: 12, display: 'block', marginBottom: 2 },
+  dayNum: { fontSize: 12, display: 'block', marginBottom: 0 },
   todoDot: {
     display: 'flex',
     alignItems: 'center',
