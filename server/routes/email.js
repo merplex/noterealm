@@ -313,7 +313,7 @@ router.post('/', async (req, res) => {
     let existingNote = null;
     if (userId) {
       const res2 = await pool.query(
-        `SELECT * FROM notes WHERE user_id = $1 AND $2 = ANY(tags) AND deleted_at IS NULL LIMIT 1`,
+        `SELECT * FROM notes WHERE user_id = $1 AND $2 = ANY(tags) AND deleted_at IS NULL AND archived = false LIMIT 1`,
         [userId, senderTag]
       );
       existingNote = res2.rows[0] || null;
