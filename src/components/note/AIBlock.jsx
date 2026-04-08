@@ -4,9 +4,11 @@ import { AI_PROVIDERS, getEnabledProviders } from '../../constants/providers';
 import { callAI } from '../../utils/callAI';
 import { startOAuth, getOAuthProvider } from '../../utils/oauth';
 import { useApp } from '../../context/AppContext';
+import { useFontSize } from '../../utils/useFontSize';
 
 export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate, onDismiss }) {
   const { state, dispatch } = useApp();
+  const d = (useFontSize() - 1) * 2;
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showProviderPicker, setShowProviderPicker] = useState(false);
@@ -120,7 +122,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
       <div style={styles.header}>
         <div style={{ position: 'relative' }}>
           <button
-            style={{ ...styles.badge, background: provider.color + '20', color: provider.color }}
+            style={{ ...styles.badge, fontSize: 12 + d, background: provider.color + '20', color: provider.color }}
             onClick={() => enabledProviders.length > 1 && setShowProviderPicker(!showProviderPicker)}
           >
             {provider.icon} {provider.label} {enabledProviders.length > 1 ? '▾' : ''}
@@ -138,8 +140,8 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
                   }}
                   onClick={() => switchProvider(p.id)}
                 >
-                  <span style={{ color: p.color }}>{p.icon}</span>
-                  <span>{p.label}</span>
+                  <span style={{ color: p.color, fontSize: 13 + d }}>{p.icon}</span>
+                  <span style={{ fontSize: 13 + d }}>{p.label}</span>
                   {p.authType === 'oauth' && (
                     <span style={styles.authHint}>
                       {state.aiSettings?.[`${p.id}Token`] ? '✓' : 'Sign in'}
@@ -150,9 +152,9 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
             </div>
           )}
         </div>
-        <span style={styles.msgCount}>{messages.length} ข้อความ</span>
+        <span style={{ ...styles.msgCount, fontSize: 11 + d }}>{messages.length} ข้อความ</span>
         <div style={{ position: 'relative' }}>
-          <button style={styles.dismissBtn} onClick={() => {
+          <button style={{ ...styles.dismissBtn, fontSize: 12 + d }} onClick={() => {
             if (lastAiResponse) {
               setShowDismissMenu(!showDismissMenu);
             } else {
@@ -169,19 +171,19 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
                   style={styles.dismissOption}
                   onClick={() => { onDismiss?.(block, 'append'); setShowDismissMenu(false); }}
                 >
-                  ＋ เพิ่มคำตอบ AI ต่อท้าย
+                  <span style={{ fontSize: 13 + d }}>＋ เพิ่มคำตอบ AI ต่อท้าย</span>
                 </button>
                 <button
                   style={styles.dismissOption}
                   onClick={() => { onDismiss?.(block, 'replace'); setShowDismissMenu(false); }}
                 >
-                  ↻ แทนที่ด้วยคำตอบ AI
+                  <span style={{ fontSize: 13 + d }}>↻ แทนที่ด้วยคำตอบ AI</span>
                 </button>
                 <button
                   style={{ ...styles.dismissOption, color: C.muted }}
                   onClick={() => { onDismiss?.(block); setShowDismissMenu(false); }}
                 >
-                  ✕ ปิดทิ้ง
+                  <span style={{ fontSize: 13 + d }}>✕ ปิดทิ้ง</span>
                 </button>
               </div>
             </>
@@ -192,8 +194,8 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
       {/* Wrapped content */}
       {(wrappedContent || (wrappedImages && wrappedImages.length > 0)) && (
         <div style={styles.wrapped}>
-          <div style={styles.wrappedLabel}>📎 {wrappedImages?.length ? 'เนื้อหาที่เลือก' : 'ข้อความที่คลุม'}</div>
-          {wrappedContent && <p style={styles.wrappedText}>{wrappedContent}</p>}
+          <div style={{ ...styles.wrappedLabel, fontSize: 11 + d }}>📎 {wrappedImages?.length ? 'เนื้อหาที่เลือก' : 'ข้อความที่คลุม'}</div>
+          {wrappedContent && <p style={{ ...styles.wrappedText, fontSize: 13 + d }}>{wrappedContent}</p>}
           {wrappedImages && wrappedImages.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
               {wrappedImages.map((img, i) => (
@@ -211,6 +213,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
             key={i}
             style={{
               ...styles.msg,
+              fontSize: 13 + d,
               alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
               background: msg.role === 'user' ? C.amberLight : '#f5f5f4',
             }}
@@ -218,13 +221,13 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
             {msg.content}
           </div>
         ))}
-        {loading && <div style={{ ...styles.msg, background: '#f5f5f4' }}>กำลังคิด...</div>}
+        {loading && <div style={{ ...styles.msg, fontSize: 13 + d, background: '#f5f5f4' }}>กำลังคิด...</div>}
       </div>
 
       {/* Quick actions */}
       <div style={styles.quickActions}>
         <button
-          style={styles.quickBtn}
+          style={{ ...styles.quickBtn, fontSize: 12 + d }}
           onClick={() => handleSend(
             hasWrapped
               ? 'สรุปข้อความนี้ให้กระชับ และตรวจสอบความถูกต้องของภาษา'
@@ -237,7 +240,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
         </button>
         <div style={{ position: 'relative' }}>
           <button
-            style={styles.quickBtn}
+            style={{ ...styles.quickBtn, fontSize: 12 + d }}
             onClick={() => setShowLangPicker(!showLangPicker)}
             disabled={loading}
           >
@@ -250,7 +253,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
                 {LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
-                    style={styles.langOption}
+                    style={{ ...styles.langOption, fontSize: 13 + d }}
                     onClick={() => {
                       setShowLangPicker(false);
                       handleSend(`แปลเป็นภาษา${lang.code} แปลเฉยๆ ไม่ต้องอธิบายเพิ่ม ไม่ต้องยกตัวอย่าง ให้ผลลัพธ์เป็นคำแปลอย่างเดียว รักษารูปแบบการจัดย่อหน้าและเครื่องหมายวรรคตอนให้ถูกต้อง`, null, true);
@@ -264,7 +267,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
           )}
         </div>
         <button
-          style={styles.quickBtn}
+          style={{ ...styles.quickBtn, fontSize: 12 + d }}
           onClick={() => {
             const query = wrappedContent || (wrappedImages?.length ? 'วิเคราะห์รูปภาพนี้' : '');
             if (query) {
@@ -281,9 +284,9 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
 
       {/* Mode indicator */}
       {block.activeMode && (
-        <div style={styles.modeIndicator}>
+        <div style={{ ...styles.modeIndicator, fontSize: 12 + d }}>
           <span>🔍 โหมดสอบถาม</span>
-          <span style={{ fontSize: 11, color: C.muted }}>
+          <span style={{ fontSize: 11 + d, color: C.muted }}>
             ค้นหาข้อมูลพร้อมแหล่งที่มา
           </span>
           <button style={styles.modeCancelBtn} onClick={() => onUpdate({ ...block, activeMode: null })}>✕</button>
@@ -293,11 +296,11 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
       {/* Sign in prompt or Input */}
       {needsAuth ? (
         <div style={styles.signInPrompt}>
-          <p style={styles.signInText}>
+          <p style={{ ...styles.signInText, fontSize: 13 + d }}>
             กด Sign in เพื่อใช้ {provider.label}
           </p>
           <button
-            style={{ ...styles.signInBtn, background: provider.color }}
+            style={{ ...styles.signInBtn, fontSize: 13 + d, background: provider.color }}
             onClick={handleSignIn}
             disabled={loading}
           >
@@ -307,7 +310,7 @@ export default function AIBlock({ block, wrappedContent, wrappedImages, onUpdate
       ) : (
         <div style={styles.inputRow}>
           <textarea
-            style={styles.input}
+            style={{ ...styles.input, fontSize: 13 + d }}
             placeholder={lastAiResponse && hasWrapped ? 'ต้องการอะไรเพิ่มเติม สั่งได้เลย...' : 'พิมพ์ข้อความ...'}
             value={input}
             onChange={(e) => setInput(e.target.value)}

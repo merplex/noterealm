@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { callAI } from '../../utils/callAI';
+import { useFontSize } from '../../utils/useFontSize';
 
 export default function AccordionBlock({ block, onUpdate, onDismiss }) {
   const { state } = useApp();
+  const d = (useFontSize() - 1) * 2;
   const [open, setOpen] = useState(block.open ?? true);
   const [titleLoading, setTitleLoading] = useState(false);
   const titleRef = useRef(null);
@@ -61,7 +63,7 @@ export default function AccordionBlock({ block, onUpdate, onDismiss }) {
         {/* Title input — always editable inline */}
         <input
           ref={titleRef}
-          style={styles.titleInput}
+          style={{ ...styles.titleInput, fontSize: 14 + d }}
           value={block.title || ''}
           onChange={handleTitleChange}
           placeholder={titleLoading ? 'AI กำลังตั้งชื่อ...' : 'หัวข้อ...'}
@@ -85,7 +87,7 @@ export default function AccordionBlock({ block, onUpdate, onDismiss }) {
         <div style={styles.body}>
           <textarea
             ref={contentRef}
-            style={styles.contentArea}
+            style={{ ...styles.contentArea, fontSize: 13 + d }}
             value={block.content || ''}
             onChange={handleContentChange}
             placeholder="เนื้อหา..."
