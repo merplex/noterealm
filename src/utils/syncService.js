@@ -91,10 +91,12 @@ async function mergeNotes(serverNotes) {
     const local = await db.notes.get(sn.id);
     if (!local) {
       updates.push(db.notes.put({ ...sn, syncSource: 'server', dirty: false }));
-    } else if (local.syncSource === 'server') {
-      if (new Date(sn.updatedAt) > new Date(local.updatedAt)) {
-        updates.push(db.notes.put({ ...sn, syncSource: 'server', dirty: false }));
-      }
+    } else if (!local.dirty && new Date(sn.updatedAt) > new Date(local.updatedAt)) {
+      // Server ใหม่กว่า + local ไม่ได้ edit → ดึง server version
+      updates.push(db.notes.put({ ...sn, syncSource: 'server', dirty: false }));
+    } else if (local.dirty && new Date(sn.updatedAt) > new Date(local.updatedAt)) {
+      // ทั้งคู่มีการแก้ → server ชนะ (email append สำคัญกว่า)
+      updates.push(db.notes.put({ ...sn, syncSource: 'server', dirty: false }));
     }
   }
   await Promise.all(updates);
@@ -126,10 +128,10 @@ export async function pull() {
   localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 }
 
-// Full sync: push dirty → pull → emit event
+// Full sync: pull → push dirty → emit event
 export async function sync(direction = 'server') {
-  await pushDirty();
   await pull();
+  await pushDirty();
   localStorage.setItem(SYNC_DIRECTION_KEY, direction);
   emitSyncUpdated();
 }
