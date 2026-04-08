@@ -127,6 +127,11 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
           ))}
           {note.aiBlocks?.length > 0 && <span style={styles.aiBadge}>🤖</span>}
           {note.refs?.length > 0 && <img src={REF_ICON} width={14} height={14} style={{ verticalAlign: 'middle' }} />}
+          {(note.updatedAt || note.createdAt) && (
+            <span style={styles.dateLabel}>
+              {new Date(note.updatedAt || note.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -215,4 +220,10 @@ const styles = {
   },
   aiBadge: { fontSize: 12 },
   refBadge: { fontSize: 12 },
+  dateLabel: {
+    fontSize: 10,
+    color: C.muted,
+    marginLeft: 'auto',
+    flexShrink: 0,
+  },
 };
