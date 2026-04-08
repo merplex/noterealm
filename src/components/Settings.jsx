@@ -24,9 +24,9 @@ export default function Settings({ onClose }) {
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | syncing | ok | error
   const [syncInfo, setSyncInfo] = useState(() => getSyncInfo());
 
-  const [emailFilterSpam, setEmailFilterSpam] = useState(false);
-  const [emailFilterAds, setEmailFilterAds] = useState(false);
-  const [emailFilterSummary, setEmailFilterSummary] = useState(false);
+  const [emailFilterSpam, setEmailFilterSpam] = useState(() => localStorage.getItem('nk_email_filter_spam') === 'true');
+  const [emailFilterAds, setEmailFilterAds] = useState(() => localStorage.getItem('nk_email_filter_ads') === 'true');
+  const [emailFilterSummary, setEmailFilterSummary] = useState(() => localStorage.getItem('nk_email_filter_summary') === 'true');
 
   const refreshSyncInfo = () => setSyncInfo(getSyncInfo());
 
@@ -45,9 +45,15 @@ export default function Settings({ onClose }) {
     })
       .then((r) => r.json())
       .then((data) => {
-        setEmailFilterSpam(data.filterSpam || false);
-        setEmailFilterAds(data.filterAds || false);
-        setEmailFilterSummary(data.filterSummary || false);
+        const spam = data.filterSpam || false;
+        const ads = data.filterAds || false;
+        const summary = data.filterSummary || false;
+        setEmailFilterSpam(spam);
+        setEmailFilterAds(ads);
+        setEmailFilterSummary(summary);
+        localStorage.setItem('nk_email_filter_spam', spam);
+        localStorage.setItem('nk_email_filter_ads', ads);
+        localStorage.setItem('nk_email_filter_summary', summary);
       })
       .catch(() => {});
   }, [state.user?.id]);
@@ -57,9 +63,9 @@ export default function Settings({ onClose }) {
     const newSpam = key === 'spam' ? value : emailFilterSpam;
     const newAds = key === 'ads' ? value : emailFilterAds;
     const newSummary = key === 'summary' ? value : emailFilterSummary;
-    if (key === 'spam') setEmailFilterSpam(value);
-    if (key === 'ads') setEmailFilterAds(value);
-    if (key === 'summary') setEmailFilterSummary(value);
+    if (key === 'spam') { setEmailFilterSpam(value); localStorage.setItem('nk_email_filter_spam', value); }
+    if (key === 'ads') { setEmailFilterAds(value); localStorage.setItem('nk_email_filter_ads', value); }
+    if (key === 'summary') { setEmailFilterSummary(value); localStorage.setItem('nk_email_filter_summary', value); }
     fetch(`${apiUrl}/api/oauth/email-filter`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-id': state.user.id },

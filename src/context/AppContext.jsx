@@ -135,9 +135,9 @@ export function AppProvider({ children }) {
     })();
   }, []);
 
-  // Sync when app comes back to foreground
+  // Sync when app comes back to foreground (visibilitychange ทำงานได้บน Android/iOS)
   useEffect(() => {
-    const handleFocus = () => {
+    const refreshFromDb = () =>
       autoSync().then(async () => {
         const [notes, todos] = await Promise.all([
           db.notes.orderBy('updatedAt').reverse().toArray(),
@@ -146,9 +146,20 @@ export function AppProvider({ children }) {
         dispatch({ type: 'SET_NOTES', payload: notes });
         dispatch({ type: 'SET_TODOS', payload: todos });
       }).catch(console.warn);
+
+    const handleVisibility = () => {
+      if (!document.hidden) refreshFromDb();
     };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // Periodic auto sync ทุก 5 นาที (ป้องกันค้างถ้า visibility event ไม่ fire)
+    const interval = setInterval(refreshFromDb, 5 * 60 * 1000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
+    };
   }, []);
 
   // Save local-only state to storage
