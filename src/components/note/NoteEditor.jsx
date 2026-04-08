@@ -69,6 +69,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const [showUrlPopup, setShowUrlPopup] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const savedRangeRef = useRef(null);
+  const urlPopupJustOpenedRef = useRef(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [tagPickerSearch, setTagPickerSearch] = useState('');
   const [previewNote, setPreviewNote] = useState(null); // popup preview ของ relate note
@@ -646,6 +647,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     setUrlInput('');
     setSelMenu(null);
     setShowInsertMenu(false);
+    urlPopupJustOpenedRef.current = true;
     setShowUrlPopup(true);
   }, []);
 
@@ -720,8 +722,16 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                 <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowInsertMenu(false)} />
                 <div style={styles.insertMenu}>
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleImageUpload(); }}>🖼️ รูปภาพ</button>
-                  <button style={styles.insertOption} onClick={() => { openUrlPopup(); }}>🔗 URL</button>
-                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); setShowRefer(true); }}>📎 อ้างอิง</button>
+                  <button style={styles.insertOption} onClick={() => { openUrlPopup(); }}>
+                    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:20, height:20, borderRadius:'50%', background:'#0ea5e9', marginRight:6, flexShrink:0, verticalAlign:'middle' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </span>URL
+                  </button>
+                  <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); setShowRefer(true); }}>
+                    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:20, height:20, borderRadius:'50%', background:'#22c55e', marginRight:6, flexShrink:0, verticalAlign:'middle' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                    </span>อ้างอิง
+                  </button>
                   <button style={styles.insertOption} onClick={() => { setShowInsertMenu(false); handleAddAccordion(); }}>≡ กล่องข้อความ</button>
                   <button style={styles.insertOption} onClick={handleAddTagAction}>🏷️ แท็ก</button>
                 </div>
@@ -1033,14 +1043,17 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             <span style={styles.selMenuDivider} />
             <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); handleAddAccordion(); setSelMenu(null); }}>≡▼</button>
             <span style={styles.selMenuDivider} />
-            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); openUrlPopup(); }}>🔗</button>
+            <button style={styles.selMenuBtn} onPointerDown={(e) => { e.preventDefault(); openUrlPopup(); }}>URL</button>
           </div>
         )}
 
         {/* URL insert popup */}
         {showUrlPopup && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}
-            onClick={() => setShowUrlPopup(false)}>
+            onClick={() => {
+              if (urlPopupJustOpenedRef.current) { urlPopupJustOpenedRef.current = false; return; }
+              setShowUrlPopup(false);
+            }}>
             <div style={{ background: '#fff', borderRadius: 12, padding: '20px 16px', width: 'min(90vw, 360px)', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
               onClick={(e) => e.stopPropagation()}>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#1c1917' }}>แทรก URL</div>
