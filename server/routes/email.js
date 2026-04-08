@@ -2,6 +2,7 @@ import { Router } from 'express';
 import pool from '../models/db.js';
 import { v4 as uuidv4 } from 'uuid';
 import gemini from '../providers/gemini.js';
+import { isR2Configured, uploadToR2 } from '../utils/r2.js';
 
 const router = Router();
 
@@ -126,6 +127,69 @@ function decodePartBody(body, headers) {
   return body;
 }
 
+// Extract file attachments จาก raw MIME — คืน array ของ {filename, mimeType, buffer}
+function extractAttachments(raw, depth = 0) {
+  if (!raw || depth > 3) return [];
+
+  const sep = raw.includes('\r\n\r\n') ? '\r\n\r\n' : '\n\n';
+  const headerEnd = raw.indexOf(sep);
+  if (headerEnd < 0) return [];
+  const headers = raw.slice(0, headerEnd);
+
+  const boundaryMatch = headers.match(/boundary="?([^"\r\n;]+)"?/i);
+  if (!boundaryMatch) return [];
+
+  const boundary = boundaryMatch[1];
+  const parts = raw.split('--' + boundary);
+  const attachments = [];
+
+  for (const part of parts) {
+    if (!part.trim() || part.trim() === '--') continue;
+
+    const partSep = part.includes('\r\n\r\n') ? '\r\n\r\n' : '\n\n';
+    const partHeaderEnd = part.indexOf(partSep);
+    if (partHeaderEnd < 0) continue;
+
+    const partHeaders = part.slice(0, partHeaderEnd);
+    const partHeadersLower = partHeaders.toLowerCase();
+    const partBody = part.slice(partHeaderEnd + partSep.length);
+
+    // Nested multipart → recurse
+    const nestedBoundary = partHeaders.match(/boundary="?([^"\r\n;]+)"?/i);
+    if (nestedBoundary && nestedBoundary[1] !== boundary) {
+      attachments.push(...extractAttachments(part, depth + 1));
+      continue;
+    }
+
+    // เฉพาะ attachment เท่านั้น
+    if (!partHeadersLower.includes('content-disposition') ||
+        !partHeadersLower.includes('attachment')) continue;
+
+    // Content-Type
+    const ctMatch = partHeaders.match(/content-type:\s*([^;\r\n]+)/i);
+    const mimeType = ctMatch ? ctMatch[1].trim().toLowerCase() : 'application/octet-stream';
+
+    // ข้าม video
+    if (mimeType.startsWith('video/')) continue;
+
+    // Filename
+    const filenameMatch = partHeaders.match(/filename\*?="?([^"\r\n;]+)"?/i);
+    const filename = filenameMatch ? decodeMimeSubject(filenameMatch[1].trim()) : 'attachment';
+
+    // Decode เป็น buffer (ส่วนใหญ่ base64)
+    let buffer;
+    if (partHeadersLower.includes('base64')) {
+      buffer = Buffer.from(partBody.replace(/\s/g, ''), 'base64');
+    } else {
+      buffer = Buffer.from(partBody);
+    }
+
+    attachments.push({ filename, mimeType, buffer });
+  }
+
+  return attachments;
+}
+
 // AI filter: ใช้ Gemini วิเคราะห์อีเมล
 async function aiFilterEmail(subject, body, filters) {
   const tasks = [];
@@ -162,8 +226,8 @@ router.post('/', async (req, res) => {
     const { name, email, domain } = parseSender(from);
     const body = raw ? extractBody(raw) : '(ไม่มีเนื้อหา)';
 
-    // หา inbox token จาก to address เช่น notes-abc123@neverjod.com
-    const toMatch = (to || '').match(/^notes-([a-z0-9]+)@/i);
+    // หา inbox token จาก to address เช่น noterealm_abc123@neverjod.com
+    const toMatch = (to || '').match(/^noterealm_([a-z0-9]+)@/i);
     const inboxToken = toMatch?.[1] || null;
 
     // หา user จาก inbox token
@@ -210,12 +274,40 @@ router.post('/', async (req, res) => {
     const senderTag = senderLocal;
     const autoTags = ['email', senderTag].filter(Boolean);
 
+    // Parse + upload attachments (ข้าม video)
+    let attachmentHtml = '';
+    if (raw) {
+      const attachments = extractAttachments(raw);
+      if (attachments.length > 0) {
+        if (isR2Configured()) {
+          const attParts = [];
+          for (const att of attachments) {
+            try {
+              const url = await uploadToR2(att.buffer, att.mimeType, 'email');
+              const safeName = att.filename.replace(/</g, '&lt;');
+              if (att.mimeType.startsWith('image/')) {
+                attParts.push(`<img src="${url}" class="inline-note-img" style="height:1.2em;vertical-align:middle;border-radius:3px;margin:0 2px;cursor:default"/>`);
+              } else {
+                const icon = att.mimeType === 'application/pdf' ? '📄' : '📎';
+                attParts.push(`${icon} <a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#0284c7">${safeName}</a>`);
+              }
+            } catch (err) {
+              console.error('Email attachment upload error:', err.message);
+            }
+          }
+          if (attParts.length > 0) attachmentHtml = '\n' + attParts.join('\n');
+        } else {
+          console.log(`Email has ${attachments.length} attachment(s) but R2 not configured — skipped`);
+        }
+      }
+    }
+
     // timestamp สำหรับ append
     const timestamp = new Date().toLocaleString('th-TH', {
       day: 'numeric', month: 'short', year: '2-digit',
       hour: '2-digit', minute: '2-digit',
     });
-    const newBlock = `\n\n─── ${timestamp} ───\nเรื่อง: ${subject}\n${finalBody}`;
+    const newBlock = `\n\n─── ${timestamp} ───\nเรื่อง: ${subject}\n${finalBody}${attachmentHtml}`;
 
     // หา note ที่มี senderTag อยู่แล้ว (ของ user นี้)
     let existingNote = null;

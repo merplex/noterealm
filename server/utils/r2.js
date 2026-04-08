@@ -20,9 +20,9 @@ export function isR2Configured() {
  * @param {string} mimeType
  * @returns {Promise<string>} public URL
  */
-export async function uploadToR2(buffer, mimeType = 'image/jpeg') {
-  const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
-  const key = `line/${randomUUID()}.${ext}`;
+export async function uploadToR2(buffer, mimeType = 'image/jpeg', folder = 'line') {
+  const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg').replace('mpeg', 'mp3') || 'bin';
+  const key = `${folder}/${randomUUID()}.${ext}`;
 
   await r2.send(new PutObjectCommand({
     Bucket: process.env.R2_BUCKET,

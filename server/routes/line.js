@@ -44,6 +44,34 @@ async function getSenderName(event) {
   }
 }
 
+// ดึง content ทั่วไป (file, audio) → ต้องมี R2
+async function fetchLineContent(messageId, defaultMimeType = 'application/octet-stream') {
+  if (!isR2Configured()) {
+    console.log('[LINE] R2 not configured, skipping non-image content');
+    return null;
+  }
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const res = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      console.error(`LINE content fetch failed: ${res.status}`);
+      return null;
+    }
+    const contentType = res.headers.get('content-type') || defaultMimeType;
+    const mimeType = contentType.split(';')[0].trim();
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const url = await uploadToR2(buffer, mimeType, 'line');
+    console.log('[LINE] content uploaded to R2:', url);
+    return { url, mimeType };
+  } catch (err) {
+    console.error('LINE content error:', err.message);
+    return null;
+  }
+}
+
 async function fetchLineImage(messageId) {
   const token = getToken();
   if (!token) return null;
@@ -311,6 +339,21 @@ router.post('/', async (req, res) => {
           if (imgData) {
             parts.push(`${senderLabel ? `<p style="margin:4px 0">${senderLabel}</p>` : ''}<img src="${imgData}" class="inline-note-img" style="height:1.2em;vertical-align:middle;border-radius:3px;margin:0 2px;cursor:default"/>`);
           }
+        } else if (event.message.type === 'file') {
+          const fileName = (event.message.fileName || 'ไฟล์แนบ').replace(/</g, '&lt;');
+          const result = await fetchLineContent(event.message.id);
+          if (result) {
+            parts.push(`<p style="margin:4px 0">${senderLabel}📎 <a href="${result.url}" target="_blank" rel="noopener noreferrer" style="color:#0284c7">${fileName}</a></p>`);
+          } else {
+            parts.push(`<p style="margin:4px 0">${senderLabel}📎 ${fileName} <span style="color:#a8a29e;font-size:11px">(ต้องการ R2 เพื่อเก็บไฟล์)</span></p>`);
+          }
+        } else if (event.message.type === 'audio') {
+          const result = await fetchLineContent(event.message.id, 'audio/m4a');
+          if (result) {
+            parts.push(`<p style="margin:2px 0">${senderLabel}🎵 เสียง</p><audio controls src="${result.url}" style="max-width:100%;margin:4px 0;display:block"></audio>`);
+          }
+        } else if (event.message.type === 'video') {
+          console.log('[LINE] video skipped (too large)');
         } else {
           console.log('[LINE] unsupported message type:', event.message.type);
         }
