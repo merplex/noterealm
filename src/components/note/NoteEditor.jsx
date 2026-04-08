@@ -961,7 +961,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
-              style={styles.tagInlineInput}
+              style={{ ...styles.tagInlineInput, fontSize: 12 + d }}
             />
           </div>
           {/* Bottom row: info + buttons */}
