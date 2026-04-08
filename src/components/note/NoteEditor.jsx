@@ -146,6 +146,43 @@ function FullscreenViewer({ src, onClose }) {
   );
 }
 
+// แปลง HTML ของ LINE/email: px→em (scaling) + re-format dates ตาม locale
+function processSourceContent(html, locale) {
+  if (!html) return '';
+  const div = document.createElement('div');
+  div.innerHTML = html.replace(/\[\[[^\]]*\]\]/g, '');
+
+  // px font-size → em (รองรับ content เก่าที่ยังใช้ px)
+  div.querySelectorAll('[style]').forEach(el => {
+    const fs = el.style.fontSize;
+    if (fs && fs.endsWith('px')) {
+      el.style.fontSize = (parseFloat(fs) / 16).toFixed(3) + 'em';
+    }
+  });
+
+  const lc = locale === 'en' ? 'en-US' : 'th-TH';
+
+  // re-format วันที่ใน LINE day header (data-date="YYYY-MM-DD")
+  div.querySelectorAll('[data-date]').forEach(el => {
+    try {
+      const d = new Date(el.getAttribute('data-date') + 'T12:00:00+07:00');
+      const fmt = d.toLocaleDateString(lc, { day: '2-digit', month: 'short', year: '2-digit', timeZone: 'Asia/Bangkok' });
+      el.textContent = '📅 ' + fmt;
+    } catch {}
+  });
+
+  // re-format timestamp ใน email separator (data-ts="ISO")
+  div.querySelectorAll('[data-ts]').forEach(el => {
+    try {
+      const d = new Date(el.getAttribute('data-ts'));
+      const fmt = d.toLocaleString(lc, { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
+      el.textContent = `─── ${fmt} ───`;
+    } catch {}
+  });
+
+  return div.innerHTML;
+}
+
 export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
   const { t, locale } = useLocale();
@@ -285,22 +322,24 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           return merged;
         });
       }
-      textareaRef.current.innerHTML = raw.replace(/\[\[[^\]]*\]\]/g, '');
+      const isSource = note?.source === 'line' || note?.source === 'email';
+      const processed = isSource ? processSourceContent(raw, locale) : raw.replace(/\[\[[^\]]*\]\]/g, '');
+      textareaRef.current.innerHTML = processed;
       if (isNew) setTimeout(() => textareaRef.current?.focus(), 100);
     }
-  }, [note?.content, isNew]);
+  }, [note?.content, isNew]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // อัปเดต content เมื่อ note เปลี่ยนจาก server (LINE/email webhook) และ user ไม่ได้แก้ไข
+  // อัปเดต content เมื่อ note เปลี่ยนจาก server (LINE/email webhook) หรือ locale เปลี่ยน
   useEffect(() => {
     if (!initializedRef.current) return;
     if (dirtyRef.current) return;
     if (!note?.id) return;
     if (note.source !== 'line' && note.source !== 'email') return;
     if (!textareaRef.current) return;
-    const raw = note?.content || '';
-    textareaRef.current.innerHTML = raw.replace(/\[\[[^\]]*\]\]/g, '');
-    setContent(raw);
-  }, [note?.content, note?.source, note?.id]);
+    const processed = processSourceContent(note?.content || '', locale);
+    textareaRef.current.innerHTML = processed;
+    setContent(processed);
+  }, [note?.content, note?.source, note?.id, locale]);
 
   const insertAtCursor = useCallback((text) => {
     const el = textareaRef.current;

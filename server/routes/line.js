@@ -253,11 +253,11 @@ async function insertToNote(noteId, bodyHtml) {
   const todayKey = getTodayKey();
   const marker = `<!-- LINE_DAY:${todayKey} -->`;
   const timeStr = getTimeLabel();
-  const timeHtml = `<div style="font-size:11px;color:#b0a99f;margin:8px 0 2px">🕐 ${timeStr}</div>`;
+  const timeHtml = `<div style="font-size:0.7em;color:#b0a99f;margin:8px 0 2px">🕐 ${timeStr}</div>`;
   const entryHtml = timeHtml + bodyHtml;
 
   const dateStr = getDateLabel();
-  const dayHeader = `<hr style="border:none;border-top:1px solid #e7e5e4;margin:12px 0"/><div style="font-size:12px;color:#a8a29e;margin-bottom:4px">📅 ${dateStr}</div>${marker}`;
+  const dayHeader = `<hr style="border:none;border-top:1px solid #e7e5e4;margin:12px 0"/><div data-date="${todayKey}" style="font-size:0.75em;color:#a8a29e;margin-bottom:4px">📅 ${dateStr}</div>${marker}`;
   const fullEntry = dayHeader + entryHtml;
 
   // single UPDATE — PostgreSQL re-evaluates CASE หลังได้ row lock
@@ -327,7 +327,7 @@ router.post('/', async (req, res) => {
           try {
             const profile = await lineGet(`/v2/bot/group/${event.source.groupId}/member/${event.source.userId}`);
             const name = profile?.displayName || 'Unknown';
-            senderLabel = `<strong style="color:#78716c;font-size:12px">${name.replace(/</g, '&lt;')}</strong> `;
+            senderLabel = `<strong style="color:#78716c;font-size:0.75em">${name.replace(/</g, '&lt;')}</strong> `;
           } catch { /* ignore */ }
         }
 
