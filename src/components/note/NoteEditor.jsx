@@ -967,7 +967,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           {/* Bottom row: info + buttons */}
           <div style={styles.footerBottom}>
             {!isNew && lastSaved && (
-              <span style={styles.saveInfo}>
+              <span style={{ ...styles.saveInfo, fontSize: 11 + d }}>
                 อัพเดท {new Date(lastSaved).toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
                 {' ver '}{(note?.history?.length || 0) + 1}
               </span>
