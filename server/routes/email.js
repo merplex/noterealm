@@ -161,7 +161,10 @@ router.post('/', async (req, res) => {
     const subject = decodeMimeSubject(rawSubject);
     const { name, email, domain } = parseSender(from);
     console.log('Email webhook from:', JSON.stringify(from), '→ parsed:', { name, email, domain });
+    console.log('Email webhook to:', to, 'subject:', rawSubject?.slice(0, 80), 'raw length:', raw?.length || 0);
     const body = raw ? extractBody(raw) : '(ไม่มีเนื้อหา)';
+    console.log('Email body extracted, length:', body.length);
+    console.log('Email inboxToken:', (to || '').match(/^notes-([a-z0-9]+)@/i)?.[1] || 'none');
 
     // หา inbox token จาก to address เช่น notes-abc123@neverjod.com
     const toMatch = (to || '').match(/^notes-([a-z0-9]+)@/i);
@@ -245,6 +248,7 @@ router.post('/', async (req, res) => {
       );
     }
 
+    console.log('Email note saved OK for user:', userId);
     res.json({ ok: true });
   } catch (err) {
     console.error('Email webhook error:', err);
