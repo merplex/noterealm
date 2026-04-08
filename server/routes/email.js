@@ -226,8 +226,8 @@ router.post('/', async (req, res) => {
     const { name, email, domain } = parseSender(from);
     const body = raw ? extractBody(raw) : '(ไม่มีเนื้อหา)';
 
-    // หา inbox token จาก to address เช่น noterealm_abc123@neverjod.com
-    const toMatch = (to || '').match(/^noterealm_([a-z0-9]+)@/i);
+    // หา inbox token จาก to address เช่น notes-abc123@neverjod.com
+    const toMatch = (to || '').match(/^notes-([a-z0-9]+)@/i);
     const inboxToken = toMatch?.[1] || null;
 
     // หา user จาก inbox token
