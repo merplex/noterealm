@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
+import { useFontSize } from '../../utils/useFontSize';
 
 const REF_ICON = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#16a34a"/><rect x="4.5" y="3" width="7" height="9" rx="1" fill="white"/><line x1="6" y1="5.5" x2="10" y2="5.5" stroke="#16a34a" stroke-width=".6"/><line x1="6" y1="7.2" x2="10" y2="7.2" stroke="#16a34a" stroke-width=".6"/><line x1="6" y1="8.9" x2="8.5" y2="8.9" stroke="#16a34a" stroke-width=".6"/></svg>')}`;
 
@@ -40,6 +41,7 @@ function MarqueeChip({ text, onClick }) {
 
 export default function RelatePanel({ note, onNavigate, onRemove }) {
   const { state } = useApp();
+  const d = (useFontSize() - 1) * 2;
 
   const relates = useMemo(() => {
     if (!note) return [];
@@ -56,13 +58,13 @@ export default function RelatePanel({ note, onNavigate, onRemove }) {
     <div style={styles.panel}>
       <div style={styles.section}>
         {relates.map((n) => (
-          <span key={n.id} style={styles.chip}>
+          <span key={n.id} style={{ ...styles.chip, fontSize: 12 + d }}>
             <MarqueeChip
               text={n.title || 'Untitled'}
               onClick={() => onNavigate?.(n)}
             />
             {onRemove && (
-              <button style={styles.chipRemove} onClick={() => onRemove(n.id)}>✕</button>
+              <button style={{ ...styles.chipRemove, fontSize: 10 + d }} onClick={() => onRemove(n.id)}>✕</button>
             )}
           </span>
         ))}

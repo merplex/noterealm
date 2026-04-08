@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { C } from '../../constants/theme';
 import { diffWords, stripHtml } from '../../utils/diff';
+import { useFontSize } from '../../utils/useFontSize';
 
 export default function HistorySidebar({ note, onRestore, onClose }) {
+  const d = (useFontSize() - 1) * 2;
   const history = note?.history || [];
   const currentContent = stripHtml(note?.content || '');
   const [selectedIdx, setSelectedIdx] = useState(-1); // -1 = current
@@ -64,7 +66,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.sidebar} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <h3 style={styles.title}>📋 ประวัติการแก้ไข</h3>
+          <h3 style={{ ...styles.title, fontSize: 16 + d }}>📋 ประวัติการแก้ไข</h3>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
@@ -85,13 +87,14 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
             }} />
             <span style={{
               ...styles.versionTime,
+              fontSize: 12 + d,
               color: selectedIdx === -1 ? C.amber : C.sub,
               fontWeight: selectedIdx === -1 ? 600 : 400,
             }}>
               ปัจจุบัน
             </span>
             <button
-              style={styles.restoreBtn}
+              style={{ ...styles.restoreBtn, fontSize: 11 + d }}
               onClick={(e) => { e.stopPropagation(); onRestore?.({ content: note?.content }); }}
             >
               ↩ กู้คืน
@@ -120,6 +123,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
                 }} />
                 <span style={{
                   ...styles.versionTime,
+                  fontSize: 12 + d,
                   color: isSelected ? C.amber : C.sub,
                   fontWeight: isSelected ? 600 : 400,
                 }}>
@@ -127,7 +131,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
                   {hasRefChange && <span style={styles.refBadge}>🔗</span>}
                 </span>
                 <button
-                  style={styles.restoreBtn}
+                  style={{ ...styles.restoreBtn, fontSize: 11 + d }}
                   onClick={(e) => { e.stopPropagation(); onRestore?.(ver); }}
                 >
                   ↩ กู้คืน
@@ -158,7 +162,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
               เปรียบเทียบ {selLabel} กับ {prevLabel}
             </div>
           )}
-          <div style={styles.diffBody}>
+          <div style={{ ...styles.diffBody, fontSize: 14 + d }}>
             {segments.map((seg, i) => {
               // Render text with [box] and [img] placeholders as bubbles
               const renderText = (text) => {

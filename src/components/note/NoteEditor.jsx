@@ -45,6 +45,99 @@ function AIOverlay({ children }) {
   );
 }
 
+function FullscreenViewer({ src, onClose }) {
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const st = useRef({ scale: 1, tx: 0, ty: 0, pinching: false, startDist: 0, startScale: 1, dragging: false, startTouchX: 0, startTouchY: 0, startTx: 0, startTy: 0, moved: false });
+
+  useEffect(() => {
+    st.current.scale = 1; st.current.tx = 0; st.current.ty = 0;
+    setScale(1); setTranslate({ x: 0, y: 0 });
+  }, [src]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+
+    const onStart = (e) => {
+      const s = st.current; s.moved = false;
+      if (e.touches.length === 2) {
+        s.pinching = true; s.dragging = false;
+        s.startDist = dist(e.touches[0], e.touches[1]);
+        s.startScale = s.scale;
+        e.preventDefault();
+      } else if (e.touches.length === 1) {
+        s.dragging = true;
+        s.startTouchX = e.touches[0].clientX; s.startTouchY = e.touches[0].clientY;
+        s.startTx = s.tx; s.startTy = s.ty;
+      }
+    };
+
+    const onMove = (e) => {
+      const s = st.current;
+      if (s.pinching && e.touches.length === 2) {
+        const d = dist(e.touches[0], e.touches[1]);
+        s.scale = Math.min(6, Math.max(1, s.startScale * d / s.startDist));
+        setScale(s.scale); s.moved = true; e.preventDefault();
+      } else if (s.dragging && e.touches.length === 1 && s.scale > 1) {
+        const dx = e.touches[0].clientX - s.startTouchX;
+        const dy = e.touches[0].clientY - s.startTouchY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) s.moved = true;
+        s.tx = s.startTx + dx; s.ty = s.startTy + dy;
+        setTranslate({ x: s.tx, y: s.ty }); e.preventDefault();
+      }
+    };
+
+    const onEnd = (e) => {
+      const s = st.current;
+      if (e.touches.length === 0) {
+        if (s.scale < 1.1) {
+          s.scale = 1; s.tx = 0; s.ty = 0;
+          setScale(1); setTranslate({ x: 0, y: 0 });
+        }
+        if (!s.moved && s.scale <= 1.05) onClose();
+        s.pinching = false; s.dragging = false;
+      } else if (e.touches.length === 1 && s.pinching) {
+        s.pinching = false; s.dragging = true;
+        s.startTouchX = e.touches[0].clientX; s.startTouchY = e.touches[0].clientY;
+        s.startTx = s.tx; s.startTy = s.ty;
+      }
+    };
+
+    el.addEventListener('touchstart', onStart, { passive: false });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+    };
+  }, [onClose]);
+
+  return (
+    <div ref={containerRef} style={styles.fullscreenOverlay}>
+      <button
+        style={{ position: 'absolute', top: 20, right: 20, zIndex: 1, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 18, width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        onClick={onClose}
+      >✕</button>
+      <CachedImage
+        src={src}
+        style={{
+          ...styles.fullscreenImg,
+          transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+          transformOrigin: 'center center',
+          transition: scale === 1 ? 'transform 0.2s' : 'none',
+          cursor: scale > 1 ? 'grab' : 'default',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+        }}
+      />
+    </div>
+  );
+}
+
 export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
   const fsLevel = useFontSize();
@@ -940,9 +1033,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
         {/* Fullscreen image overlay */}
         {fullscreenImg && (
-          <div style={styles.fullscreenOverlay} onClick={() => setFullscreenImg(null)}>
-            <CachedImage src={fullscreenImg} style={styles.fullscreenImg} />
-          </div>
+          <FullscreenViewer src={fullscreenImg} onClose={() => setFullscreenImg(null)} />
         )}
 
         {/* Sticky: Footer */}
