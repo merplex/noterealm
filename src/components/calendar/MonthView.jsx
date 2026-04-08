@@ -10,37 +10,51 @@ import { useFontSize } from '../../utils/useFontSize';
 const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 
-// Inject marquee keyframe once
+// Inject marquee keyframe once — exact -50%, no pause, seamless loop
 if (typeof document !== 'undefined' && !document.getElementById('nr-marquee-css')) {
   const style = document.createElement('style');
   style.id = 'nr-marquee-css';
-  style.textContent = `@keyframes nr-marquee { 0%,10% { transform: translateX(0); } 90%,100% { transform: translateX(calc(-50% - 1em)); } }`;
+  style.textContent = `@keyframes nr-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }`;
   document.head.appendChild(style);
 }
 
-function MarqueeText({ text }) {
+function MarqueeChip({ text, dotColor }) {
   const wrapRef = useRef(null);
-  const textRef = useRef(null);
+  const measureRef = useRef(null);
   const [overflow, setOverflow] = useState(false);
 
   useEffect(() => {
-    if (wrapRef.current && textRef.current) {
-      setOverflow(textRef.current.scrollWidth > wrapRef.current.clientWidth + 1);
+    if (wrapRef.current && measureRef.current) {
+      setOverflow(measureRef.current.offsetWidth > wrapRef.current.offsetWidth + 1);
     }
   }, [text]);
 
-  return (
-    <span ref={wrapRef} style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-      <span ref={textRef} style={{
-        display: 'inline-block',
-        fontSize: 10,
-        color: C.text,
-        whiteSpace: 'nowrap',
-        animation: overflow ? 'nr-marquee 6s linear infinite' : 'none',
-      }}>
-        {overflow ? `${text}\u00a0\u00a0\u00a0\u00a0${text}` : text}
-      </span>
+  // one "unit" = dot + text + trailing gap (เพื่อให้ -50% ลงตรง seamless)
+  const unit = (i) => (
+    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, paddingRight: '1.5em' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0, display: 'inline-block' }} />
+      <span style={{ fontSize: 10, color: C.text, whiteSpace: 'nowrap' }}>{text}</span>
     </span>
+  );
+
+  return (
+    <div ref={wrapRef} style={{ flex: 1, overflow: 'hidden', minWidth: 0, position: 'relative' }}>
+      {/* hidden span เพื่อวัดขนาดจริง */}
+      <span ref={measureRef} style={{
+        position: 'absolute', visibility: 'hidden', pointerEvents: 'none',
+        whiteSpace: 'nowrap', fontSize: 10,
+        display: 'inline-flex', alignItems: 'center', gap: 3,
+      }}>
+        <span style={{ width: 6, height: 6, display: 'inline-block' }} />{text}
+      </span>
+      <span style={{
+        display: 'inline-flex', whiteSpace: 'nowrap',
+        animation: overflow ? 'nr-marquee 5s linear infinite' : 'none',
+      }}>
+        {unit(0)}
+        {overflow && unit(1)}
+      </span>
+    </div>
   );
 }
 
@@ -126,11 +140,10 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                 </span>
                 {dayTodoList.slice(0, 4).map((todo) => (
                   <div key={todo.id} style={styles.todoDot}>
-                    <span style={{
-                      ...styles.dot,
-                      background: PRIORITY_COLORS[todo.priority] || C.muted,
-                    }} />
-                    <MarqueeText text={todo.title} />
+                    <MarqueeChip
+                      text={todo.title}
+                      dotColor={PRIORITY_COLORS[todo.priority] || C.muted}
+                    />
                   </div>
                 ))}
                 {dayTodoList.length > 4 && (
