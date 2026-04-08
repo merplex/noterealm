@@ -11,21 +11,21 @@ router.get('/', async (req, res) => {
     let rows;
     if (userId && since) {
       ({ rows } = await pool.query(
-        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) AND updated_at > $2 ORDER BY pinned DESC, updated_at DESC`,
+        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) AND updated_at > $2 AND deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`,
         [userId, since]
       ));
     } else if (userId) {
       ({ rows } = await pool.query(
-        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) ORDER BY pinned DESC, updated_at DESC`,
+        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) AND deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`,
         [userId]
       ));
     } else if (since) {
       ({ rows } = await pool.query(
-        `SELECT * FROM notes WHERE updated_at > $1 ORDER BY pinned DESC, updated_at DESC`,
+        `SELECT * FROM notes WHERE updated_at > $1 AND deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`,
         [since]
       ));
     } else {
-      ({ rows } = await pool.query(`SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC`));
+      ({ rows } = await pool.query(`SELECT * FROM notes WHERE deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`));
     }
     res.json(rows.map(mapNote));
   } catch (err) {
