@@ -2,6 +2,8 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 
+const REF_ICON = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#16a34a"/><rect x="4.5" y="3" width="7" height="9" rx="1" fill="white"/><line x1="6" y1="5.5" x2="10" y2="5.5" stroke="#16a34a" stroke-width=".6"/><line x1="6" y1="7.2" x2="10" y2="7.2" stroke="#16a34a" stroke-width=".6"/><line x1="6" y1="8.9" x2="8.5" y2="8.9" stroke="#16a34a" stroke-width=".6"/></svg>')}`;
+
 // Inject chip marquee keyframe once — translates exactly 50% for seamless loop
 if (typeof document !== 'undefined' && !document.getElementById('nr-chip-marquee-css')) {
   const style = document.createElement('style');
@@ -21,7 +23,7 @@ function MarqueeChip({ text, onClick }) {
     }
   }, [text]);
 
-  const label = `🔗 ${text}`;
+  const label = <><img src={REF_ICON} width={12} height={12} style={{ verticalAlign: 'middle', marginRight: 2 }} />{text}</>;
 
   return (
     <span ref={wrapRef} style={{ overflow: 'hidden', minWidth: 0, cursor: 'pointer', padding: '4px 8px' }} onClick={onClick}>
