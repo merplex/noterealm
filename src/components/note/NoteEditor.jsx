@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
@@ -70,6 +70,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const [urlInput, setUrlInput] = useState('');
   const savedRangeRef = useRef(null);
   const urlPopupJustOpenedRef = useRef(false);
+  const selMenuRef = useRef(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [tagPickerSearch, setTagPickerSearch] = useState('');
   const [previewNote, setPreviewNote] = useState(null); // popup preview ของ relate note
@@ -597,6 +598,17 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   };
 
   // Show custom selection menu when text is selected
+  // Clamp selMenu position หลัง render ด้วย width จริง (ไม่ต้องประมาณ)
+  useLayoutEffect(() => {
+    const el = selMenuRef.current;
+    if (!el || !selMenu) return;
+    const r = el.getBoundingClientRect();
+    const overflow = r.right - (window.innerWidth - 8);
+    if (overflow > 0) el.style.left = (parseFloat(el.style.left) - overflow) + 'px';
+    const underflow = 8 - r.left;
+    if (underflow > 0) el.style.left = (parseFloat(el.style.left) + underflow) + 'px';
+  }, [selMenu]);
+
   const handleSelectionChange = useCallback(() => {
     const sel = window.getSelection();
     if (!sel || !sel.toString().trim() || !sel.rangeCount) {
@@ -611,11 +623,8 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     }
     const range = sel.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    // Clamp x so menu doesn't overflow left/right edges
-    const menuWidth = 240; // approximate menu width
-    const half = menuWidth / 2;
-    const rawX = rect.left + rect.width / 2;
-    const x = Math.max(half + 16, Math.min(rawX, window.innerWidth - half - 16));
+    // วาง center ไว้กลาง selection — useLayoutEffect จะ clamp หลัง render
+    const x = rect.left + rect.width / 2;
     setSelMenu({ x, y: rect.top });
   }, []);
 
@@ -1028,7 +1037,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
         {/* Custom selection menu */}
         {selMenu && (
-          <div style={{
+          <div ref={selMenuRef} style={{
             ...styles.selMenuBar,
             left: selMenu.x,
             top: selMenu.y,
