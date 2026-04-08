@@ -11,6 +11,7 @@ import aiRouter from './routes/ai.js';
 import oauthRouter from './routes/oauth.js';
 import lineRouter from './routes/line.js';
 import emailRouter from './routes/email.js';
+import ogRouter from './routes/og.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -38,6 +39,9 @@ app.use('/webhook/line', lineRouter);
 
 // Email Webhook (จาก Cloudflare Worker)
 app.use('/api/webhooks/email', emailRouter);
+
+// OG metadata
+app.use('/api/og', ogRouter);
 
 // Serve frontend static files (production)
 const distPath = join(__dirname, '../dist');

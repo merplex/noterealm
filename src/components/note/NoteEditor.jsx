@@ -668,6 +668,21 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     }
     setShowUrlPopup(false);
     setUrlInput('');
+
+    // ดึง og:image ใน background — ถ้ามีให้เพิ่มเข้า images panel
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    fetch(`${apiBase}/api/og?url=${encodeURIComponent(url)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.image) {
+          setImages((prev) => {
+            if (prev.includes(data.image)) return prev;
+            return [...prev, data.image];
+          });
+          dirtyRef.current = true;
+        }
+      })
+      .catch(() => {});
   }, [urlInput, syncContent]);
 
   const handleCustomPaste = useCallback(async () => {
