@@ -331,8 +331,8 @@ router.post('/', async (req, res) => {
       const displayName = name || email;
       const title = `${displayName}${domain ? ` (${domain})` : ''}`;
       await pool.query(
-        `INSERT INTO notes (id, title, content, tags, user_id, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+        `INSERT INTO notes (id, title, content, tags, user_id, source, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, 'email', NOW(), NOW())`,
         [newId, title, newBlock.trim(), autoTags, userId]
       );
     }
