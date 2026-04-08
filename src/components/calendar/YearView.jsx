@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { format, getMonth, getYear } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
+import { useFontSize } from '../../utils/useFontSize';
 
 const STORAGE_KEY = 'yearview_collapsed';
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
@@ -13,6 +14,7 @@ function loadCollapsed() {
 }
 
 export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
+  const d = (useFontSize() - 1) * 2;
   const year = getYear(date);
   const currentMonth = getMonth(new Date());
   const currentYear = getYear(new Date());
@@ -70,7 +72,7 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
 
   return (
     <div style={styles.container}>
-      <div style={styles.yearHeader}>{year}</div>
+      <div style={{ ...styles.yearHeader, fontSize: 20 + d }}>{year}</div>
       {monthGroups.map(({ month, todos: mTodos, done, total }) => {
         const isCollapsed = collapsed[`${year}-${month}`];
         return (
@@ -79,12 +81,12 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
           ref={month === nearestMonth ? nearestRef : null}
           style={styles.monthBlock}
         >
-          <div style={styles.monthHeader} onClick={() => toggleMonth(month)}>
-            <span style={styles.chevron}>{isCollapsed ? '▸' : '▾'}</span>
+          <div style={{ ...styles.monthHeader, fontSize: 14 + d }} onClick={() => toggleMonth(month)}>
+            <span style={{ ...styles.chevron, fontSize: 12 + d }}>{isCollapsed ? '▸' : '▾'}</span>
             <span style={styles.monthName}>
               {format(new Date(year, month, 1), 'MMMM', { locale: th })}
             </span>
-            <span style={styles.monthCount}>{done}/{total}</span>
+            <span style={{ ...styles.monthCount, fontSize: 12 + d }}>{done}/{total}</span>
           </div>
           {!isCollapsed && mTodos.map((todo) => (
             <div key={todo.id} style={styles.todoItem}>
@@ -101,6 +103,7 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
               <span
                 style={{
                   ...styles.todoTitle,
+                  fontSize: 13 + d,
                   textDecoration: todo.done ? 'line-through' : 'none',
                 }}
                 onClick={() => onSelectTodo?.(todo)}
@@ -109,20 +112,21 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
               </span>
               <span style={{
                 ...styles.priorityTag,
+                fontSize: 10 + d,
                 background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
                 color: PRIORITY_COLORS[todo.priority] || C.muted,
                 borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
               }}>
                 {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
               </span>
-              <span style={styles.dateLabel}>
+              <span style={{ ...styles.dateLabel, fontSize: 11 + d }}>
                 {format(new Date(todo.dueDate), 'd MMM', { locale: th })}
                 {todo.dueTime && ` ${todo.dueTime}`}
               </span>
             </div>
           ))}
           {!isCollapsed && total === 0 && (
-            <div style={styles.emptyMonth}>ไม่มีรายการ</div>
+            <div style={{ ...styles.emptyMonth, fontSize: 12 + d }}>ไม่มีรายการ</div>
           )}
         </div>
         );
@@ -131,9 +135,9 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
       {/* No-date todos */}
       {noDateTodos.length > 0 && (
         <div style={styles.monthBlock}>
-          <div style={styles.monthHeader}>
+          <div style={{ ...styles.monthHeader, fontSize: 14 + d }}>
             <span style={styles.monthName}>ไม่ระบุวัน</span>
-            <span style={styles.monthCount}>
+            <span style={{ ...styles.monthCount, fontSize: 12 + d }}>
               {noDateTodos.filter((t) => t.done).length}/{noDateTodos.length}
             </span>
           </div>
@@ -150,13 +154,14 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
                 {todo.done && <span style={styles.check}>✓</span>}
               </button>
               <span
-                style={{ ...styles.todoTitle, textDecoration: todo.done ? 'line-through' : 'none' }}
+                style={{ ...styles.todoTitle, fontSize: 13 + d, textDecoration: todo.done ? 'line-through' : 'none' }}
                 onClick={() => onSelectTodo?.(todo)}
               >
                 {todo.title}
               </span>
               <span style={{
                 ...styles.priorityTag,
+                fontSize: 10 + d,
                 background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
                 color: PRIORITY_COLORS[todo.priority] || C.muted,
                 borderColor: PRIORITY_COLORS[todo.priority] || C.muted,

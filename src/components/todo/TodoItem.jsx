@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { C } from '../../constants/theme';
+import { useFontSize } from '../../utils/useFontSize';
 
 const SOURCE_ICONS = {
   manual: '',
@@ -9,6 +10,7 @@ const SOURCE_ICONS = {
 };
 
 export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelecting, isSelected, onLongPress, onSelect }) {
+  const d = (useFontSize() - 1) * 2;
   const longPressTimer = useRef(null);
   const pointerStart = useRef(null);
   const suppressClick = useRef(false);
@@ -119,19 +121,20 @@ export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelect
         <span
           style={{
             ...styles.title,
+            fontSize: 14 + d,
             textDecoration: todo.done && !isDeleted ? 'line-through' : 'none',
           }}
         >
           {todo.title}
         </span>
-        {todo.note && <span style={styles.note}>{todo.note}</span>}
+        {todo.note && <span style={{ ...styles.note, fontSize: 12 + d }}>{todo.note}</span>}
       </div>
 
       {/* Date badge — ไม่แสดงตอน selection mode */}
       {!isSelecting && (
         <div style={styles.badges}>
           <span
-            style={dateBadgeStyle}
+            style={{ ...dateBadgeStyle, fontSize: 11 + d }}
             onClick={(e) => { e.stopPropagation(); onDateClick?.(todo); }}
           >
             {dateLabel}

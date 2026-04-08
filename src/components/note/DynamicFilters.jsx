@@ -1,6 +1,8 @@
 import { C } from '../../constants/theme';
+import { useFontSize } from '../../utils/useFontSize';
 
 export default function DynamicFilters({ activeFilter, onFilter }) {
+  const d = (useFontSize() - 1) * 2;
   const filters = [
     { key: 'pinned', label: 'Pin', icon: '📌' },
     { key: 'line', label: 'Line', icon: '💬' },
@@ -18,6 +20,7 @@ export default function DynamicFilters({ activeFilter, onFilter }) {
             key={f.key}
             style={{
               ...styles.chip,
+              fontSize: 12 + d,
               background: active ? C.amber : C.white,
               color: active ? C.white : C.sub,
               borderColor: active ? C.amber : C.border,

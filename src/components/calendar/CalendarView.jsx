@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, addYears, subYears } from 'date-fns';
 import { C } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
+import { useFontSize } from '../../utils/useFontSize';
 import YearView from './YearView';
 import MonthView from './MonthView';
 import WeekView from './WeekView';
@@ -23,6 +24,7 @@ const PRIORITY_FILTERS = [
 
 export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityFilter }) {
   const { state, actions } = useApp();
+  const d = (useFontSize() - 1) * 2;
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());
 
@@ -67,6 +69,7 @@ export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityF
               key={v.key}
               style={{
                 ...styles.viewBtn,
+                fontSize: 12 + d,
                 background: view === v.key ? C.amber : C.white,
                 color: view === v.key ? C.white : C.sub,
               }}
@@ -87,6 +90,7 @@ export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityF
               key={f.key}
               style={{
                 ...styles.filterChip,
+                fontSize: 12 + d,
                 background: active ? C.amber : C.white,
                 color: active ? C.white : C.sub,
                 borderColor: active ? C.amber : C.border,

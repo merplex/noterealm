@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from './context/AppContext';
+import { useFontSize } from './utils/useFontSize';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import Header from './components/Header';
@@ -15,6 +16,7 @@ import { C } from './constants/theme';
 
 export default function App() {
   const { state, dispatch } = useApp();
+  const d = (useFontSize() - 1) * 2;
   const [searchText, setSearchText] = useState('');
   const [activeFilter, setActiveFilter] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -76,13 +78,13 @@ export default function App() {
     <div style={isWide ? styles.splitPanel : undefined}>
       <div style={styles.todoToggle}>
         <button
-          style={{ ...styles.toggleBtn, background: todoView === 'list' ? C.amber : C.white, color: todoView === 'list' ? C.white : C.sub }}
+          style={{ ...styles.toggleBtn, fontSize: 13 + d, background: todoView === 'list' ? C.amber : C.white, color: todoView === 'list' ? C.white : C.sub }}
           onClick={() => setTodoView('list')}
         >
           📋 รายการ
         </button>
         <button
-          style={{ ...styles.toggleBtn, background: todoView === 'calendar' ? C.amber : C.white, color: todoView === 'calendar' ? C.white : C.sub }}
+          style={{ ...styles.toggleBtn, fontSize: 13 + d, background: todoView === 'calendar' ? C.amber : C.white, color: todoView === 'calendar' ? C.white : C.sub }}
           onClick={() => setTodoView('calendar')}
         >
           📅 ปฏิทิน
@@ -146,13 +148,13 @@ export default function App() {
             <>
               <div style={styles.todoToggle}>
                 <button
-                  style={{ ...styles.toggleBtn, background: todoView === 'list' ? C.amber : C.white, color: todoView === 'list' ? C.white : C.sub }}
+                  style={{ ...styles.toggleBtn, fontSize: 13 + d, background: todoView === 'list' ? C.amber : C.white, color: todoView === 'list' ? C.white : C.sub }}
                   onClick={() => setTodoView('list')}
                 >
                   📋 รายการ
                 </button>
                 <button
-                  style={{ ...styles.toggleBtn, background: todoView === 'calendar' ? C.amber : C.white, color: todoView === 'calendar' ? C.white : C.sub }}
+                  style={{ ...styles.toggleBtn, fontSize: 13 + d, background: todoView === 'calendar' ? C.amber : C.white, color: todoView === 'calendar' ? C.white : C.sub }}
                   onClick={() => setTodoView('calendar')}
                 >
                   📅 ปฏิทิน
@@ -364,7 +366,7 @@ const styles = {
     padding: '8px 0',
     borderRadius: 8,
     border: 'none',
-    fontSize: 13,
+    fontSize: 13, // overridden inline with d
     fontWeight: 600,
     cursor: 'pointer',
     fontFamily: C.font,

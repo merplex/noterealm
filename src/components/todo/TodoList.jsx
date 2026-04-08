@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
+import { useFontSize } from '../../utils/useFontSize';
 import TodoItem from './TodoItem';
 import TodoEditor from './TodoEditor';
 import DatePickerPopup from './DatePickerPopup';
@@ -18,6 +19,7 @@ const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำค�
 
 export default function TodoList({ searchText, todoFilter, onTodoFilter, priorityFilter, onPriorityFilter, todoTagFilter }) {
   const { state, actions } = useApp();
+  const d = (useFontSize() - 1) * 2;
   const isGrid = state.todoViewMode === 'grid';
   const isDeletedView = todoFilter === 'deleted';
   const [collapsed, setCollapsed] = useState({});
@@ -161,7 +163,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
             value={quickAdd}
             onChange={(e) => setQuickAdd(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
-            style={styles.quickInput}
+            style={{ ...styles.quickInput, fontSize: 14 + d }}
           />
           <button style={styles.quickBtn} onClick={handleQuickAdd}>เพิ่ม</button>
         </div>
@@ -177,6 +179,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
                 key={s.key}
                 style={{
                   ...styles.filterChip,
+                  fontSize: 12 + d,
                   background: active ? C.amber : C.white,
                   color: active ? C.white : C.sub,
                   borderColor: active ? C.amber : C.border,
@@ -219,20 +222,21 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
                     >
                       {todo.done && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>✓</span>}
                     </button>
-                    <span style={{ ...styles.gridTitle, textDecoration: todo.done ? 'line-through' : 'none' }}>
+                    <span style={{ ...styles.gridTitle, fontSize: 13 + d, textDecoration: todo.done ? 'line-through' : 'none' }}>
                       {todo.title}
                     </span>
                   </div>
-                  {todo.note && <p style={styles.gridNote}>{todo.note}</p>}
+                  {todo.note && <p style={{ ...styles.gridNote, fontSize: 11 + d }}>{todo.note}</p>}
                   <div style={styles.gridMeta}>
                     <span style={{
                       ...styles.gridPriority,
+                      fontSize: 10 + d,
                       background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
                       color: PRIORITY_COLORS[todo.priority] || C.muted,
                     }}>
                       {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
                     </span>
-                    <span style={styles.gridDate} onClick={(e) => { e.stopPropagation(); setDatePickTodo(todo); }}>
+                    <span style={{ ...styles.gridDate, fontSize: 10 + d }} onClick={(e) => { e.stopPropagation(); setDatePickTodo(todo); }}>
                       {todo.dueDate
                         ? new Date(todo.dueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
                           + (todo.dueTime ? ` ${todo.dueTime}` : '')
@@ -262,7 +266,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
                   if (todos.length === 0) return null;
                   return (
                     <div key={section.key}>
-                      <button style={styles.sectionHeader} onClick={() => toggleCollapse(section.key)}>
+                      <button style={{ ...styles.sectionHeader, fontSize: 13 + d }} onClick={() => toggleCollapse(section.key)}>
                         <span>{section.label}</span>
                         <span style={styles.count}>{todos.length}</span>
                         <span style={styles.chevron}>{collapsed[section.key] ? '▸' : '▾'}</span>

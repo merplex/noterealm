@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
 import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
 import { sync, isAutoSyncEnabled, getSyncInfo, SYNC_AUTO_KEY, setUserId } from '../utils/syncService';
+import { useFontSize, setFontSizeLevel } from '../utils/useFontSize';
 
 function formatSyncTime(iso) {
   if (!iso) return null;
@@ -17,6 +18,7 @@ function formatSyncTime(iso) {
 
 export default function Settings({ onClose }) {
   const { state, dispatch } = useApp();
+  const fontLevel = useFontSize();
   const [lineConnecting, setLineConnecting] = useState(false);
   const [cacheStats, setCacheStats] = useState(null);
   const [clearingCache, setClearingCache] = useState(false);
@@ -227,6 +229,37 @@ export default function Settings({ onClose }) {
         </div>
 
         <div style={styles.body}>
+          {/* Font size */}
+          <div style={styles.row}>
+            <div>
+              <div style={styles.label}>ขนาดตัวอักษร</div>
+              <div style={styles.desc}>ปรับขนาดข้อความทั่วทั้งแอป</div>
+            </div>
+            <div style={styles.segmented}>
+              {[
+                { level: 1, label: 'ก' },
+                { level: 2, label: 'กก' },
+                { level: 3, label: 'กกก' },
+              ].map((opt) => (
+                <button
+                  key={opt.level}
+                  style={{
+                    ...styles.seg,
+                    fontSize: 10 + opt.level * 2,
+                    background: fontLevel === opt.level ? C.amber : C.white,
+                    color: fontLevel === opt.level ? C.white : C.sub,
+                    minWidth: 36,
+                  }}
+                  onClick={() => setFontSizeLevel(opt.level)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={styles.divider} />
+
           {/* Default view */}
           <div style={styles.row}>
             <div>

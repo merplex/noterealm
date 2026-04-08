@@ -11,6 +11,7 @@ import AccordionBlock from './AccordionBlock';
 import { callAI } from '../../utils/callAI';
 import { stripHtml } from '../../utils/diff';
 import CachedImage from '../CachedImage';
+import { useFontSize } from '../../utils/useFontSize';
 
 function AIOverlay({ children }) {
   const overlayRef = useRef(null);
@@ -46,6 +47,8 @@ function AIOverlay({ children }) {
 
 export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
+  const fsLevel = useFontSize();
+  const d = (fsLevel - 1) * 2;
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(note?.content || '');
   const [tags, setTags] = useState(note?.tags || []);
@@ -723,9 +726,9 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
         {/* Sticky: Toolbar */}
         <div style={styles.toolbar}>
-          <button style={styles.toolBtn} onClick={handleAddAI}>✦ AI</button>
+          <button style={{ ...styles.toolBtn, fontSize: `clamp(${11+d}px, 3.2vw, ${15+d}px)` }} onClick={handleAddAI}>✦ AI</button>
           <div style={{ position: 'relative' }}>
-            <button style={{ ...styles.toolBtn, fontSize: 18 }} onClick={() => { setSelMenu(null); setShowInsertMenu(!showInsertMenu); }}>+</button>
+            <button style={{ ...styles.toolBtn, fontSize: 18 + d }} onClick={() => { setSelMenu(null); setShowInsertMenu(!showInsertMenu); }}>+</button>
             {showInsertMenu && (
               <>
                 <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowInsertMenu(false)} />
@@ -749,14 +752,14 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           </div>
           <FormatMenu onFormat={handleFormat} onOpen={() => setSelMenu(null)} />
           <button
-            style={{ ...styles.toolBtn, marginLeft: 'auto', color: pinned ? C.amber : C.muted }}
+            style={{ ...styles.toolBtn, fontSize: `clamp(${11+d}px, 3.2vw, ${15+d}px)`, marginLeft: 'auto', color: pinned ? C.amber : C.muted }}
             onClick={() => setPinned(!pinned)}
           >
             📌
           </button>
           {!isNew && (
             <button
-              style={styles.toolBtn}
+              style={{ ...styles.toolBtn, fontSize: `clamp(${11+d}px, 3.2vw, ${15+d}px)` }}
               onClick={() => setHistoryNote(note)}
             >
               HISTORY
@@ -802,7 +805,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                 }
               }
             }}
-            style={{ ...styles.textarea, WebkitUserSelect: 'text', WebkitTouchCallout: 'none' }}
+            style={{ ...styles.textarea, fontSize: 16 + d, lineHeight: 1.7 + d * 0.02, WebkitUserSelect: 'text', WebkitTouchCallout: 'none' }}
           />
 
           {/* Render AI Blocks as popup overlay */}
@@ -947,7 +950,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           {/* Tag chips row — ซ่อน internal tags (_line_id, _line_trim, etc.) */}
           <div style={styles.tagRow}>
             {tags.filter(t => !t.startsWith('_')).map((tag) => (
-              <span key={tag} style={styles.tagChip}>
+              <span key={tag} style={{ ...styles.tagChip, fontSize: [12, 16, 18][fsLevel - 1] }}>
                 <span style={styles.tagChipLabel}>{tag}</span>
                 <button style={styles.tagChipRemove} onClick={() => { setTags(tags.filter(t => t !== tag)); dirtyRef.current = true; }}>✕</button>
               </span>
@@ -970,8 +973,8 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
               </span>
             )}
             <div style={{ flex: 1 }} />
-            <button style={styles.cancelBtn} onClick={() => { doAutoSave(); onClose(); }}>ออก</button>
-            <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
+            <button style={{ ...styles.cancelBtn, fontSize: 15 + d }} onClick={() => { doAutoSave(); onClose(); }}>ออก</button>
+            <button style={{ ...styles.saveBtn, fontSize: 15 + d }} onClick={handleSave}>บันทึก</button>
           </div>
         </div>
 

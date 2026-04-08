@@ -4,6 +4,7 @@ import { th } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
+import { useFontSize } from '../../utils/useFontSize';
 
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 const SLOT_HEIGHT = 90;
@@ -11,6 +12,7 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i * 2); // 0,2,4,...,22
 
 export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
   const { state, actions } = useApp();
+  const d = (useFontSize() - 1) * 2;
   const scrollRef = useRef(null);
   const [linkTodo, setLinkTodo] = useState(null);
   const [noteConfirm, setNoteConfirm] = useState(null);
@@ -121,13 +123,14 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
           {todo.done && <span style={styles.checkMark}>✓</span>}
         </button>
         <span
-          style={{ ...styles.todoTitle, textDecoration: todo.done ? 'line-through' : 'none' }}
+          style={{ ...styles.todoTitle, fontSize: 13 + d, textDecoration: todo.done ? 'line-through' : 'none' }}
           onClick={() => onSelectTodo?.(todo)}
         >
           {todo.title}
         </span>
         <span style={{
           ...styles.priorityTag,
+          fontSize: 10 + d,
           background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
           color: PRIORITY_COLORS[todo.priority] || C.muted,
           borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
@@ -135,7 +138,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
           {PRIORITY_LABELS[todo.priority] || 'ปกติ'}
         </span>
       </div>
-      {todo.note && !compact && <p style={styles.todoNote}>{todo.note}</p>}
+      {todo.note && !compact && <p style={{ ...styles.todoNote, fontSize: 12 + d }}>{todo.note}</p>}
       <div style={styles.shortcutRow}>
         <button style={styles.shortcutBtn} onClick={() => setNoteConfirm(todo)}>
           📝 เพิ่มใน Note
@@ -149,7 +152,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
+      <div style={{ ...styles.header, fontSize: 16 + d }}>
         {format(date, 'EEEE d MMMM yyyy', { locale: th })}
       </div>
 
@@ -158,7 +161,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
           const slotTodos = getTodoForSlot(hour);
           return (
             <div key={hour} style={styles.slot}>
-              <div style={styles.timeLabel}>
+              <div style={{ ...styles.timeLabel, fontSize: 12 + d }}>
                 {String(hour).padStart(2, '0')}:00
               </div>
               <div style={styles.slotContent}>

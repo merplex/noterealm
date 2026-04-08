@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { parseQuery, matchQuery } from '../utils/searchQuery';
+import { useFontSize } from '../utils/useFontSize';
 
 const SORT_OPTIONS = [
   { key: 'updated', label: 'แก้ไขล่าสุด' },
@@ -12,6 +13,7 @@ const SORT_OPTIONS = [
 
 export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, onSelectTodo }) {
   const { state, dispatch } = useApp();
+  const d = (useFontSize() - 1) * 2;
   const [searchText, setSearchText] = useState('');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -115,7 +117,7 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
             value={searchText}
             onChange={handleSearch}
             onFocus={() => searchText.trim() && setShowResults(true)}
-            style={styles.searchInput}
+            style={{ ...styles.searchInput, fontSize: 14 + d }}
           />
           {searchText && (
             <button style={styles.clearBtn} onClick={handleClear}>✕</button>
