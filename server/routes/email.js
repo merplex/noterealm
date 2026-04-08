@@ -171,13 +171,23 @@ router.post('/', async (req, res) => {
     let userId = null;
     let userFilters = { email_filter_spam: false, email_filter_ads: false, email_filter_summary: false };
     if (inboxToken) {
-      const userRes = await pool.query(
-        `SELECT id, email_filter_spam, email_filter_ads, email_filter_summary FROM users WHERE inbox_token = $1 LIMIT 1`,
-        [inboxToken]
-      );
-      if (userRes.rows[0]) {
-        userId = userRes.rows[0].id;
-        userFilters = userRes.rows[0];
+      try {
+        const userRes = await pool.query(
+          `SELECT id, email_filter_spam, email_filter_ads, email_filter_summary FROM users WHERE inbox_token = $1 LIMIT 1`,
+          [inboxToken]
+        );
+        if (userRes.rows[0]) {
+          userId = userRes.rows[0].id;
+          userFilters = userRes.rows[0];
+        }
+      } catch (filterErr) {
+        // column อาจยังไม่มี — fallback ดึงแค่ id
+        console.error('Filter columns not ready, fallback:', filterErr.message);
+        const userRes = await pool.query(
+          `SELECT id FROM users WHERE inbox_token = $1 LIMIT 1`,
+          [inboxToken]
+        );
+        userId = userRes.rows[0]?.id || null;
       }
     }
 
