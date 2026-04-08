@@ -3,7 +3,7 @@ import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, isSameMonth, isSameDay, format,
 } from 'date-fns';
-import { th } from 'date-fns/locale';
+import { th, enUS } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useFontSize } from '../../utils/useFontSize';
 import { useLocale } from '../../utils/useLocale';
@@ -58,7 +58,8 @@ function MarqueeChip({ text, dotColor, fontSize }) {
 }
 
 export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onToggleTodo }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const dfLocale = locale === 'en' ? enUS : th;
   const d = (useFontSize() - 1) * 2;
   const today = new Date();
   const [selectedDay, setSelectedDay] = useState(
@@ -102,7 +103,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
   return (
     <div>
       <div style={{ ...styles.header, fontSize: 16 + d }}>
-        {format(date, 'MMMM yyyy', { locale: th })}
+        {format(date, 'MMMM yyyy', { locale: dfLocale })}
       </div>
 
       <div style={styles.grid}>
@@ -160,7 +161,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
       {selectedDay && (
         <div style={styles.dayPanel}>
           <div style={{ ...styles.dayPanelHeader, fontSize: 14 + d }}>
-            {format(selectedDay, 'EEEE d MMMM yyyy', { locale: th })}
+            {format(selectedDay, 'EEEE d MMMM yyyy', { locale: dfLocale })}
           </div>
           {dayTodos.length === 0 ? (
             <p style={{ ...styles.noTodos, fontSize: 13 + d }}>{t('cal.noItems')}</p>

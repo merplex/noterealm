@@ -11,7 +11,7 @@ const SOURCE_ICONS = {
 };
 
 export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelecting, isSelected, onLongPress, onSelect }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const longPressTimer = useRef(null);
   const pointerStart = useRef(null);
@@ -25,8 +25,9 @@ export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelect
     return due < today && !todo.done;
   })();
 
+  const localeStr = locale === 'en' ? 'en-US' : 'th-TH';
   const dateLabel = todo.dueDate
-    ? new Date(todo.dueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) +
+    ? new Date(todo.dueDate).toLocaleDateString(localeStr, { day: 'numeric', month: 'short' }) +
       (todo.dueTime ? ` ${todo.dueTime}` : '')
     : t('todo.noDate');
 

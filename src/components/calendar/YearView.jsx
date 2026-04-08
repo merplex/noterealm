@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { format, getMonth, getYear } from 'date-fns';
-import { th } from 'date-fns/locale';
+import { th, enUS } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useFontSize } from '../../utils/useFontSize';
 import { useLocale } from '../../utils/useLocale';
@@ -15,7 +15,8 @@ function loadCollapsed() {
 }
 
 export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const dfLocale = locale === 'en' ? enUS : th;
   const d = (useFontSize() - 1) * 2;
   const year = getYear(date);
   const currentMonth = getMonth(new Date());
@@ -86,7 +87,7 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
           <div style={{ ...styles.monthHeader, fontSize: 14 + d }} onClick={() => toggleMonth(month)}>
             <span style={{ ...styles.chevron, fontSize: 12 + d }}>{isCollapsed ? '▸' : '▾'}</span>
             <span style={styles.monthName}>
-              {format(new Date(year, month, 1), 'MMMM', { locale: th })}
+              {format(new Date(year, month, 1), 'MMMM', { locale: dfLocale })}
             </span>
             <span style={{ ...styles.monthCount, fontSize: 12 + d }}>{done}/{total}</span>
           </div>
@@ -122,7 +123,7 @@ export default function YearView({ date, todos, onSelectTodo, onToggleTodo }) {
                 {t(`priority.${todo.priority}`) || t('priority.normal')}
               </span>
               <span style={{ ...styles.dateLabel, fontSize: 11 + d }}>
-                {format(new Date(todo.dueDate), 'd MMM', { locale: th })}
+                {format(new Date(todo.dueDate), 'd MMM', { locale: dfLocale })}
                 {todo.dueTime && ` ${todo.dueTime}`}
               </span>
             </div>

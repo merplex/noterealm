@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { startOfWeek, addDays, isSameDay, format } from 'date-fns';
-import { th } from 'date-fns/locale';
+import { th, enUS } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useFontSize } from '../../utils/useFontSize';
 import { useLocale } from '../../utils/useLocale';
@@ -8,7 +8,8 @@ import { useLocale } from '../../utils/useLocale';
 const PRIORITY_LABELS = { urgent: 'เร่งด่วน', high: 'สำคัญ', normal: 'ปกติ', low: 'ต่ำ' };
 
 export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const dfLocale = locale === 'en' ? enUS : th;
   const d = (useFontSize() - 1) * 2;
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const today = new Date();
@@ -31,8 +32,8 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
   return (
     <div style={styles.container}>
       <div style={{ ...styles.header, fontSize: 14 + d }}>
-        {t('cal.week')} {format(weekStart, 'd MMM', { locale: th })} -{' '}
-        {format(addDays(weekStart, 6), 'd MMM yyyy', { locale: th })}
+        {t('cal.week')} {format(weekStart, 'd MMM', { locale: dfLocale })} -{' '}
+        {format(addDays(weekStart, 6), 'd MMM yyyy', { locale: dfLocale })}
       </div>
 
       <div style={styles.list}>
@@ -45,7 +46,7 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
                 background: isToday ? C.amber : '#f5f5f4',
                 color: isToday ? C.white : C.text,
               }}>
-                <div style={{ ...styles.dayName, fontSize: 11 + d }}>{format(day, 'EEE', { locale: th })}</div>
+                <div style={{ ...styles.dayName, fontSize: 11 + d }}>{format(day, 'EEE', { locale: dfLocale })}</div>
                 <div style={{ ...styles.dayNum, fontSize: 16 + d }}>{format(day, 'd')}</div>
               </div>
 

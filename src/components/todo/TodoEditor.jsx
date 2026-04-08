@@ -4,7 +4,8 @@ import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { QUICK_PICKS, calcDate } from './DatePickerPopup';
 import { format } from 'date-fns';
-import { th } from 'date-fns/locale';
+import { th, enUS } from 'date-fns/locale';
+import { useLocale } from '../../utils/useLocale';
 
 const PRIORITIES = [
   { key: 'urgent', label: '🔴 เร่งด่วน' },
@@ -15,6 +16,8 @@ const PRIORITIES = [
 
 export default function TodoEditor({ todo, onClose }) {
   const { state, actions } = useApp();
+  const { locale } = useLocale();
+  const dfLocale = locale === 'en' ? enUS : th;
   const isNew = !todo?.id;
 
   const [title, setTitle] = useState(todo?.title || '');
@@ -344,7 +347,7 @@ export default function TodoEditor({ todo, onClose }) {
                   >
                     <span style={styles.noteItemTitle}>{n.title || 'ไม่มีชื่อ'}</span>
                     <span style={styles.noteItemDate}>
-                      {format(new Date(n.updatedAt || n.createdAt), 'd MMM', { locale: th })}
+                      {format(new Date(n.updatedAt || n.createdAt), 'd MMM', { locale: dfLocale })}
                     </span>
                   </div>
                 ))

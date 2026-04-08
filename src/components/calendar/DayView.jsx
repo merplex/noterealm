@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { format, isSameDay } from 'date-fns';
-import { th } from 'date-fns/locale';
+import { th, enUS } from 'date-fns/locale';
 import { v4 as uuidv4 } from 'uuid';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
@@ -12,7 +12,8 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i * 2); // 0,2,4,...,22
 
 export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
   const { state, actions } = useApp();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const dfLocale = locale === 'en' ? enUS : th;
   const d = (useFontSize() - 1) * 2;
   const scrollRef = useRef(null);
   const [linkTodo, setLinkTodo] = useState(null);
@@ -154,7 +155,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
   return (
     <div style={styles.container}>
       <div style={{ ...styles.header, fontSize: 16 + d }}>
-        {format(date, 'EEEE d MMMM yyyy', { locale: th })}
+        {format(date, 'EEEE d MMMM yyyy', { locale: dfLocale })}
       </div>
 
       <div style={styles.timeline} ref={scrollRef}>
@@ -232,7 +233,7 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
                   >
                     <span style={styles.noteItemTitle}>{note.title || t('common.noItems')}</span>
                     <span style={styles.noteItemDate}>
-                      {format(new Date(note.updatedAt || note.createdAt), 'd MMM', { locale: th })}
+                      {format(new Date(note.updatedAt || note.createdAt), 'd MMM', { locale: dfLocale })}
                     </span>
                   </div>
                 ))

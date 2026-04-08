@@ -141,7 +141,7 @@ function FullscreenViewer({ src, onClose }) {
 
 export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const { state, actions } = useApp();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const fsLevel = useFontSize();
   const d = (fsLevel - 1) * 2;
   const [title, setTitle] = useState(note?.title || '');
@@ -1061,7 +1061,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           <div style={styles.footerBottom}>
             {!isNew && lastSaved && (
               <span style={{ ...styles.saveInfo, fontSize: 11 + d }}>
-                {t('editor.updated')} {new Date(lastSaved).toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
+                {t('editor.updated')} {new Date(lastSaved).toLocaleDateString(locale === 'en' ? 'en-US' : 'th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
                 {' ver '}{(note?.history?.length || 0) + 1}
               </span>
             )}

@@ -5,7 +5,7 @@ import { useFontSize } from '../../utils/useFontSize';
 import { useLocale } from '../../utils/useLocale';
 
 export default function HistorySidebar({ note, onRestore, onClose }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const d = (useFontSize() - 1) * 2;
   const history = note?.history || [];
   const currentContent = stripHtml(note?.content || '');
@@ -129,7 +129,7 @@ export default function HistorySidebar({ note, onRestore, onClose }) {
                   color: isSelected ? C.amber : C.sub,
                   fontWeight: isSelected ? 600 : 400,
                 }}>
-                  ver{verNum} — {new Date(ver.timestamp).toLocaleString('th-TH')}
+                  ver{verNum} — {new Date(ver.timestamp).toLocaleString(locale === 'en' ? 'en-US' : 'th-TH')}
                   {hasRefChange && <span style={styles.refBadge}>🔗</span>}
                 </span>
                 <button
