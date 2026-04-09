@@ -157,17 +157,27 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
         </div>
 
         <button style={{ ...styles.iconBtn, width: 36 + d, height: 36 + d }} onClick={toggleView}>
-          {currentViewMode === 'grid' ? (
+          {currentViewMode === 'list' ? (
             <svg width={20 + d} height={20 + d} viewBox="0 0 18 18" fill="none">
-              <circle cx="3" cy="4" r="1.8" fill={C.sub}/>
-              <rect x="7" y="2.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
-              <circle cx="3" cy="9" r="1.8" fill={C.sub}/>
-              <rect x="7" y="7.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
-              <circle cx="3" cy="14" r="1.8" fill={C.sub}/>
-              <rect x="7" y="12.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
+              <rect x="0" y="1" width="4" height="3" rx="0.5" fill={C.amber}/>
+              <rect x="6" y="1" width="12" height="3" rx="0.5" fill={C.amber}/>
+              <rect x="0" y="7.5" width="4" height="3" rx="0.5" fill={C.amber}/>
+              <rect x="6" y="7.5" width="12" height="3" rx="0.5" fill={C.amber}/>
+              <rect x="0" y="14" width="4" height="3" rx="0.5" fill={C.amber}/>
+              <rect x="6" y="14" width="12" height="3" rx="0.5" fill={C.amber}/>
             </svg>
           ) : (
-            <span style={{ fontSize: 20 + d, color: C.sub }}>⊞</span>
+            <svg width={20 + d} height={20 + d} viewBox="0 0 18 18" fill="none">
+              <rect x="0" y="0" width="5" height="5" rx="1" fill="#1e3a5f"/>
+              <rect x="6.5" y="0" width="5" height="5" rx="1" fill="#1e3a5f"/>
+              <rect x="13" y="0" width="5" height="5" rx="1" fill="#1e3a5f"/>
+              <rect x="0" y="6.5" width="5" height="5" rx="1" fill="#1e3a5f"/>
+              <rect x="6.5" y="6.5" width="5" height="5" rx="1" fill="#1e3a5f"/>
+              <rect x="13" y="6.5" width="5" height="5" rx="1" fill="#1e3a5f"/>
+              <rect x="0" y="13" width="5" height="5" rx="1" fill="#1e3a5f"/>
+              <rect x="6.5" y="13" width="5" height="5" rx="1" fill="#1e3a5f"/>
+              <rect x="13" y="13" width="5" height="5" rx="1" fill="#1e3a5f"/>
+            </svg>
           )}
         </button>
 
@@ -178,7 +188,21 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
             onPointerUp={handleSortUp}
             onPointerLeave={() => { clearTimeout(holdTimer.current); holdTimer.current = null; }}
           >
-            <span style={{ fontSize: 20 + d, color: C.sub }}>{state.sortDir === 'desc' ? '↓' : '↑'}</span>
+            {state.sortDir === 'asc' ? (
+              <svg width={20 + d} height={20 + d} viewBox="0 0 20 20" fill="none">
+                <rect x="0" y="14" width="6" height="3" rx="0.5" fill={C.amber}/>
+                <rect x="0" y="8.5" width="10" height="3" rx="0.5" fill={C.amber}/>
+                <rect x="0" y="3" width="14" height="3" rx="0.5" fill={C.amber}/>
+                <path d="M17 14 L17 5 M14.5 8 L17 5 L19.5 8" stroke={C.amber} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width={20 + d} height={20 + d} viewBox="0 0 20 20" fill="none">
+                <rect x="0" y="3" width="6" height="3" rx="0.5" fill="#1e3a5f"/>
+                <rect x="0" y="8.5" width="10" height="3" rx="0.5" fill="#1e3a5f"/>
+                <rect x="0" y="14" width="14" height="3" rx="0.5" fill="#1e3a5f"/>
+                <path d="M17 5 L17 15 M14.5 12 L17 15 L19.5 12" stroke="#1e3a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
           </button>
 
           {showSortMenu && (
