@@ -65,6 +65,28 @@ export default function App() {
       StatusBar.setStyle({ style: Style.Light }).catch(() => {});
       StatusBar.setBackgroundColor({ color: '#faf8f4' }).catch(() => {});
     }
+    if (isNative && isIOS) {
+      // iOS: วัด safe-area-inset-top แล้วเซ็ต --sat (env() ใน var() fallback ไม่ reliable ใน iOS WebView)
+      const measureSat = () => {
+        const el = document.createElement('div');
+        el.style.cssText = 'position:fixed;top:0;left:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
+        document.body.appendChild(el);
+        const h = el.getBoundingClientRect().height;
+        document.body.removeChild(el);
+        return h;
+      };
+      const applySat = () => {
+        const v = measureSat();
+        if (v > 0) document.documentElement.style.setProperty('--sat', v + 'px');
+      };
+      applySat();
+      // retry เผื่อ env() ยังไม่พร้อม
+      setTimeout(applySat, 100);
+      setTimeout(applySat, 500);
+      // iOS: gesture bar เตี้ยกว่า Android nav bar → ลด --sab ให้ปุ่มไม่ลอยเกิน
+      document.documentElement.style.setProperty('--sab', '8px');
+      StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+    }
   }, []);
 
   const handleAddNote = () => setEditingNote({});

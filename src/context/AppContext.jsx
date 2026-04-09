@@ -26,8 +26,12 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'LOAD_STATE':
-      return { ...state, ...action.payload, showSplash: true };
+    case 'LOAD_STATE': {
+      const loaded = { ...state, ...action.payload, showSplash: true };
+      // ใช้ defaultTab เป็น activeTab ตอน startup
+      if (action.payload.defaultTab) loaded.activeTab = action.payload.defaultTab;
+      return loaded;
+    }
     case 'SET_TAB':
       return { ...state, activeTab: action.payload };
     case 'SET_VIEW_MODE':

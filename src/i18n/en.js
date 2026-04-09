@@ -24,7 +24,7 @@ const en = {
   'priority.lowLabel': '⚪ Low',
 
   // tabs
-  'tabs.notes': 'Notes',
+  'tabs.notes': 'Todo',
   'tabs.calendar': 'Calendar',
 
   // header
@@ -193,6 +193,30 @@ const en = {
   'ai.signInPrompt': 'Sign in to use',
   'ai.signInBtn': 'Sign in with',
   'ai.connecting': 'Connecting...',
+
+  // todo editor
+  'todoEditor.create': 'Create',
+  'todoEditor.edit': 'Edit',
+  'todoEditor.titlePlaceholder': 'Todo name...',
+  'todoEditor.notePlaceholder': 'Details (optional)...',
+  'todoEditor.priority': 'Priority',
+  'todoEditor.dueDateSection': 'Due',
+  'todoEditor.dueDate': 'Due date',
+  'todoEditor.time': 'Time',
+  'todoEditor.noDate': 'None',
+  'todoEditor.tags': 'Tags',
+  'todoEditor.tagPlaceholder': '+ tag',
+  'todoEditor.noTitle': 'Untitled',
+  'todoEditor.noContent': 'No content',
+  'todoEditor.unlinkTitle': 'Unlink?',
+  'todoEditor.unlinkText': 'Unlink Note "{title}" from this Todo',
+  'todoEditor.unlinkTooltip': 'Unlink',
+  'todoEditor.fromTodo': 'From Todo',
+  'todoEditor.addNoteSuccess': 'Note created',
+  'todoEditor.addNoteFailed': 'Failed: ',
+  'todoEditor.linkFailed': 'Link failed: ',
+  'todoEditor.unlinkFailed': 'Unlink failed: ',
+  'todoEditor.saveFailed': 'Save failed: ',
 
   // accordion
   'accordion.titlePlaceholder': 'Title...',

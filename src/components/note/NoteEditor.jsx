@@ -878,7 +878,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     <div style={styles.overlay}>
       <div style={{ ...styles.modal, flexDirection: isLandscape ? 'row' : 'column' }}>
         {/* Left column (หรือ full column ใน portrait) */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', paddingTop: sat }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))' }}>
         {/* Sticky: Related Notes — ซ่อนใน landscape เพราะย้ายไป right panel */}
         {!showRightPanel && (
           <RelatePanel note={{ ...note, refs }} onNavigate={(n) => setPreviewNote(n)} onRemove={removeRef} />
@@ -1133,7 +1133,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           <div style={styles.footerBottom}>
             {!isNew && lastSaved && (
               <span style={{ ...styles.saveInfo, fontSize: 11 + d }}>
-                {t('editor.updated')} {new Date(lastSaved).toLocaleDateString(locale === 'en' ? 'en-US' : 'th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' })}
+                {t('editor.updated')} {new Date(lastSaved).toLocaleDateString(locale === 'en' ? 'en-US' : 'th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
                 {' ver '}{(note?.history?.length || 0) + 1}
               </span>
             )}
@@ -1242,7 +1242,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleInsertUrl(); if (e.key === 'Escape') setShowUrlPopup(false); }}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #d6d3d1', fontSize: 15, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #d6d3d1', fontSize: 16, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
               />
               <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
                 <button onClick={() => setShowUrlPopup(false)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #d6d3d1', background: 'transparent', fontSize: 14, cursor: 'pointer' }}>{t('common.cancel')}</button>

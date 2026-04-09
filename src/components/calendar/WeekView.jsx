@@ -33,7 +33,7 @@ export default function WeekView({ date, todos, onSelectTodo, onToggleTodo }) {
     <div style={styles.container}>
       <div style={{ ...styles.header, fontSize: 14 + d }}>
         {t('cal.week')} {format(weekStart, 'd MMM', { locale: dfLocale })} -{' '}
-        {format(addDays(weekStart, 6), 'd MMM yyyy', { locale: dfLocale })}
+        {format(addDays(weekStart, 6), 'd MMM', { locale: dfLocale })} {locale === 'th' ? addDays(weekStart, 6).getFullYear() + 543 : addDays(weekStart, 6).getFullYear()}
       </div>
 
       <div style={styles.list}>

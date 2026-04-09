@@ -103,7 +103,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
   return (
     <div>
       <div style={{ ...styles.header, fontSize: 16 + d }}>
-        {format(date, 'MMMM yyyy', { locale: dfLocale })}
+        {format(date, 'MMMM', { locale: dfLocale })} {locale === 'th' ? date.getFullYear() + 543 : date.getFullYear()}
       </div>
 
       <div style={styles.grid}>

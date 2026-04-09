@@ -6,18 +6,15 @@ import { QUICK_PICKS, calcDate } from './DatePickerPopup';
 import { format } from 'date-fns';
 import { th, enUS } from 'date-fns/locale';
 import { useLocale } from '../../utils/useLocale';
+import { useFontSize } from '../../utils/useFontSize';
 
-const PRIORITIES = [
-  { key: 'urgent', label: '🔴 เร่งด่วน' },
-  { key: 'high', label: '🟠 สำคัญ' },
-  { key: 'normal', label: '🟡 ปกติ' },
-  { key: 'low', label: '⚪ ต่ำ' },
-];
+const PRIORITY_KEYS = ['urgent', 'high', 'normal', 'low'];
 
 export default function TodoEditor({ todo, onClose }) {
   const { state, actions } = useApp();
-  const { locale } = useLocale();
+  const { t, locale } = useLocale();
   const dfLocale = locale === 'en' ? enUS : th;
+  const fd = (useFontSize() - 1) * 2;
   const isNew = !todo?.id;
 
   const [title, setTitle] = useState(todo?.title || '');
@@ -50,7 +47,7 @@ export default function TodoEditor({ todo, onClose }) {
     try {
       await actions.addNote({
         id: uuidv4(),
-        title: title.trim() || todo?.title || 'จาก Todo',
+        title: title.trim() || todo?.title || t('todoEditor.fromTodo'),
         content: `<p>${note.trim() || title.trim() || ''}</p>`,
         tags: [],
         pinned: false,
@@ -64,9 +61,9 @@ export default function TodoEditor({ todo, onClose }) {
         updatedAt: new Date().toISOString(),
       });
       setShowNoteConfirm(false);
-      alert('สร้าง Note สำเร็จ');
+      alert(t('todoEditor.addNoteSuccess'));
     } catch (err) {
-      alert('เพิ่มไม่สำเร็จ: ' + err.message);
+      alert(t('todoEditor.addNoteFailed') + err.message);
     }
   };
 
@@ -75,7 +72,7 @@ export default function TodoEditor({ todo, onClose }) {
       try {
         await actions.updateTodo({ ...todo, linkedNoteId: noteId });
       } catch (err) {
-        alert('เชื่อมต่อไม่สำเร็จ: ' + err.message);
+        alert(t('todoEditor.linkFailed') + err.message);
       }
     }
     setShowLinkNote(false);
@@ -86,7 +83,7 @@ export default function TodoEditor({ todo, onClose }) {
       try {
         await actions.updateTodo({ ...todo, linkedNoteId: undefined });
       } catch (err) {
-        alert('ยกเลิกไม่สำเร็จ: ' + err.message);
+        alert(t('todoEditor.unlinkFailed') + err.message);
       }
     }
     setShowUnlinkConfirm(false);
@@ -117,7 +114,7 @@ export default function TodoEditor({ todo, onClose }) {
       }
       onClose();
     } catch (err) {
-      alert('บันทึกไม่สำเร็จ: ' + err.message);
+      alert(t('todoEditor.saveFailed') + err.message);
     }
   };
 
@@ -125,14 +122,14 @@ export default function TodoEditor({ todo, onClose }) {
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <h3 style={styles.headerTitle}>{isNew ? 'สร้าง Todo' : 'แก้ไข Todo'}</h3>
+          <h3 style={{ ...styles.headerTitle, fontSize: 16 + fd }}>{isNew ? t('todoEditor.create') : t('todoEditor.edit')}</h3>
           {!isNew && (
             <div style={styles.headerActions}>
-              <button style={styles.headerActionBtn} onClick={() => setShowNoteConfirm(true)}>
-                📝 เพิ่มใน Note
+              <button style={{ ...styles.headerActionBtn, fontSize: 11 + fd }} onClick={() => setShowNoteConfirm(true)}>
+                📝 {t('editor.addNote')}
               </button>
-              <button style={styles.headerActionBtn} onClick={() => { setShowLinkNote(true); setNoteSearch(''); }}>
-                🔗 Link Note
+              <button style={{ ...styles.headerActionBtn, fontSize: 11 + fd }} onClick={() => { setShowLinkNote(true); setNoteSearch(''); }}>
+                🔗 {t('editor.linkNote')}
               </button>
             </div>
           )}
@@ -142,41 +139,42 @@ export default function TodoEditor({ todo, onClose }) {
         <div style={styles.body}>
           <input
             type="text"
-            placeholder="ชื่อ Todo..."
+            placeholder={t('todoEditor.titlePlaceholder')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            style={styles.titleInput}
+            style={{ ...styles.titleInput, fontSize: 16 + fd}}
             autoFocus={isNew}
           />
 
           <textarea
-            placeholder="รายละเอียด (ไม่บังคับ)..."
+            placeholder={t('todoEditor.notePlaceholder')}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            style={styles.noteInput}
+            style={{ ...styles.noteInput, fontSize: 13 + fd }}
             rows={3}
           />
 
           {/* Priority */}
-          <label style={styles.label}>ความสำคัญ</label>
+          <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.priority')}</label>
           <div style={styles.priorityRow}>
-            {PRIORITIES.map((p) => (
+            {PRIORITY_KEYS.map((key) => (
               <button
-                key={p.key}
+                key={key}
                 style={{
                   ...styles.priorityBtn,
-                  background: priority === p.key ? PRIORITY_COLORS[p.key] + '20' : C.white,
-                  borderColor: priority === p.key ? PRIORITY_COLORS[p.key] : C.border,
+                  fontSize: 12 + fd,
+                  background: priority === key ? PRIORITY_COLORS[key] + '20' : C.white,
+                  borderColor: priority === key ? PRIORITY_COLORS[key] : C.border,
                 }}
-                onClick={() => setPriority(p.key)}
+                onClick={() => setPriority(key)}
               >
-                {p.label}
+                {t(`priority.${key}Label`)}
               </button>
             ))}
           </div>
 
           {/* Quick pick dates */}
-          <label style={styles.label}>ครบกำหนด</label>
+          <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.dueDateSection')}</label>
           <div style={styles.quickPickRow}>
             {QUICK_PICKS.map((pick) => {
               const d = calcDate(pick);
@@ -185,6 +183,7 @@ export default function TodoEditor({ todo, onClose }) {
                   key={pick.label}
                   style={{
                     ...styles.quickPickBtn,
+                    fontSize: 11 + fd,
                     background: dueDate === d ? C.amber : C.white,
                     color: dueDate === d ? C.white : C.text,
                     borderColor: dueDate === d ? C.amber : C.border,
@@ -198,46 +197,47 @@ export default function TodoEditor({ todo, onClose }) {
             <button
               style={{
                 ...styles.quickPickBtn,
+                fontSize: 11 + fd,
                 background: !dueDate ? '#f0f0f0' : C.white,
                 color: C.sub,
                 borderColor: C.border,
               }}
               onClick={() => { setDueDate(''); setDueTime(''); }}
             >
-              ไม่ระบุ
+              {t('todoEditor.noDate')}
             </button>
           </div>
 
           {/* Due date/time */}
           <div style={styles.row}>
             <div style={styles.field}>
-              <label style={styles.label}>วันครบกำหนด</label>
+              <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.dueDate')}</label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                style={styles.input}
+                style={{ ...styles.input, fontSize: 13 + fd }}
               />
             </div>
             <div style={styles.field}>
-              <label style={styles.label}>เวลา</label>
+              <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.time')}</label>
               <input
                 type="time"
                 value={dueTime}
                 onChange={(e) => setDueTime(e.target.value)}
-                style={styles.input}
+                style={{ ...styles.input, fontSize: 13 + fd }}
               />
             </div>
           </div>
 
           {/* Tags */}
-          <label style={styles.label}>แท็ก</label>
+          <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.tags')}</label>
           <div style={styles.tagsWrap}>
             {tags.map((tag) => (
-              <span key={tag} style={styles.tag}>
+              <span key={tag} style={{ ...styles.tag, fontSize: 11 + fd }}>
                 {tag}
                 <button
-                  style={styles.tagRemove}
+                  style={{ ...styles.tagRemove, fontSize: 14 + fd }}
                   onClick={() => setTags(tags.filter((t) => t !== tag))}
                 >
                   ×
@@ -245,8 +245,8 @@ export default function TodoEditor({ todo, onClose }) {
               </span>
             ))}
             <input
-              style={styles.tagInput}
-              placeholder="+ แท็ก"
+              style={{ ...styles.tagInput, fontSize: 12 + fd }}
+              placeholder={t('todoEditor.tagPlaceholder')}
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
@@ -262,16 +262,16 @@ export default function TodoEditor({ todo, onClose }) {
           {linkedNote && (
             <div style={styles.linkedBlock}>
             <div
-              style={styles.linkedHeader}
+              style={{ ...styles.linkedHeader, fontSize: 13 + fd }}
               onClick={() => setLinkedNoteExpanded(!linkedNoteExpanded)}
             >
               <span style={styles.linkedChevron}>{linkedNoteExpanded ? '▾' : '▸'}</span>
               <span style={styles.linkedIcon}>🔗</span>
-              <span style={styles.linkedTitle}>{linkedNote.title || 'ไม่มีชื่อ'}</span>
+              <span style={styles.linkedTitle}>{linkedNote.title || t('todoEditor.noTitle')}</span>
               <button
                 style={styles.unlinkBtn}
                 onClick={(e) => { e.stopPropagation(); setShowUnlinkConfirm(true); }}
-                title="ยกเลิกการเชื่อมต่อ"
+                title={t('todoEditor.unlinkTooltip')}
               >
                 ✕
               </button>
@@ -279,7 +279,7 @@ export default function TodoEditor({ todo, onClose }) {
             {linkedNoteExpanded && (
               <div
                 style={styles.linkedContent}
-                dangerouslySetInnerHTML={{ __html: linkedNote.content || '<p style="color:#a8a29e">ไม่มีเนื้อหา</p>' }}
+                dangerouslySetInnerHTML={{ __html: linkedNote.content || `<p style="color:#a8a29e">${t('todoEditor.noContent')}</p>` }}
               />
             )}
           </div>
@@ -287,8 +287,8 @@ export default function TodoEditor({ todo, onClose }) {
         </div>
 
         <div style={styles.footer}>
-          <button style={styles.cancelBtn} onClick={onClose}>ยกเลิก</button>
-          <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
+          <button style={{ ...styles.cancelBtn, fontSize: 13 + fd }} onClick={onClose}>{t('common.cancel')}</button>
+          <button style={{ ...styles.saveBtn, fontSize: 13 + fd }} onClick={handleSave}>{t('common.save')}</button>
         </div>
       </div>
 
@@ -296,11 +296,11 @@ export default function TodoEditor({ todo, onClose }) {
       {showUnlinkConfirm && (
         <div style={styles.subOverlay} onClick={() => setShowUnlinkConfirm(false)}>
           <div style={styles.subPopup} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.subTitle}>ยกเลิกการเชื่อมต่อ?</div>
-            <p style={styles.subText}>ยกเลิกการเชื่อมต่อ Note "{linkedNote?.title || 'ไม่มีชื่อ'}" ออกจาก Todo นี้</p>
+            <div style={{ ...styles.subTitle, fontSize: 15 + fd }}>{t('todoEditor.unlinkTitle')}</div>
+            <p style={{ ...styles.subText, fontSize: 13 + fd }}>{t('todoEditor.unlinkText').replace('{title}', linkedNote?.title || t('todoEditor.noTitle'))}</p>
             <div style={styles.subFooter}>
-              <button style={styles.cancelBtn} onClick={() => setShowUnlinkConfirm(false)}>ยกเลิก</button>
-              <button style={styles.saveBtn} onClick={handleUnlink}>ยืนยัน</button>
+              <button style={{ ...styles.cancelBtn, fontSize: 13 + fd }} onClick={() => setShowUnlinkConfirm(false)}>{t('common.cancel')}</button>
+              <button style={{ ...styles.saveBtn, fontSize: 13 + fd }} onClick={handleUnlink}>{t('common.confirm')}</button>
             </div>
           </div>
         </div>
@@ -310,11 +310,11 @@ export default function TodoEditor({ todo, onClose }) {
       {showNoteConfirm && (
         <div style={styles.subOverlay} onClick={() => setShowNoteConfirm(false)}>
           <div style={styles.subPopup} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.subTitle}>เพิ่มเป็น Note ใหม่?</div>
-            <p style={styles.subText}>จะสร้าง Note ใหม่จาก Todo "{title || todo?.title}"</p>
+            <div style={{ ...styles.subTitle, fontSize: 15 + fd }}>{t('editor.confirmAddNote')}</div>
+            <p style={{ ...styles.subText, fontSize: 13 + fd }}>{t('editor.confirmAddNoteText')} "{title || todo?.title}"</p>
             <div style={styles.subFooter}>
-              <button style={styles.cancelBtn} onClick={() => setShowNoteConfirm(false)}>ยกเลิก</button>
-              <button style={styles.saveBtn} onClick={handleAddToNote}>ยืนยัน</button>
+              <button style={{ ...styles.cancelBtn, fontSize: 13 + fd }} onClick={() => setShowNoteConfirm(false)}>{t('common.cancel')}</button>
+              <button style={{ ...styles.saveBtn, fontSize: 13 + fd }} onClick={handleAddToNote}>{t('common.confirm')}</button>
             </div>
           </div>
         </div>
@@ -324,17 +324,17 @@ export default function TodoEditor({ todo, onClose }) {
       {showLinkNote && (
         <div style={styles.subOverlay} onClick={() => setShowLinkNote(false)}>
           <div style={styles.subPopup} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.subTitle}>เลือก Note เพื่อเชื่อมต่อ</div>
+            <div style={{ ...styles.subTitle, fontSize: 15 + fd }}>{t('editor.linkNoteTitle')}</div>
             <input
-              style={styles.searchInput}
-              placeholder="ค้นหา Note..."
+              style={{ ...styles.searchInput, fontSize: 14 + fd }}
+              placeholder={t('editor.searchNote')}
               value={noteSearch}
               onChange={(e) => setNoteSearch(e.target.value)}
               autoFocus
             />
             <div style={styles.noteList}>
               {filteredNotes.length === 0 ? (
-                <p style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 16 }}>ไม่พบ Note</p>
+                <p style={{ fontSize: 13 + fd, color: C.muted, textAlign: 'center', padding: 16 }}>{t('editor.noNote')}</p>
               ) : (
                 filteredNotes.map((n) => (
                   <div
@@ -345,8 +345,8 @@ export default function TodoEditor({ todo, onClose }) {
                     }}
                     onClick={() => handleLinkNote(n.id)}
                   >
-                    <span style={styles.noteItemTitle}>{n.title || 'ไม่มีชื่อ'}</span>
-                    <span style={styles.noteItemDate}>
+                    <span style={{ ...styles.noteItemTitle, fontSize: 13 + fd }}>{n.title || t('todoEditor.noTitle')}</span>
+                    <span style={{ ...styles.noteItemDate, fontSize: 11 + fd }}>
                       {format(new Date(n.updatedAt || n.createdAt), 'd MMM', { locale: dfLocale })}
                     </span>
                   </div>
@@ -354,7 +354,7 @@ export default function TodoEditor({ todo, onClose }) {
               )}
             </div>
             <div style={styles.subFooter}>
-              <button style={styles.cancelBtn} onClick={() => setShowLinkNote(false)}>ปิด</button>
+              <button style={{ ...styles.cancelBtn, fontSize: 13 + fd }} onClick={() => setShowLinkNote(false)}>{t('common.close')}</button>
             </div>
           </div>
         </div>

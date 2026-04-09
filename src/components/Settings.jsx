@@ -8,11 +8,12 @@ import { sync, isAutoSyncEnabled, getSyncInfo, SYNC_AUTO_KEY, setUserId } from '
 import { useFontSize, setFontSizeLevel } from '../utils/useFontSize';
 import { useLocale, setLocale } from '../utils/useLocale';
 
-function formatSyncTime(iso) {
+function formatSyncTime(iso, locale) {
   if (!iso) return null;
   const d = new Date(iso);
-  return d.toLocaleString('th-TH', {
-    day: 'numeric', month: 'short', year: '2-digit',
+  const lc = locale === 'en' ? 'en-US' : 'th-TH';
+  return d.toLocaleString(lc, {
+    day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 }
@@ -337,7 +338,7 @@ export default function Settings({ onClose }) {
               <div style={styles.label}>{t('settings.autoSync')}</div>
               <div style={styles.desc}>
                 {syncInfo.lastSyncAt
-                  ? `${formatSyncTime(syncInfo.lastSyncAt)} · ${t('settings.syncFrom')} ${syncInfo.direction === 'local' ? t('settings.syncClient') : t('settings.syncServer')}`
+                  ? `${formatSyncTime(syncInfo.lastSyncAt, locale)} · ${t('settings.syncFrom')} ${syncInfo.direction === 'local' ? t('settings.syncClient') : t('settings.syncServer')}`
                   : t('settings.neverSynced')}
               </div>
             </div>
@@ -362,7 +363,7 @@ export default function Settings({ onClose }) {
               : syncStatus === 'error'
               ? t('settings.syncFailed')
               : syncStatus === 'ok' && syncInfo.lastSyncAt
-              ? `${t('settings.syncSuccess')} · ${formatSyncTime(syncInfo.lastSyncAt)} · ${t('settings.syncFrom')} ${syncInfo.direction === 'local' ? t('settings.syncClient') : t('settings.syncServer')}`
+              ? `${t('settings.syncSuccess')} · ${formatSyncTime(syncInfo.lastSyncAt, locale)} · ${t('settings.syncFrom')} ${syncInfo.direction === 'local' ? t('settings.syncClient') : t('settings.syncServer')}`
               : t('settings.syncNow')}
           </button>
 
