@@ -123,41 +123,52 @@ export function AppProvider({ children }) {
       dispatch({ type: 'SET_NOTES', payload: localNotes });
       dispatch({ type: 'SET_TODOS', payload: localTodos });
 
-      // 3. Auto sync in background (ถ้า toggle เปิดอยู่)
-      autoSync().then(async () => {
-        const [notes, todos] = await Promise.all([
+      // 3. Auto sync in background (ถ้า toggle เปิดอยู่) แล้ว re-read IndexedDB
+      const reloadLocal = async () => {
+        const [n, t] = await Promise.all([
           db.notes.orderBy('updatedAt').reverse().toArray(),
           db.todos.orderBy('updatedAt').reverse().toArray(),
         ]);
-        dispatch({ type: 'SET_NOTES', payload: notes });
-        dispatch({ type: 'SET_TODOS', payload: todos });
-      }).catch(console.warn);
+        dispatch({ type: 'SET_NOTES', payload: n });
+        dispatch({ type: 'SET_TODOS', payload: t });
+      };
+      autoSync().then(() => reloadLocal()).catch(console.warn);
     })();
   }, []);
 
-  // Sync when app comes back to foreground (visibilitychange ทำงานได้บน Android/iOS)
+  // Sync when app comes back to foreground
+  // อ่าน IndexedDB ก่อนเสมอ (ไม่ผูกกับ sync) เพื่อป้องกันหน้าจอค้างเป็น empty
   useEffect(() => {
-    const refreshFromDb = () =>
-      autoSync().then(async () => {
-        const [notes, todos] = await Promise.all([
-          db.notes.orderBy('updatedAt').reverse().toArray(),
-          db.todos.orderBy('updatedAt').reverse().toArray(),
-        ]);
-        dispatch({ type: 'SET_NOTES', payload: notes });
-        dispatch({ type: 'SET_TODOS', payload: todos });
-      }).catch(console.warn);
+    const readLocal = async () => {
+      const [notes, todos] = await Promise.all([
+        db.notes.orderBy('updatedAt').reverse().toArray(),
+        db.todos.orderBy('updatedAt').reverse().toArray(),
+      ]);
+      dispatch({ type: 'SET_NOTES', payload: notes });
+      dispatch({ type: 'SET_TODOS', payload: todos });
+    };
+
+    const refreshFromDb = async () => {
+      // 1. อ่าน local ก่อนเสมอ — ไม่ว่า network จะพร้อมหรือไม่
+      await readLocal().catch(console.warn);
+      // 2. แล้วค่อย sync กับ server (ถ้าได้)
+      autoSync().then(() => readLocal()).catch(console.warn);
+    };
 
     const handleVisibility = () => {
       if (!document.hidden) refreshFromDb();
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
+    // Capacitor fires 'resume' on document เมื่อแอปกลับจาก background — reliable กว่า visibilitychange บน Android
+    document.addEventListener('resume', refreshFromDb);
 
     // Periodic auto sync ทุก 5 นาที (ป้องกันค้างถ้า visibility event ไม่ fire)
     const interval = setInterval(refreshFromDb, 5 * 60 * 1000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener('resume', refreshFromDb);
       clearInterval(interval);
     };
   }, []);
