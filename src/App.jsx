@@ -249,7 +249,7 @@ export default function App() {
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
 
       {editingNote !== null && (
-        <NoteEditor note={editingNote} onClose={() => setEditingNote(null)} onNavigateToNote={(n) => setEditingNote(n)} />
+        <NoteEditor key={editingNote?.id || 'new'} note={editingNote} onClose={() => setEditingNote(null)} onNavigateToNote={(n) => setEditingNote(n)} />
       )}
       {editingTodo !== null && (
         <TodoEditor todo={editingTodo} onClose={() => setEditingTodo(null)} />

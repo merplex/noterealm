@@ -1267,16 +1267,21 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
             <div style={styles.previewModal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.previewHeader}>
                 <button
-                  style={styles.previewEditBtn}
-                  onClick={() => { doAutoSave(); onNavigateToNote?.(previewNote); }}
+                  style={{ ...styles.previewEditBtn, fontSize: 13 + d }}
+                  onClick={() => {
+                    const target = previewNote;
+                    setPreviewNote(null);
+                    doAutoSave();
+                    onNavigateToNote?.(target);
+                  }}
                 >
                   {t('editor.editNote')}
                 </button>
-                <div style={styles.previewTitle}>{previewNote.title || 'Untitled'}</div>
-                <button style={styles.previewCloseBtn} onClick={() => setPreviewNote(null)}>✕</button>
+                <div style={{ ...styles.previewTitle, fontSize: 16 + d }}>{previewNote.title || 'Untitled'}</div>
+                <button style={{ ...styles.previewCloseBtn, fontSize: 16 + d }} onClick={() => setPreviewNote(null)}>✕</button>
               </div>
               <div
-                style={styles.previewBody}
+                style={{ ...styles.previewBody, fontSize: 15 + d }}
                 dangerouslySetInnerHTML={{ __html: previewNote.content || `<p style="color:#a8a29e">${t('editor.noContent')}</p>` }}
               />
             </div>
