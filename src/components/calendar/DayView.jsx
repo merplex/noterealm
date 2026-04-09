@@ -111,7 +111,6 @@ export default function DayView({ date, todos, onSelectTodo, onToggleTodo }) {
     <div key={todo.id} style={{
       ...styles.todoCard,
       opacity: todo.done ? 0.5 : 1,
-      borderLeftColor: PRIORITY_COLORS[todo.priority] || C.muted,
     }}>
       <div style={styles.todoRow}>
         <button
@@ -286,7 +285,6 @@ const styles = {
     background: C.white,
     borderRadius: 8,
     border: `1px solid ${C.border}`,
-    borderLeft: '4px solid',
     padding: '8px 10px',
     marginBottom: 4,
   },

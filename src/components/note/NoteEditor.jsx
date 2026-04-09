@@ -434,18 +434,25 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     const id = uuidv4();
 
     // Create accordion element inline in contentEditable
+    // สุ่มสี pastel จาก id
+    const PASTEL_BG = ['#fef9c3','#dbeafe','#dcfce7','#fce7f3','#ede9fe','#ffedd5','#cffafe','#fae8ff'];
+    const PASTEL_BD = ['#fde047','#93c5fd','#86efac','#f9a8d4','#c4b5fd','#fdba74','#67e8f9','#e879f9'];
+    let _h = 0; for (const _c of id) _h = (_h * 31 + _c.charCodeAt(0)) & 0xffff;
+    const _i = _h % PASTEL_BG.length;
+    const pastelBg = PASTEL_BG[_i], pastelBd = PASTEL_BD[_i];
+
     const wrapper = document.createElement('div');
     wrapper.contentEditable = 'false';
     wrapper.className = 'inline-accordion';
     wrapper.dataset.blockId = id;
-    wrapper.style.cssText = `border:1px solid ${C.border};border-left:3px solid ${C.amber};border-radius:8px;margin:8px 0;background:${C.white};overflow:hidden;`;
+    wrapper.style.cssText = `border:1px solid ${pastelBd};border-radius:2px;margin:8px 0;background:${pastelBg};overflow:hidden;`;
 
     const header = document.createElement('div');
-    header.style.cssText = `display:flex;align-items:center;gap:6px;padding:8px 10px;background:${C.amberLight}55;`;
+    header.style.cssText = `display:flex;align-items:center;gap:6px;padding:8px 10px;background:${pastelBg};`;
 
     const toggleBtn = document.createElement('button');
-    toggleBtn.textContent = '−';
-    toggleBtn.style.cssText = `width:24px;height:24px;border-radius:6px;border:1.5px solid ${C.amber};background:transparent;cursor:pointer;color:${C.amber};font-weight:700;font-size:16px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;`;
+    toggleBtn.textContent = '×';
+    toggleBtn.style.cssText = `width:24px;height:24px;border-radius:0;border:none;background:transparent;cursor:pointer;color:${C.text};font-weight:700;font-size:16px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;`;
 
     const titleInput = document.createElement('input');
     titleInput.placeholder = t('accordion.titlePlaceholder');
@@ -456,7 +463,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     dismissBtn.style.cssText = `background:none;border:none;cursor:pointer;color:${C.muted};font-size:13px;flex-shrink:0;padding:0 4px;`;
 
     const body = document.createElement('div');
-    body.style.cssText = `border-top:1px solid ${C.border};padding:8px 12px;`;
+    body.style.cssText = `padding:8px 12px;background:${pastelBg};`;
 
     const contentArea = document.createElement('div');
     contentArea.contentEditable = 'true';
@@ -467,7 +474,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     toggleBtn.onclick = () => {
       const isOpen = body.style.display !== 'none';
       body.style.display = isOpen ? 'none' : 'block';
-      toggleBtn.textContent = isOpen ? '+' : '−';
+      toggleBtn.textContent = isOpen ? '+' : '×';
     };
 
     // Dismiss: restore content (including images) back to editor at accordion's position

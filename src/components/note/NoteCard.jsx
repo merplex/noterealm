@@ -69,8 +69,8 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
         <div
           style={{
             width: 22, height: 22, borderRadius: '50%',
-            border: `2px solid ${isSelected ? C.amber : C.border}`,
-            background: isSelected ? C.amber : 'transparent',
+            border: `2px solid ${isSelected ? '#57534e' : C.border}`,
+            background: isSelected ? '#57534e' : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, marginTop: 14, color: '#fff', fontSize: 13, fontWeight: 700,
             transition: 'all 0.15s', cursor: 'pointer',
@@ -86,8 +86,8 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
           ...styles.card,
           flex: 1,
           opacity: isArchived || isDeleted ? 0.72 : 1,
-          outline: isSelected ? `2px solid ${C.amber}` : 'none',
-          background: isSelected ? '#fffbeb' : C.white,
+          outline: isSelected ? '2px solid #57534e' : 'none',
+          background: isSelected ? '#f5f5f4' : C.white,
           userSelect: 'none',
           WebkitUserSelect: 'none',
         }}
