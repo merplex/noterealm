@@ -498,13 +498,12 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     wrapper.appendChild(header);
     wrapper.appendChild(body);
 
-    // Insert at cursor: delete selection first, then insert accordion
-    if (sel && sel.rangeCount) {
-      const range = sel.getRangeAt(0);
+    // Insert at cursor — ตรวจว่า range อยู่ใน editor จริงก่อน ไม่งั้น append ท้าย
+    const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    const insideEditor = range && el.contains(range.commonAncestorContainer);
+    if (insideEditor) {
       range.deleteContents();
       range.insertNode(wrapper);
-
-      // Move cursor after the accordion
       range.setStartAfter(wrapper);
       range.collapse(true);
       sel.removeAllRanges();
@@ -512,6 +511,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     } else {
       el.appendChild(wrapper);
     }
+    el.focus();
 
     syncContent();
 
