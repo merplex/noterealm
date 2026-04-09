@@ -180,7 +180,7 @@ export default function TodoEditor({ todo, onClose }) {
               const d = calcDate(pick);
               return (
                 <button
-                  key={pick.label}
+                  key={pick.key}
                   style={{
                     ...styles.quickPickBtn,
                     fontSize: 11 + fd,
@@ -190,7 +190,7 @@ export default function TodoEditor({ todo, onClose }) {
                   }}
                   onClick={() => setDueDate(d)}
                 >
-                  {pick.label}
+                  {t(pick.key)}
                 </button>
               );
             })}
@@ -214,6 +214,7 @@ export default function TodoEditor({ todo, onClose }) {
               <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.dueDate')}</label>
               <input
                 type="date"
+                lang={locale === 'en' ? 'en' : 'th'}
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 style={{ ...styles.input, fontSize: 13 + fd }}
@@ -223,6 +224,7 @@ export default function TodoEditor({ todo, onClose }) {
               <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.time')}</label>
               <input
                 type="time"
+                lang={locale === 'en' ? 'en' : 'th'}
                 value={dueTime}
                 onChange={(e) => setDueTime(e.target.value)}
                 style={{ ...styles.input, fontSize: 13 + fd }}
@@ -372,6 +374,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 200,
+    overflowX: 'hidden',
+    touchAction: 'pan-y',
   },
   modal: {
     background: C.bg,
@@ -409,7 +413,7 @@ const styles = {
   },
   headerTitle: { fontSize: 16, fontWeight: 600, color: C.text },
   closeBtn: { background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: C.muted },
-  body: { flex: 1, overflowY: 'auto', padding: 16 },
+  body: { flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 16 },
   titleInput: {
     width: '100%',
     fontSize: 16,

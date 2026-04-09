@@ -59,6 +59,7 @@ export const STORAGE_KEYS = {
   sortDir: 'nk_sort_dir',
   defaultTab: 'nk_default_tab',
   lineTrim: 'nk_line_trim',
+  profileImage: 'nk_profile_image',
 };
 
 export const CONNECTION_TYPES = ['email', 'line', 'telegram', 'wechat'];

@@ -106,8 +106,11 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
 
   return (
     <header style={styles.header} className="pt-safe-header">
-      <button style={styles.avatar} onClick={onSettings}>
-        <span style={styles.avatarText}>N</span>
+      <button style={{ ...styles.avatar, width: 34 + d, height: 34 + d }} onClick={onSettings}>
+        {state.profileImage
+          ? <img src={state.profileImage} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+          : <span style={{ ...styles.avatarText, fontSize: 15 + d }}>N</span>
+        }
       </button>
 
       <div style={styles.center}>
@@ -153,9 +156,9 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
           )}
         </div>
 
-        <button style={styles.iconBtn} onClick={toggleView}>
+        <button style={{ ...styles.iconBtn, width: 36 + d, height: 36 + d }} onClick={toggleView}>
           {currentViewMode === 'grid' ? (
-            <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
+            <svg width={20 + d} height={20 + d} viewBox="0 0 18 18" fill="none">
               <circle cx="3" cy="4" r="1.8" fill={C.sub}/>
               <rect x="7" y="2.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
               <circle cx="3" cy="9" r="1.8" fill={C.sub}/>
@@ -164,18 +167,18 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
               <rect x="7" y="12.8" width="9" height="2.4" rx="1.2" fill={C.sub}/>
             </svg>
           ) : (
-            <span style={{ fontSize: 20, color: C.sub }}>⊞</span>
+            <span style={{ fontSize: 20 + d, color: C.sub }}>⊞</span>
           )}
         </button>
 
         <div style={{ position: 'relative' }}>
           <button
-            style={styles.iconBtn}
+            style={{ ...styles.iconBtn, width: 36 + d, height: 36 + d }}
             onPointerDown={handleSortDown}
             onPointerUp={handleSortUp}
             onPointerLeave={() => { clearTimeout(holdTimer.current); holdTimer.current = null; }}
           >
-            <span style={{ fontSize: 20, color: C.sub }}>{state.sortDir === 'desc' ? '↓' : '↑'}</span>
+            <span style={{ fontSize: 20 + d, color: C.sub }}>{state.sortDir === 'desc' ? '↓' : '↑'}</span>
           </button>
 
           {showSortMenu && (

@@ -21,6 +21,7 @@ function formatSyncTime(iso, locale) {
 export default function Settings({ onClose }) {
   const { state, dispatch } = useApp();
   const fontLevel = useFontSize();
+  const d = (fontLevel - 1) * 2;
   const { t, locale } = useLocale();
   const [lineConnecting, setLineConnecting] = useState(false);
   const [cacheStats, setCacheStats] = useState(null);
@@ -224,26 +225,69 @@ export default function Settings({ onClose }) {
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.sheet} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.handle} />
-
         <div style={styles.header}>
-          <h2 style={styles.title}>{t('settings.title')}</h2>
-          <button style={styles.closeBtn} onClick={onClose}>✕</button>
+          <h2 style={{ ...styles.title, fontSize: 18 + d }}>{t('settings.title')}</h2>
+          <button style={{ ...styles.closeBtn, fontSize: 18 + d }} onClick={onClose}>✕</button>
         </div>
 
         <div style={styles.body}>
+          {/* Profile photo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 0 14px' }}>
+            <label style={{ cursor: 'pointer', position: 'relative' }}>
+              <div style={{ width: 56 + d, height: 56 + d, borderRadius: '50%', background: C.amber, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {state.profileImage
+                  ? <img src={state.profileImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ color: C.white, fontSize: 22 + d, fontWeight: 700 }}>N</span>
+                }
+              </div>
+              <span style={{ position: 'absolute', bottom: -2, right: -2, background: C.white, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.border}`, fontSize: 11 }}>📷</span>
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  const img = new Image();
+                  img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const size = 128;
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    const min = Math.min(img.width, img.height);
+                    ctx.drawImage(img, (img.width - min) / 2, (img.height - min) / 2, min, min, 0, 0, size, size);
+                    dispatch({ type: 'SET_PROFILE_IMAGE', payload: canvas.toDataURL('image/jpeg', 0.8) });
+                  };
+                  img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+              }} />
+            </label>
+            <div style={{ flex: 1 }}>
+              <div style={{ ...styles.label, fontSize: 14 + d }}>{state.user?.displayName || 'NoteRealm'}</div>
+              {state.profileImage && (
+                <button
+                  style={{ background: 'none', border: 'none', fontSize: 11 + d, color: C.muted, cursor: 'pointer', padding: 0, fontFamily: C.font }}
+                  onClick={() => dispatch({ type: 'SET_PROFILE_IMAGE', payload: null })}
+                >{locale === 'en' ? 'Remove photo' : 'ลบรูป'}</button>
+              )}
+            </div>
+          </div>
+
+          <div style={styles.divider} />
+
           {/* Language */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>{t('settings.language')}</div>
-              <div style={styles.desc}>{t('settings.languageDesc')}</div>
+              <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.language')}</div>
+              <div style={{ ...styles.desc, fontSize: 12 + d }}>{t('settings.languageDesc')}</div>
             </div>
             <div style={styles.segmented}>
               {[{ code: 'th', label: 'ไทย' }, { code: 'en', label: 'EN' }].map((lng) => (
                 <button
                   key={lng.code}
                   style={{
-                    ...styles.seg,
+                    ...styles.seg, fontSize: 12 + d,
                     background: locale === lng.code ? C.amber : C.white,
                     color: locale === lng.code ? C.white : C.sub,
                     minWidth: 40,
@@ -261,29 +305,28 @@ export default function Settings({ onClose }) {
           {/* Font size */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>{t('settings.fontSize')}</div>
-              <div style={styles.desc}>{t('settings.fontSizeDesc')}</div>
+              <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.fontSize')}</div>
+              <div style={{ ...styles.desc, fontSize: 12 + d }}>{t('settings.fontSizeDesc')}</div>
             </div>
             <div style={styles.segmented}>
-              {[
-                { level: 1, label: 'ก' },
-                { level: 2, label: 'กก' },
-                { level: 3, label: 'กกก' },
-              ].map((opt) => (
-                <button
-                  key={opt.level}
-                  style={{
-                    ...styles.seg,
-                    fontSize: 10 + opt.level * 2,
-                    background: fontLevel === opt.level ? C.amber : C.white,
-                    color: fontLevel === opt.level ? C.white : C.sub,
-                    minWidth: 36,
-                  }}
-                  onClick={() => setFontSizeLevel(opt.level)}
-                >
-                  {opt.label}
-                </button>
-              ))}
+              {[1, 2, 3].map((level) => {
+                const ch = locale === 'en' ? 'A' : 'ก';
+                return (
+                  <button
+                    key={level}
+                    style={{
+                      ...styles.seg,
+                      fontSize: 10 + level * 2 + d,
+                      background: fontLevel === level ? C.amber : C.white,
+                      color: fontLevel === level ? C.white : C.sub,
+                      minWidth: 36,
+                    }}
+                    onClick={() => setFontSizeLevel(level)}
+                  >
+                    {ch.repeat(level)}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -292,18 +335,18 @@ export default function Settings({ onClose }) {
           {/* Default view */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>{t('settings.defaultView')}</div>
-              <div style={styles.desc}>{t('settings.defaultViewDesc')}</div>
+              <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.defaultView')}</div>
+              <div style={{ ...styles.desc, fontSize: 12 + d }}>{t('settings.defaultViewDesc')}</div>
             </div>
             <div style={styles.segmented}>
               <button
-                style={{ ...styles.seg, background: state.defaultTab === 'note' ? C.amber : C.white, color: state.defaultTab === 'note' ? C.white : C.sub }}
+                style={{ ...styles.seg, fontSize: 12 + d, background: state.defaultTab === 'note' ? C.amber : C.white, color: state.defaultTab === 'note' ? C.white : C.sub }}
                 onClick={() => dispatch({ type: 'SET_DEFAULT_TAB', payload: 'note' })}
               >
                 📝 Note
               </button>
               <button
-                style={{ ...styles.seg, background: state.defaultTab === 'todo' ? C.amber : C.white, color: state.defaultTab === 'todo' ? C.white : C.sub }}
+                style={{ ...styles.seg, fontSize: 12 + d, background: state.defaultTab === 'todo' ? C.amber : C.white, color: state.defaultTab === 'todo' ? C.white : C.sub }}
                 onClick={() => dispatch({ type: 'SET_DEFAULT_TAB', payload: 'todo' })}
               >
                 ✅ Todo
@@ -316,17 +359,17 @@ export default function Settings({ onClose }) {
           {/* Login for backup */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>{t('settings.login')}</div>
-              <div style={styles.desc}>
+              <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.login')}</div>
+              <div style={{ ...styles.desc, fontSize: 12 + d }}>
                 {isLoggedIn ? `${state.user.name || state.user.email}` : t('settings.loginDesc')}
               </div>
             </div>
             {isLoggedIn ? (
-              <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLogout}>
+              <button style={{ ...styles.actionBtn, fontSize: 13 + d, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLogout}>
                 {t('settings.logout')}
               </button>
             ) : (
-              <button style={styles.actionBtn} onClick={handleLogin}>
+              <button style={{ ...styles.actionBtn, fontSize: 13 + d }} onClick={handleLogin}>
                 {t('settings.signIn')}
               </button>
             )}
@@ -335,8 +378,8 @@ export default function Settings({ onClose }) {
           {/* Sync — ใต้ Login */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>{t('settings.autoSync')}</div>
-              <div style={styles.desc}>
+              <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.autoSync')}</div>
+              <div style={{ ...styles.desc, fontSize: 12 + d }}>
                 {syncInfo.lastSyncAt
                   ? `${formatSyncTime(syncInfo.lastSyncAt, locale)} · ${t('settings.syncFrom')} ${syncInfo.direction === 'local' ? t('settings.syncClient') : t('settings.syncServer')}`
                   : t('settings.neverSynced')}
@@ -350,7 +393,7 @@ export default function Settings({ onClose }) {
             onClick={handleManualSync}
             disabled={syncStatus === 'syncing'}
             style={{
-              ...styles.syncBtn,
+              ...styles.syncBtn, fontSize: 13 + d,
               opacity: syncStatus === 'syncing' ? 0.6 : 1,
               color: syncStatus === 'error' ? '#ef4444' : syncStatus === 'ok' ? '#16a34a' : C.amber,
               borderColor: syncStatus === 'error' ? '#fca5a5' : syncStatus === 'ok' ? '#86efac' : C.amber,
@@ -373,7 +416,7 @@ export default function Settings({ onClose }) {
               <div style={styles.divider} />
               <div style={styles.row}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={styles.label}>{t('settings.emailNote')}</div>
+                  <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.emailNote')}</div>
                   <div style={{ ...styles.desc, fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all' }}>
                     notes-{state.user.inboxToken}@neverjod.com
                   </div>
@@ -382,7 +425,7 @@ export default function Settings({ onClose }) {
                   </div>
                 </div>
                 <button
-                  style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}`, fontSize: 12 }}
+                  style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}`, fontSize: 12 + d }}
                   onClick={() => {
                     navigator.clipboard?.writeText(`notes-${state.user.inboxToken}@neverjod.com`);
                   }}
@@ -392,8 +435,8 @@ export default function Settings({ onClose }) {
               </div>
               <div style={styles.row}>
                 <div>
-                  <div style={styles.label}>{t('settings.filterSpam')}</div>
-                  <div style={styles.desc}>{t('settings.filterSpamDesc')}</div>
+                  <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.filterSpam')}</div>
+                  <div style={{ ...styles.desc, fontSize: 12 + d }}>{t('settings.filterSpamDesc')}</div>
                 </div>
                 <button onClick={() => handleEmailFilterToggle('spam', !emailFilterSpam)} style={styles.toggle(emailFilterSpam)}>
                   <span style={styles.toggleKnob(emailFilterSpam)} />
@@ -401,8 +444,8 @@ export default function Settings({ onClose }) {
               </div>
               <div style={styles.row}>
                 <div>
-                  <div style={styles.label}>{t('settings.filterAds')}</div>
-                  <div style={styles.desc}>{t('settings.filterAdsDesc')}</div>
+                  <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.filterAds')}</div>
+                  <div style={{ ...styles.desc, fontSize: 12 + d }}>{t('settings.filterAdsDesc')}</div>
                 </div>
                 <button onClick={() => handleEmailFilterToggle('ads', !emailFilterAds)} style={styles.toggle(emailFilterAds)}>
                   <span style={styles.toggleKnob(emailFilterAds)} />
@@ -410,8 +453,8 @@ export default function Settings({ onClose }) {
               </div>
               <div style={styles.row}>
                 <div>
-                  <div style={styles.label}>{t('settings.autoSummary')}</div>
-                  <div style={styles.desc}>{t('settings.autoSummaryDesc')}</div>
+                  <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.autoSummary')}</div>
+                  <div style={{ ...styles.desc, fontSize: 12 + d }}>{t('settings.autoSummaryDesc')}</div>
                 </div>
                 <button onClick={() => handleEmailFilterToggle('summary', !emailFilterSummary)} style={styles.toggle(emailFilterSummary)}>
                   <span style={styles.toggleKnob(emailFilterSummary)} />
@@ -425,8 +468,8 @@ export default function Settings({ onClose }) {
           {/* LINE Connect */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>{t('settings.lineConnect')}</div>
-              <div style={styles.desc}>
+              <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.lineConnect')}</div>
+              <div style={{ ...styles.desc, fontSize: 12 + d }}>
                 {isLineConnected
                   ? `💬 ${state.connections?.find((c) => c.type === 'line')?.label || 'LINE'}`
                   : t('settings.lineConnectDesc')}
@@ -443,19 +486,19 @@ export default function Settings({ onClose }) {
                       href={addUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ ...styles.actionBtn, background: '#06C755', color: C.white, textDecoration: 'none' }}
+                      style={{ ...styles.actionBtn, fontSize: 13 + d, background: '#06C755', color: C.white, textDecoration: 'none' }}
                     >
                       {t('settings.lineAddFriend')}
                     </a>
                   );
                 })()}
-                <button style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLineDisconnect}>
+                <button style={{ ...styles.actionBtn, fontSize: 13 + d, background: C.white, color: C.sub, border: `1px solid ${C.border}` }} onClick={handleLineDisconnect}>
                   {t('settings.lineDisconnect')}
                 </button>
               </div>
             ) : (
               <button
-                style={{ ...styles.actionBtn, background: '#06C755', color: C.white }}
+                style={{ ...styles.actionBtn, fontSize: 13 + d, background: '#06C755', color: C.white }}
                 onClick={handleLineConnect}
                 disabled={lineConnecting}
               >
@@ -468,8 +511,8 @@ export default function Settings({ onClose }) {
             <div style={styles.divider} />
             <div style={styles.row}>
               <div>
-                <div style={styles.label}>{t('settings.lineTrim')}</div>
-                <div style={styles.desc}>{t('settings.lineTrimDesc')}</div>
+                <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.lineTrim')}</div>
+                <div style={{ ...styles.desc, fontSize: 12 + d }}>{t('settings.lineTrimDesc')}</div>
               </div>
                 <div style={styles.segmented}>
                   {[
@@ -479,7 +522,7 @@ export default function Settings({ onClose }) {
                   ].map((opt) => (
                     <button
                       key={opt.key}
-                      style={{ ...styles.seg, background: state.lineTrim === opt.key ? C.amber : C.white, color: state.lineTrim === opt.key ? C.white : C.sub }}
+                      style={{ ...styles.seg, fontSize: 12 + d, background: state.lineTrim === opt.key ? C.amber : C.white, color: state.lineTrim === opt.key ? C.white : C.sub }}
                       onClick={() => handleLineTrim(opt.key)}
                     >
                       {opt.label}
@@ -494,8 +537,8 @@ export default function Settings({ onClose }) {
           {/* Image Cache */}
           <div style={styles.row}>
             <div>
-              <div style={styles.label}>{t('settings.imageCache')}</div>
-              <div style={styles.desc}>
+              <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.imageCache')}</div>
+              <div style={{ ...styles.desc, fontSize: 12 + d }}>
                 {cacheStats
                   ? cacheStats.count > 0
                     ? `${cacheStats.count} · ${formatBytes(cacheStats.size)}`
@@ -504,7 +547,7 @@ export default function Settings({ onClose }) {
               </div>
             </div>
             <button
-              style={{ ...styles.actionBtn, background: C.white, color: C.sub, border: `1px solid ${C.border}`, opacity: cacheStats?.count === 0 ? 0.4 : 1 }}
+              style={{ ...styles.actionBtn, fontSize: 13 + d, background: C.white, color: C.sub, border: `1px solid ${C.border}`, opacity: cacheStats?.count === 0 ? 0.4 : 1 }}
               onClick={handleClearImageCache}
               disabled={clearingCache || cacheStats?.count === 0}
             >

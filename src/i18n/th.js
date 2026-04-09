@@ -218,6 +218,19 @@ const th = {
   'todoEditor.unlinkFailed': 'ยกเลิกไม่สำเร็จ: ',
   'todoEditor.saveFailed': 'บันทึกไม่สำเร็จ: ',
 
+  // date picker
+  'datePicker.title': 'ตั้งวันครบกำหนด',
+  'datePicker.today': 'วันนี้',
+  'datePicker.tomorrow': 'พรุ่งนี้',
+  'datePicker.nextWeek': 'อาทิตย์หน้า',
+  'datePicker.twoWeeks': '2 อาทิตย์',
+  'datePicker.nextMonth': 'เดือนหน้า',
+  'datePicker.twoMonths': '2 เดือน',
+  'datePicker.threeMonths': '3 เดือน',
+  'datePicker.halfYear': 'ครึ่งปี',
+  'datePicker.nextYear': 'ปีหน้า',
+  'datePicker.date': 'วันที่',
+
   // accordion
   'accordion.titlePlaceholder': 'หัวข้อ...',
   'accordion.aiTitle': 'AI กำลังตั้งชื่อ...',

@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { C } from '../../constants/theme';
+import { useLocale } from '../../utils/useLocale';
+import { useFontSize } from '../../utils/useFontSize';
 
-const QUICK_PICKS = [
-  { label: 'วันนี้', days: 0 },
-  { label: 'พรุ่งนี้', days: 1 },
-  { label: 'อาทิตย์หน้า', days: 7 },
-  { label: '2 อาทิตย์', days: 14 },
-  { label: 'เดือนหน้า', months: 1 },
-  { label: '2 เดือน', months: 2 },
-  { label: '3 เดือน', months: 3 },
-  { label: 'ครึ่งปี', months: 6 },
-  { label: 'ปีหน้า', months: 12 },
+const QUICK_PICK_KEYS = [
+  { key: 'datePicker.today', days: 0 },
+  { key: 'datePicker.tomorrow', days: 1 },
+  { key: 'datePicker.nextWeek', days: 7 },
+  { key: 'datePicker.twoWeeks', days: 14 },
+  { key: 'datePicker.nextMonth', months: 1 },
+  { key: 'datePicker.twoMonths', months: 2 },
+  { key: 'datePicker.threeMonths', months: 3 },
+  { key: 'datePicker.halfYear', months: 6 },
+  { key: 'datePicker.nextYear', months: 12 },
 ];
 
 function calcDate(pick) {
@@ -20,69 +22,79 @@ function calcDate(pick) {
   return d.toISOString().split('T')[0];
 }
 
+// QUICK_PICKS export สำหรับ TodoEditor (ใช้ key แทน label)
+const QUICK_PICKS = QUICK_PICK_KEYS;
+
 export default function DatePickerPopup({ dueDate, dueTime, onSave, onCancel }) {
+  const { t, locale } = useLocale();
+  const fd = (useFontSize() - 1) * 2;
   const [date, setDate] = useState(dueDate || '');
   const [time, setTime] = useState(dueTime || '');
+  const langAttr = locale === 'en' ? 'en' : 'th';
 
   const handleSave = () => onSave(date || undefined, time || undefined);
 
   return (
     <div style={styles.overlay} onClick={handleSave}>
       <div style={styles.popup} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.title}>ตั้งวันครบกำหนด</div>
+        <div style={{ ...styles.title, fontSize: 15 + fd }}>{t('datePicker.title')}</div>
 
         <div style={styles.quickGrid}>
-          {QUICK_PICKS.map((pick) => (
+          {QUICK_PICK_KEYS.map((pick) => (
             <button
-              key={pick.label}
+              key={pick.key}
               style={{
                 ...styles.quickBtn,
+                fontSize: 12 + fd,
                 background: date === calcDate(pick) ? C.amber : C.white,
                 color: date === calcDate(pick) ? C.white : C.text,
                 borderColor: date === calcDate(pick) ? C.amber : C.border,
               }}
               onClick={() => setDate(calcDate(pick))}
             >
-              {pick.label}
+              {t(pick.key)}
             </button>
           ))}
           <button
             style={{
               ...styles.quickBtn,
+              fontSize: 12 + fd,
               background: !date ? '#f0f0f0' : C.white,
               color: C.sub,
               borderColor: C.border,
             }}
             onClick={() => { setDate(''); setTime(''); }}
           >
-            ไม่ระบุ
+            {t('todoEditor.noDate')}
           </button>
         </div>
 
         <div style={styles.inputRow}>
           <div style={styles.field}>
-            <label style={styles.label}>วันที่</label>
+            <label style={{ ...styles.label, fontSize: 11 + fd }}>{t('datePicker.date')}</label>
             <input
               type="date"
+              lang={langAttr}
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              style={styles.input}
+              style={{ ...styles.input, fontSize: 13 + fd }}
             />
           </div>
           <div style={styles.field}>
-            <label style={styles.label}>เวลา</label>
+            <label style={{ ...styles.label, fontSize: 11 + fd }}>{t('todoEditor.time')}</label>
             <input
               type="time"
+              lang={langAttr}
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              style={styles.input}
+              style={{ ...styles.input, fontSize: 13 + fd }}
             />
           </div>
         </div>
 
         <div style={styles.footer}>
-          <button style={styles.cancelBtn} onClick={onCancel}>ยกเลิก</button>
-          <button style={styles.saveBtn} onClick={handleSave}>บันทึก</button>
+          <button style={{ ...styles.cancelBtn, fontSize: 13 + fd }} onClick={onCancel}>{t('common.cancel')}</button>
+          <button style={{ ...styles.saveBtn, fontSize: 13 + fd }} onClick={handleSave}>{t('common.save')}</button>
         </div>
       </div>
     </div>

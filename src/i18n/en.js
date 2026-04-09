@@ -218,6 +218,19 @@ const en = {
   'todoEditor.unlinkFailed': 'Unlink failed: ',
   'todoEditor.saveFailed': 'Save failed: ',
 
+  // date picker
+  'datePicker.title': 'Set due date',
+  'datePicker.today': 'Today',
+  'datePicker.tomorrow': 'Tomorrow',
+  'datePicker.nextWeek': 'Next week',
+  'datePicker.twoWeeks': '2 weeks',
+  'datePicker.nextMonth': 'Next month',
+  'datePicker.twoMonths': '2 months',
+  'datePicker.threeMonths': '3 months',
+  'datePicker.halfYear': '6 months',
+  'datePicker.nextYear': 'Next year',
+  'datePicker.date': 'Date',
+
   // accordion
   'accordion.titlePlaceholder': 'Title...',
   'accordion.aiTitle': 'AI generating title...',

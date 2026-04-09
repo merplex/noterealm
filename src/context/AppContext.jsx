@@ -22,6 +22,7 @@ const initialState = {
   sortDir: 'desc',
   defaultTab: 'note',
   lineTrim: 'month',
+  profileImage: null,
 };
 
 function reducer(state, action) {
@@ -44,6 +45,8 @@ function reducer(state, action) {
       return { ...state, sortBy: action.payload.sortBy ?? state.sortBy, sortDir: action.payload.sortDir ?? state.sortDir };
     case 'SET_DEFAULT_TAB':
       return { ...state, defaultTab: action.payload };
+    case 'SET_PROFILE_IMAGE':
+      return { ...state, profileImage: action.payload };
     case 'SET_LINE_TRIM':
       return { ...state, lineTrim: action.payload };
 
@@ -109,7 +112,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     (async () => {
       // 1. Load local settings
-      const localKeys = ['aiSettings', 'connections', 'user', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab', 'lineTrim'];
+      const localKeys = ['aiSettings', 'connections', 'user', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab', 'lineTrim', 'profileImage'];
       const loaded = {};
       for (const key of localKeys) {
         const val = await storage.get(STORAGE_KEYS[key]);
@@ -192,7 +195,8 @@ export function AppProvider({ children }) {
     storage.set(STORAGE_KEYS.sortDir, state.sortDir);
     storage.set(STORAGE_KEYS.defaultTab, state.defaultTab);
     storage.set(STORAGE_KEYS.lineTrim, state.lineTrim);
-  }, [state.aiSettings, state.connections, state.user, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab, state.lineTrim]);
+    storage.set(STORAGE_KEYS.profileImage, state.profileImage);
+  }, [state.aiSettings, state.connections, state.user, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab, state.lineTrim, state.profileImage]);
 
   const actions = useMemo(() => ({
     addNote: async (noteData) => {
