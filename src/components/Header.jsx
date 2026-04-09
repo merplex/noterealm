@@ -225,8 +225,8 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
         </div>
       </div>
 
-      <button style={styles.hamburgerBtn} onClick={onSidebar}>
-        <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+      <button style={{ ...styles.hamburgerBtn, width: 36 + d, height: 36 + d }} onClick={onSidebar}>
+        <svg width={20 + d} height={16 + d} viewBox="0 0 20 16" fill="none">
           <rect y="0" width="20" height="3" rx="1.5" fill={C.text}/>
           <rect y="6.5" width="20" height="3" rx="1.5" fill={C.text}/>
           <rect y="13" width="20" height="3" rx="1.5" fill={C.text}/>

@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { C } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { useLocale } from '../utils/useLocale';
+import { useFontSize } from '../utils/useFontSize';
 
 export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFilter, onTodoTrash }) {
   const { state, actions } = useApp();
   const { t } = useLocale();
+  const d = (useFontSize() - 1) * 2;
   const [renamingTag, setRenamingTag] = useState(null); // tag string being renamed
   const [renameValue, setRenameValue] = useState('');
 
@@ -36,7 +38,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
       {renamingTag && (
         <div style={styles.renameOverlay} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>
           <div style={styles.renamePopup} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.renameTitle}>{t('sidebar.renameTag')}</div>
+            <div style={{ ...styles.renameTitle, fontSize: 15 + d }}>{t('sidebar.renameTag')}</div>
             <input
               autoFocus
               value={renameValue}
@@ -45,11 +47,11 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
                 if (e.key === 'Enter') handleRenameSubmit(renamingTag);
                 if (e.key === 'Escape') { setRenamingTag(null); setRenameValue(''); }
               }}
-              style={styles.renameInput}
+              style={{ ...styles.renameInput, fontSize: 14 + d }}
             />
             <div style={styles.renameFooter}>
-              <button style={styles.renameCancelBtn} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>{t('common.cancel')}</button>
-              <button style={styles.renameOkBtn} onClick={() => handleRenameSubmit(renamingTag)}>{t('common.save')}</button>
+              <button style={{ ...styles.renameCancelBtn, fontSize: 13 + d }} onClick={() => { setRenamingTag(null); setRenameValue(''); }}>{t('common.cancel')}</button>
+              <button style={{ ...styles.renameOkBtn, fontSize: 13 + d }} onClick={() => handleRenameSubmit(renamingTag)}>{t('common.save')}</button>
             </div>
           </div>
         </div>
@@ -57,14 +59,14 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
 
       <aside style={styles.sidebar}>
         <div style={styles.brand}>
-          <span style={styles.brandText}>NoteRealm</span>
-          <button style={styles.closeBtn} onClick={onClose}>✕</button>
+          <span style={{ ...styles.brandText, fontSize: 18 + d }}>NoteRealm</span>
+          <button style={{ ...styles.closeBtn, fontSize: 16 + d }} onClick={onClose}>✕</button>
         </div>
 
         <nav style={styles.nav}>
-          <div style={styles.sectionLabel}>Note</div>
+          <div style={{ ...styles.sectionLabel, fontSize: 12 + d }}>Note</div>
           <button
-            style={{ ...styles.navItem, background: !activeFilter ? C.amberLight : 'transparent' }}
+            style={{ ...styles.navItem, fontSize: 14 + d, background: !activeFilter ? C.amberLight : 'transparent' }}
             onClick={() => { onFilterTag(null); onClose(); }}
           >
             <span>📝</span>
@@ -78,30 +80,30 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
             <span>{t('sidebar.pinned')}</span>
           </button>
           <button
-            style={{ ...styles.navItem, background: activeFilter === 'archive' ? C.amberLight : 'transparent' }}
+            style={{ ...styles.navItem, fontSize: 14 + d, background: activeFilter === 'archive' ? C.amberLight : 'transparent' }}
             onClick={() => { onFilterTag('archive'); onClose(); }}
           >
             <span>📦</span>
             <span>{t('sidebar.archived')}</span>
           </button>
           <button
-            style={{ ...styles.navItem, background: activeFilter === 'deleted' ? C.amberLight : 'transparent' }}
+            style={{ ...styles.navItem, fontSize: 14 + d, background: activeFilter === 'deleted' ? C.amberLight : 'transparent' }}
             onClick={() => { onFilterTag('deleted'); onClose(); }}
           >
             <span>🗑</span>
             <span>{t('sidebar.trash')}</span>
-            <span style={styles.count}>{state.notes.filter((n) => n.deletedAt).length}</span>
+            <span style={{ ...styles.count, fontSize: 11 + d }}>{state.notes.filter((n) => n.deletedAt).length}</span>
           </button>
         </nav>
 
         {/* Todo section */}
         <section style={styles.section}>
-          <div style={styles.sectionLabel}>Todo</div>
-          <button style={styles.navItem} onClick={onTodoTrash}>
+          <div style={{ ...styles.sectionLabel, fontSize: 12 + d }}>Todo</div>
+          <button style={{ ...styles.navItem, fontSize: 14 + d }} onClick={onTodoTrash}>
             <span>🗑</span>
             <span>{t('sidebar.todoTrash')}</span>
             {deletedTodoCount > 0 && (
-              <span style={styles.count}>{deletedTodoCount}</span>
+              <span style={{ ...styles.count, fontSize: 11 + d }}>{deletedTodoCount}</span>
             )}
           </button>
         </section>
@@ -109,7 +111,7 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
         {/* Tags section */}
         {allTags.length > 0 && (
           <section style={styles.section}>
-            <div style={styles.sectionLabel}>{t('sidebar.tags')}</div>
+            <div style={{ ...styles.sectionLabel, fontSize: 12 + d }}>{t('sidebar.tags')}</div>
             {allTags.map((tag) => {
               const nCount = noteTagCount(tag);
               const tCount = todoTagCount(tag);
@@ -118,25 +120,25 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
               return (
                 <div key={tag} style={{ ...styles.tagRow, background: isActive ? C.amberLight : 'transparent' }}>
                   <button
-                    style={styles.tagMainBtn}
+                    style={{ ...styles.tagMainBtn, fontSize: 14 + d }}
                     onClick={() => { onFilterTag(isActive ? null : `tag:${tag}`); onClose(); }}
                   >
-                    <span style={styles.tagDot}>🏷</span>
+                    <span style={{ ...styles.tagDot, fontSize: 14 + d }}>🏷</span>
                     <span style={styles.tagName}>{tag}</span>
                     <span style={styles.tagCounts}>
-                      {nCount > 0 && <span style={styles.countBadge}>{nCount}N</span>}
-                      {tCount > 0 && <span style={{ ...styles.countBadge, background: '#dbeafe', color: '#1e40af' }}>{tCount}T</span>}
+                      {nCount > 0 && <span style={{ ...styles.countBadge, fontSize: 10 + d }}>{nCount}N</span>}
+                      {tCount > 0 && <span style={{ ...styles.countBadge, fontSize: 10 + d, background: '#dbeafe', color: '#1e40af' }}>{tCount}T</span>}
                     </span>
                   </button>
                   <button
-                    style={styles.iconBtn}
+                    style={{ ...styles.iconBtn, fontSize: 14 + d }}
                     title="เปลี่ยนชื่อ"
                     onClick={() => { setRenamingTag(tag); setRenameValue(tag); }}
                   >
                     ✏️
                   </button>
                   <button
-                    style={styles.iconBtn}
+                    style={{ ...styles.iconBtn, fontSize: 14 + d }}
                     title="ลบแท็ก"
                     onClick={async () => {
                       if (confirm(`${t('sidebar.deleteTagConfirm').replace('{tag}', tag)}`)) {
@@ -155,16 +157,16 @@ export default function Sidebar({ onClose, onFilterTag, onFilterGroup, activeFil
 
         {groups.length > 0 && (
           <section style={styles.section}>
-            <div style={styles.sectionLabel}>{t('sidebar.groups')}</div>
+            <div style={{ ...styles.sectionLabel, fontSize: 12 + d }}>{t('sidebar.groups')}</div>
             {groups.map((g) => (
               <button
                 key={g.id}
-                style={{ ...styles.navItem, background: activeFilter === `group:${g.id}` ? C.amberLight : 'transparent' }}
+                style={{ ...styles.navItem, fontSize: 14 + d, background: activeFilter === `group:${g.id}` ? C.amberLight : 'transparent' }}
                 onClick={() => { onFilterGroup(`group:${g.id}`); onClose(); }}
               >
                 <span style={{ ...styles.groupDot, background: g.color || C.amber }} />
                 <span>{g.name}</span>
-                <span style={styles.count}>{state.notes.filter((n) => n.group === g.id).length}</span>
+                <span style={{ ...styles.count, fontSize: 11 + d }}>{state.notes.filter((n) => n.group === g.id).length}</span>
               </button>
             ))}
           </section>
