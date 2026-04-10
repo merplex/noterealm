@@ -14,7 +14,9 @@ export default function TodoEditor({ todo, onClose }) {
   const { state, actions } = useApp();
   const { t, locale } = useLocale();
   const dfLocale = locale === 'en' ? enUS : th;
-  const fd = (useFontSize() - 1) * 2;
+  const fsLevel = useFontSize();
+  const fd = (fsLevel - 1) * 2;
+  const gridCols = fsLevel >= 3 ? 2 : 3;
   const isNew = !todo?.id;
 
   const [title, setTitle] = useState(todo?.title || '');
@@ -175,7 +177,7 @@ export default function TodoEditor({ todo, onClose }) {
 
           {/* Quick pick dates */}
           <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.dueDateSection')}</label>
-          <div style={styles.quickPickRow}>
+          <div style={{ ...styles.quickPickRow, gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
             {QUICK_PICKS.map((pick) => {
               const d = calcDate(pick);
               return (
@@ -455,7 +457,6 @@ const styles = {
     border: '1px solid',
     fontSize: 11,
     textAlign: 'center',
-    whiteSpace: 'nowrap',
     cursor: 'pointer',
     fontFamily: C.font,
     fontWeight: 500,

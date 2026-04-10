@@ -27,7 +27,9 @@ const QUICK_PICKS = QUICK_PICK_KEYS;
 
 export default function DatePickerPopup({ dueDate, dueTime, onSave, onCancel }) {
   const { t, locale } = useLocale();
-  const fd = (useFontSize() - 1) * 2;
+  const fsLevel = useFontSize();
+  const fd = (fsLevel - 1) * 2;
+  const gridCols = fsLevel === 1 ? 4 : fsLevel === 2 ? 3 : 2;
   const [date, setDate] = useState(dueDate || '');
   const [time, setTime] = useState(dueTime || '');
   const langAttr = locale === 'en' ? 'en' : 'th';
@@ -39,7 +41,7 @@ export default function DatePickerPopup({ dueDate, dueTime, onSave, onCancel }) 
       <div style={styles.popup} onClick={(e) => e.stopPropagation()}>
         <div style={{ ...styles.title, fontSize: 15 + fd }}>{t('datePicker.title')}</div>
 
-        <div style={styles.quickGrid}>
+        <div style={{ ...styles.quickGrid, gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
           {QUICK_PICK_KEYS.map((pick) => (
             <button
               key={pick.key}
@@ -72,23 +74,29 @@ export default function DatePickerPopup({ dueDate, dueTime, onSave, onCancel }) 
         <div style={styles.inputRow}>
           <div style={styles.field}>
             <label style={{ ...styles.label, fontSize: 11 + fd }}>{t('datePicker.date')}</label>
-            <input
-              type="date"
-              lang={langAttr}
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              style={{ ...styles.input, fontSize: 13 + fd }}
-            />
+            <div style={styles.inputWrap}>
+              <input
+                type="date"
+                lang={langAttr}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                style={{ ...styles.input, fontSize: 13 + fd, color: date ? undefined : 'transparent', WebkitTextFillColor: date ? undefined : 'transparent' }}
+              />
+              {!date && <span style={{ ...styles.inputPlaceholder, fontSize: 13 + fd }}>{t('todoEditor.noDate')}</span>}
+            </div>
           </div>
           <div style={styles.field}>
             <label style={{ ...styles.label, fontSize: 11 + fd }}>{t('todoEditor.time')}</label>
-            <input
-              type="time"
-              lang={langAttr}
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              style={{ ...styles.input, fontSize: 13 + fd }}
-            />
+            <div style={styles.inputWrap}>
+              <input
+                type="time"
+                lang={langAttr}
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                style={{ ...styles.input, fontSize: 13 + fd, color: time ? undefined : 'transparent', WebkitTextFillColor: time ? undefined : 'transparent' }}
+              />
+              {!time && <span style={{ ...styles.inputPlaceholder, fontSize: 13 + fd }}>{t('common.noTime')}</span>}
+            </div>
           </div>
         </div>
 
@@ -142,14 +150,13 @@ const styles = {
     fontFamily: C.font,
     fontWeight: 500,
     textAlign: 'center',
-    whiteSpace: 'nowrap',
   },
   inputRow: {
     display: 'flex',
-    gap: 10,
+    gap: 12,
     marginBottom: 14,
   },
-  field: { flex: 1 },
+  field: { flex: 1, minWidth: 0 },
   label: {
     fontSize: 11,
     fontWeight: 500,
@@ -158,14 +165,28 @@ const styles = {
     display: 'block',
     fontFamily: C.font,
   },
+  inputWrap: {
+    position: 'relative',
+  },
   input: {
     width: '100%',
+    boxSizing: 'border-box',
     padding: '7px 10px',
     borderRadius: 8,
     border: `1px solid ${C.border}`,
     fontSize: 13,
     fontFamily: C.font,
     outline: 'none',
+    display: 'block',
+  },
+  inputPlaceholder: {
+    position: 'absolute',
+    left: 10,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: C.muted,
+    pointerEvents: 'none',
+    fontFamily: C.font,
   },
   footer: {
     display: 'flex',
