@@ -8,6 +8,11 @@ import { th, enUS } from 'date-fns/locale';
 import { useLocale } from '../../utils/useLocale';
 import { useFontSize } from '../../utils/useFontSize';
 import { generateRepeatInstances, repeatLabel } from '../../utils/repeatTodo';
+import {
+  requestNotificationPermission,
+  scheduleTodoNotification,
+  cancelTodoNotification,
+} from '../../utils/todoNotifications';
 
 const PRIORITY_KEYS = ['urgent', 'high', 'normal', 'low'];
 
@@ -143,8 +148,17 @@ export default function TodoEditor({ todo, onClose }) {
       if (repeatEnabled && data.dueDate && data.repeatEvery && data.repeatUnit) {
         const instances = generateRepeatInstances(data, state.todos);
         for (const instance of instances) {
-          await actions.addTodo(instance);
+          const saved = await actions.addTodo(instance);
+          // ตั้ง notification สำหรับแต่ละ instance
+          await scheduleTodoNotification(saved || instance);
         }
+      } else if (data.dueDate && !data.done) {
+        // Todo ปกติ — ขอ permission แล้ว schedule
+        const granted = await requestNotificationPermission();
+        if (granted) await scheduleTodoNotification(data);
+      } else if (data.done) {
+        // ถ้า done แล้ว ให้ยกเลิก notification
+        await cancelTodoNotification(data.id);
       }
 
       onClose();

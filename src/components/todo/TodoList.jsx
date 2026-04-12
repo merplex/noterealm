@@ -9,6 +9,10 @@ import TodoItem from './TodoItem';
 import TodoEditor from './TodoEditor';
 import DatePickerPopup from './DatePickerPopup';
 import { parseQuery, matchQuery } from '../../utils/searchQuery';
+import {
+  scheduleAllTodoNotifications,
+  cancelTodoNotification,
+} from '../../utils/todoNotifications';
 
 const SECTIONS = [
   { key: 'urgent', label: '🔴 เร่งด่วน' },
@@ -38,6 +42,14 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
   useEffect(() => {
     setSelectedIds(new Set());
   }, [todoFilter]);
+
+  // Schedule notifications สำหรับ todos ที่มีอยู่เมื่อ load ครั้งแรก
+  useEffect(() => {
+    if (state.todos.length > 0) {
+      scheduleAllTodoNotifications(state.todos).catch(console.warn);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once after mount
 
   const filteredTodos = useMemo(() => {
     let todos = [...state.todos];
@@ -103,6 +115,8 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
       done: newDone,
       completedAt: newDone ? new Date().toISOString() : undefined,
     }).catch(console.error);
+    // ยกเลิก notification เมื่อ done
+    if (newDone) cancelTodoNotification(todo.id).catch(console.warn);
   };
 
   const handleQuickAdd = async () => {
@@ -139,6 +153,8 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
 
   const handleDelete = async () => {
     await Promise.all([...selectedIds].map((id) => actions.deleteTodo(id)));
+    // ยกเลิก notifications ของ todos ที่ลบ
+    [...selectedIds].forEach((id) => cancelTodoNotification(id).catch(console.warn));
     cancelSelection();
   };
   const handleRestore = async () => {
