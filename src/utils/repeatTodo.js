@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
-const MAX_COUNT = { day: 30, week: 20, month: 12, year: 5 };
+// fallback max count ถ้าไม่มี end date
+const FALLBACK_MAX = { day: 60, week: 26, month: 12, year: 5 };
 
 export function addRepeatInterval(dateStr, repeatEvery, repeatUnit) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -13,41 +14,66 @@ export function addRepeatInterval(dateStr, repeatEvery, repeatUnit) {
 
 /**
  * สร้าง child instances จาก parent repeat todo
- * - ตรวจสอบ repeatParentId + dueDate ก่อนสร้าง เพื่อไม่สร้างซ้ำ
- * - คืน array ของ todo ใหม่ที่ยังไม่มีใน existingTodos
+ *
+ * Model:
+ *  - repeatStartDate : วันแรกที่เริ่มสร้าง instance
+ *  - dueDate         : วันสิ้นสุด (หยุดสร้างหลังวันนี้); ไม่กำหนด = ใช้ fallback max count
+ *  - dueTime         : เวลาที่ใช้กับ **ทุก** instance
  */
 export function generateRepeatInstances(parentTodo, existingTodos) {
-  const { dueDate, repeatEvery, repeatUnit, id, repeatEnabled } = parentTodo;
-  if (!dueDate || !repeatEvery || !repeatUnit || !repeatEnabled) return [];
+  const {
+    repeatStartDate,
+    dueDate: endDate,
+    dueTime,
+    repeatEvery,
+    repeatUnit,
+    id,
+    repeatEnabled,
+  } = parentTodo;
 
-  // ดึง set ของ dueDate ที่มีอยู่แล้วสำหรับ parent นี้
+  if (!repeatStartDate || !repeatEvery || !repeatUnit || !repeatEnabled) return [];
+
+  // set ของ dueDate ที่มีอยู่แล้ว (ป้องกันซ้ำ)
   const existingDates = new Set(
     existingTodos
       .filter(t => t.repeatParentId === id && !t.deletedAt)
       .map(t => t.dueDate)
   );
 
-  const maxCount = MAX_COUNT[repeatUnit] || 10;
+  const endDateObj = endDate ? new Date(endDate + 'T23:59:59') : null;
+  const maxCount = FALLBACK_MAX[repeatUnit] || 30;
   const instances = [];
-  let current = dueDate;
+  let current = repeatStartDate;
+  let count = 0;
+  const SAFETY = 500;
 
-  for (let i = 0; i < maxCount; i++) {
-    current = addRepeatInterval(current, repeatEvery, repeatUnit);
+  while (count < SAFETY) {
+    count++;
+
+    // หยุดถ้าเกิน end date
+    if (endDateObj && new Date(current + 'T00:00:00') > endDateObj) break;
+    // หยุดถ้าไม่มี end date และครบ max count
+    if (!endDateObj && instances.length >= maxCount) break;
+
     if (!existingDates.has(current)) {
       const now = new Date().toISOString();
       instances.push({
         ...parentTodo,
         id: uuidv4(),
         dueDate: current,
+        dueTime: dueTime || undefined,   // เวลาเดียวกันทุก instance
         done: false,
         completedAt: undefined,
-        repeatEnabled: false,     // child ไม่ repeat ต่อ
-        repeatParentId: id,       // อ้างอิง parent
+        repeatEnabled: false,            // child ไม่ repeat ต่อ
+        repeatParentId: id,
+        repeatStartDate: undefined,      // child ไม่มี start date
         createdAt: now,
         updatedAt: now,
       });
-      existingDates.add(current); // ป้องกันซ้ำใน batch เดียวกัน
+      existingDates.add(current);
     }
+
+    current = addRepeatInterval(current, repeatEvery, repeatUnit);
   }
 
   return instances;

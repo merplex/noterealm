@@ -55,6 +55,9 @@ export default function TodoEditor({ todo, onClose }) {
   const [repeatEnabled, setRepeatEnabled] = useState(todo?.repeatEnabled || false);
   const [repeatEvery, setRepeatEvery] = useState(todo?.repeatEvery || null);
   const [repeatUnit, setRepeatUnit] = useState(todo?.repeatUnit || null);
+  // repeatStartDate = วันแรกที่เริ่มสร้าง instance (เซตจากการกด chip)
+  // dueDate (ใน repeat mode) = วันสิ้นสุด
+  const [repeatStartDate, setRepeatStartDate] = useState(todo?.repeatStartDate || '');
 
   const linkedNote = useMemo(() => {
     if (!todo?.linkedNoteId) return null;
@@ -135,6 +138,8 @@ export default function TodoEditor({ todo, onClose }) {
       repeatEnabled: repeatEnabled || undefined,
       repeatEvery: repeatEnabled ? repeatEvery : undefined,
       repeatUnit: repeatEnabled ? repeatUnit : undefined,
+      // repeatStartDate = วันแรก; dueDate (repeat mode) = วันสิ้นสุด
+      repeatStartDate: repeatEnabled ? (repeatStartDate || undefined) : undefined,
     };
 
     try {
@@ -145,11 +150,10 @@ export default function TodoEditor({ todo, onClose }) {
       }
 
       // สร้าง repeat instances (เฉพาะที่ยังไม่มีเท่านั้น)
-      if (repeatEnabled && data.dueDate && data.repeatEvery && data.repeatUnit) {
+      if (repeatEnabled && data.repeatStartDate && data.repeatEvery && data.repeatUnit) {
         const instances = generateRepeatInstances(data, state.todos);
         for (const instance of instances) {
           const saved = await actions.addTodo(instance);
-          // ตั้ง notification สำหรับแต่ละ instance
           await scheduleTodoNotification(saved || instance);
         }
       } else if (data.dueDate && !data.done) {
@@ -173,6 +177,7 @@ export default function TodoEditor({ todo, onClose }) {
     if (!next) {
       setRepeatEvery(null);
       setRepeatUnit(null);
+      setRepeatStartDate('');
     }
   };
 
@@ -316,7 +321,8 @@ export default function TodoEditor({ todo, onClose }) {
                     onClick={() => {
                       setRepeatEvery(pick.repeatEvery);
                       setRepeatUnit(pick.repeatUnit);
-                      setDueDate(calcDate(QUICK_PICKS.find(q => q.key === pick.key)));
+                      // set วันเริ่มต้น (start date) ตาม chip — ไม่ใช่ due/end date
+                      setRepeatStartDate(calcDate(QUICK_PICKS.find(q => q.key === pick.key)));
                     }}
                   >
                     {t(pick.labelKey)}
@@ -326,10 +332,12 @@ export default function TodoEditor({ todo, onClose }) {
             )}
           </div>
 
-          {/* Due date/time — ใช้ overlay แทน lang attribute เพื่อแก้ bug วันที่หายตอนเปลี่ยน locale */}
+          {/* Due date/time — label เปลี่ยนตาม repeat mode */}
           <div style={styles.row}>
             <div style={styles.field}>
-              <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.dueDate')}</label>
+              <label style={{ ...styles.label, fontSize: 12 + fd }}>
+                {repeatEnabled ? t('todoEditor.repeatEndDate') : t('todoEditor.dueDate')}
+              </label>
               <div style={styles.inputWrap}>
                 <input
                   type="date"
@@ -349,7 +357,9 @@ export default function TodoEditor({ todo, onClose }) {
               </div>
             </div>
             <div style={styles.field}>
-              <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.time')}</label>
+              <label style={{ ...styles.label, fontSize: 12 + fd }}>
+                {repeatEnabled ? t('todoEditor.repeatTimeAll') : t('todoEditor.time')}
+              </label>
               <input
                 type="time"
                 value={dueTime}

@@ -225,15 +225,17 @@ const th = {
 
   // repeat
   'repeat.daily': 'ทุกวัน',
-  'repeat.every2days': 'ทุก 2 วัน',
+  'repeat.every2days': '2 วัน',
   'repeat.weekly': 'ทุกสัปดาห์',
-  'repeat.every2weeks': 'ทุก 2 อาทิตย์',
+  'repeat.every2weeks': '2 สัปดาห์',
   'repeat.monthly': 'ทุกเดือน',
-  'repeat.every2months': 'ทุก 2 เดือน',
-  'repeat.every3months': 'ทุก 3 เดือน',
-  'repeat.every6months': 'ทุก 6 เดือน',
+  'repeat.every2months': '2 เดือน',
+  'repeat.every3months': '3 เดือน',
+  'repeat.every6months': '6 เดือน',
   'repeat.yearly': 'ทุกปี',
   'repeat.custom': 'กำหนดเอง',
+  'todoEditor.repeatEndDate': 'วันสิ้นสุด',
+  'todoEditor.repeatTimeAll': 'เวลา (ทุกรายการ)',
 
   // date picker
   'datePicker.title': 'ตั้งวันครบกำหนด',
