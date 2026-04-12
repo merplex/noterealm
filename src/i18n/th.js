@@ -104,6 +104,9 @@ const th = {
   'todo.restoreItems': '↩ กู้คืน',
   'todo.deleteItems': '🗑 ลบ',
   'todo.selectAll': 'เลือกทั้งหมด',
+  'todo.filterDone': 'เสร็จ',
+  'todo.filterRepeat': 'อัตโนมัติ',
+  'todo.repeatSection': '🔁 อัตโนมัติ',
 
   // settings
   'settings.title': 'ตั้งค่า',
@@ -218,6 +221,19 @@ const th = {
   'todoEditor.linkFailed': 'เชื่อมต่อไม่สำเร็จ: ',
   'todoEditor.unlinkFailed': 'ยกเลิกไม่สำเร็จ: ',
   'todoEditor.saveFailed': 'บันทึกไม่สำเร็จ: ',
+  'todoEditor.repeatToggle': 'ทำซ้ำ',
+
+  // repeat
+  'repeat.daily': 'ทุกวัน',
+  'repeat.every2days': 'ทุก 2 วัน',
+  'repeat.weekly': 'ทุกสัปดาห์',
+  'repeat.every2weeks': 'ทุก 2 อาทิตย์',
+  'repeat.monthly': 'ทุกเดือน',
+  'repeat.every2months': 'ทุก 2 เดือน',
+  'repeat.every3months': 'ทุก 3 เดือน',
+  'repeat.every6months': 'ทุก 6 เดือน',
+  'repeat.yearly': 'ทุกปี',
+  'repeat.custom': 'กำหนดเอง',
 
   // date picker
   'datePicker.title': 'ตั้งวันครบกำหนด',

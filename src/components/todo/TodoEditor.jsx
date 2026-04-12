@@ -7,8 +7,22 @@ import { format } from 'date-fns';
 import { th, enUS } from 'date-fns/locale';
 import { useLocale } from '../../utils/useLocale';
 import { useFontSize } from '../../utils/useFontSize';
+import { generateRepeatInstances, repeatLabel } from '../../utils/repeatTodo';
 
 const PRIORITY_KEYS = ['urgent', 'high', 'normal', 'low'];
+
+// Repeat picks — แมปจาก quick pick → repeat frequency
+const REPEAT_PICKS = [
+  { key: 'datePicker.today',      labelKey: 'repeat.daily',        repeatEvery: 1, repeatUnit: 'day'   },
+  { key: 'datePicker.tomorrow',   labelKey: 'repeat.every2days',   repeatEvery: 2, repeatUnit: 'day'   },
+  { key: 'datePicker.nextWeek',   labelKey: 'repeat.weekly',       repeatEvery: 1, repeatUnit: 'week'  },
+  { key: 'datePicker.twoWeeks',   labelKey: 'repeat.every2weeks',  repeatEvery: 2, repeatUnit: 'week'  },
+  { key: 'datePicker.nextMonth',  labelKey: 'repeat.monthly',      repeatEvery: 1, repeatUnit: 'month' },
+  { key: 'datePicker.twoMonths',  labelKey: 'repeat.every2months', repeatEvery: 2, repeatUnit: 'month' },
+  { key: 'datePicker.threeMonths',labelKey: 'repeat.every3months', repeatEvery: 3, repeatUnit: 'month' },
+  { key: 'datePicker.halfYear',   labelKey: 'repeat.every6months', repeatEvery: 6, repeatUnit: 'month' },
+  { key: 'datePicker.nextYear',   labelKey: 'repeat.yearly',       repeatEvery: 1, repeatUnit: 'year'  },
+];
 
 export default function TodoEditor({ todo, onClose }) {
   const { state, actions } = useApp();
@@ -31,6 +45,11 @@ export default function TodoEditor({ todo, onClose }) {
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
   const [linkedNoteExpanded, setLinkedNoteExpanded] = useState(false);
   const [noteSearch, setNoteSearch] = useState('');
+
+  // Repeat state
+  const [repeatEnabled, setRepeatEnabled] = useState(todo?.repeatEnabled || false);
+  const [repeatEvery, setRepeatEvery] = useState(todo?.repeatEvery || null);
+  const [repeatUnit, setRepeatUnit] = useState(todo?.repeatUnit || null);
 
   const linkedNote = useMemo(() => {
     if (!todo?.linkedNoteId) return null;
@@ -106,6 +125,11 @@ export default function TodoEditor({ todo, onClose }) {
       linkedNoteId: todo?.linkedNoteId,
       source: todo?.source || 'manual',
       createdAt: todo?.createdAt || new Date().toISOString(),
+      repeatParentId: todo?.repeatParentId,
+      // Repeat fields
+      repeatEnabled: repeatEnabled || undefined,
+      repeatEvery: repeatEnabled ? repeatEvery : undefined,
+      repeatUnit: repeatEnabled ? repeatUnit : undefined,
     };
 
     try {
@@ -114,9 +138,40 @@ export default function TodoEditor({ todo, onClose }) {
       } else {
         await actions.updateTodo(data);
       }
+
+      // สร้าง repeat instances (เฉพาะที่ยังไม่มีเท่านั้น)
+      if (repeatEnabled && data.dueDate && data.repeatEvery && data.repeatUnit) {
+        const instances = generateRepeatInstances(data, state.todos);
+        for (const instance of instances) {
+          await actions.addTodo(instance);
+        }
+      }
+
       onClose();
     } catch (err) {
       alert(t('todoEditor.saveFailed') + err.message);
+    }
+  };
+
+  const toggleRepeat = () => {
+    const next = !repeatEnabled;
+    setRepeatEnabled(next);
+    if (!next) {
+      setRepeatEvery(null);
+      setRepeatUnit(null);
+    }
+  };
+
+  // แสดงวันที่แบบ locale ปัจจุบัน (ไม่พึ่ง lang attribute บน input)
+  const formatDueDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr + 'T00:00:00').toLocaleDateString(
+        locale === 'en' ? 'en-US' : 'th-TH',
+        { day: 'numeric', month: 'short', year: 'numeric' }
+      );
+    } catch {
+      return dateStr;
     }
   };
 
@@ -175,58 +230,114 @@ export default function TodoEditor({ todo, onClose }) {
             ))}
           </div>
 
-          {/* Quick pick dates */}
-          <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.dueDateSection')}</label>
-          <div style={{ ...styles.quickPickRow, gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
-            {QUICK_PICKS.map((pick) => {
-              const d = calcDate(pick);
-              return (
-                <button
-                  key={pick.key}
-                  style={{
-                    ...styles.quickPickBtn,
-                    fontSize: 11 + fd,
-                    background: dueDate === d ? C.amber : C.white,
-                    color: dueDate === d ? C.white : C.text,
-                    borderColor: dueDate === d ? C.amber : C.border,
-                  }}
-                  onClick={() => setDueDate(d)}
-                >
-                  {t(pick.key)}
-                </button>
-              );
-            })}
+          {/* Due label + Repeat toggle */}
+          <div style={styles.dueLabelRow}>
+            <label style={{ ...styles.label, fontSize: 12 + fd, marginBottom: 0 }}>
+              {t('todoEditor.dueDateSection')}
+            </label>
             <button
               style={{
-                ...styles.quickPickBtn,
+                ...styles.repeatToggleBtn,
                 fontSize: 11 + fd,
-                background: !dueDate ? '#f0f0f0' : C.white,
-                color: C.sub,
-                borderColor: C.border,
+                background: repeatEnabled ? C.amber : C.white,
+                color: repeatEnabled ? C.white : C.sub,
+                borderColor: repeatEnabled ? C.amber : C.border,
               }}
-              onClick={() => { setDueDate(''); setDueTime(''); }}
+              onClick={toggleRepeat}
             >
-              {t('todoEditor.noDate')}
+              🔁 {t('todoEditor.repeatToggle')}
             </button>
           </div>
 
-          {/* Due date/time */}
+          {/* Quick pick dates / Repeat chips */}
+          <div style={{ ...styles.quickPickRow, gridTemplateColumns: `repeat(${gridCols}, 1fr)`, marginTop: 8 }}>
+            {!repeatEnabled ? (
+              // โหมดปกติ — เลือกวันที่
+              <>
+                {QUICK_PICKS.map((pick) => {
+                  const d = calcDate(pick);
+                  return (
+                    <button
+                      key={pick.key}
+                      style={{
+                        ...styles.quickPickBtn,
+                        fontSize: 11 + fd,
+                        background: dueDate === d ? C.amber : C.white,
+                        color: dueDate === d ? C.white : C.text,
+                        borderColor: dueDate === d ? C.amber : C.border,
+                      }}
+                      onClick={() => setDueDate(d)}
+                    >
+                      {t(pick.key)}
+                    </button>
+                  );
+                })}
+                <button
+                  style={{
+                    ...styles.quickPickBtn,
+                    fontSize: 11 + fd,
+                    background: !dueDate ? '#f0f0f0' : C.white,
+                    color: C.sub,
+                    borderColor: C.border,
+                  }}
+                  onClick={() => { setDueDate(''); setDueTime(''); }}
+                >
+                  {t('todoEditor.noDate')}
+                </button>
+              </>
+            ) : (
+              // โหมด Repeat — เลือก frequency
+              REPEAT_PICKS.map((pick) => {
+                const isActive = repeatEvery === pick.repeatEvery && repeatUnit === pick.repeatUnit;
+                return (
+                  <button
+                    key={pick.key}
+                    style={{
+                      ...styles.quickPickBtn,
+                      fontSize: 11 + fd,
+                      background: isActive ? C.amber : C.white,
+                      color: isActive ? C.white : C.text,
+                      borderColor: isActive ? C.amber : C.border,
+                    }}
+                    onClick={() => {
+                      setRepeatEvery(pick.repeatEvery);
+                      setRepeatUnit(pick.repeatUnit);
+                      setDueDate(calcDate(QUICK_PICKS.find(q => q.key === pick.key)));
+                    }}
+                  >
+                    {t(pick.labelKey)}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* Due date/time — ใช้ overlay แทน lang attribute เพื่อแก้ bug วันที่หายตอนเปลี่ยน locale */}
           <div style={styles.row}>
             <div style={styles.field}>
               <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.dueDate')}</label>
-              <input
-                type="date"
-                lang={locale === 'en' ? 'en' : 'th'}
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                style={{ ...styles.input, fontSize: 13 + fd }}
-              />
+              <div style={styles.inputWrap}>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  style={{ ...styles.input, fontSize: 13 + fd, color: 'transparent', WebkitTextFillColor: 'transparent' }}
+                />
+                {dueDate ? (
+                  <span style={{ ...styles.inputOverlay, fontSize: 13 + fd }}>
+                    {formatDueDate(dueDate)}
+                  </span>
+                ) : (
+                  <span style={{ ...styles.inputPlaceholder, fontSize: 13 + fd }}>
+                    {t('todoEditor.noDate')}
+                  </span>
+                )}
+              </div>
             </div>
             <div style={styles.field}>
               <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.time')}</label>
               <input
                 type="time"
-                lang={locale === 'en' ? 'en' : 'th'}
                 value={dueTime}
                 onChange={(e) => setDueTime(e.target.value)}
                 style={{ ...styles.input, fontSize: 13 + fd }}
@@ -450,7 +561,23 @@ const styles = {
     fontFamily: C.font,
     background: C.white,
   },
-  quickPickRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 12 },
+  // Due label row — label + repeat toggle ข้างขวา
+  dueLabelRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 0,
+  },
+  repeatToggleBtn: {
+    padding: '4px 10px',
+    borderRadius: 20,
+    border: '1px solid',
+    fontSize: 11,
+    cursor: 'pointer',
+    fontFamily: C.font,
+    fontWeight: 500,
+  },
+  quickPickRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 12 },
   quickPickBtn: {
     padding: '6px 4px',
     borderRadius: 14,
@@ -462,7 +589,9 @@ const styles = {
     fontWeight: 500,
   },
   row: { display: 'flex', gap: 12, marginBottom: 14 },
-  field: { flex: 1 },
+  field: { flex: 1, minWidth: 0 },
+  // Wrapper สำหรับ date input + overlay
+  inputWrap: { position: 'relative' },
   input: {
     width: '100%',
     padding: '7px 10px',
@@ -471,6 +600,33 @@ const styles = {
     fontSize: 13,
     fontFamily: C.font,
     outline: 'none',
+    boxSizing: 'border-box',
+    display: 'block',
+  },
+  // Overlay แสดงวันที่แบบ formatted (locale-aware) บน input ที่ซ่อน text ไว้
+  inputOverlay: {
+    position: 'absolute',
+    left: 10,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    pointerEvents: 'none',
+    fontFamily: C.font,
+    color: C.text,
+    fontSize: 13,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    maxWidth: 'calc(100% - 30px)',
+  },
+  inputPlaceholder: {
+    position: 'absolute',
+    left: 10,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    pointerEvents: 'none',
+    fontFamily: C.font,
+    color: C.muted,
+    fontStyle: 'italic',
+    fontSize: 13,
   },
   tagsWrap: {
     display: 'flex',

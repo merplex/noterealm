@@ -104,6 +104,9 @@ const en = {
   'todo.restoreItems': '↩ Restore',
   'todo.deleteItems': '🗑 Delete',
   'todo.selectAll': 'Select all',
+  'todo.filterDone': 'Done',
+  'todo.filterRepeat': 'Auto',
+  'todo.repeatSection': '🔁 Auto',
 
   // settings
   'settings.title': 'Settings',
@@ -218,6 +221,19 @@ const en = {
   'todoEditor.linkFailed': 'Link failed: ',
   'todoEditor.unlinkFailed': 'Unlink failed: ',
   'todoEditor.saveFailed': 'Save failed: ',
+  'todoEditor.repeatToggle': 'Repeat',
+
+  // repeat
+  'repeat.daily': 'Daily',
+  'repeat.every2days': 'Every 2 days',
+  'repeat.weekly': 'Weekly',
+  'repeat.every2weeks': 'Every 2 weeks',
+  'repeat.monthly': 'Monthly',
+  'repeat.every2months': 'Every 2 months',
+  'repeat.every3months': 'Every 3 months',
+  'repeat.every6months': 'Every 6 months',
+  'repeat.yearly': 'Yearly',
+  'repeat.custom': 'Custom',
 
   // date picker
   'datePicker.title': 'Set due date',

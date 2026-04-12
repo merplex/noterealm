@@ -142,6 +142,9 @@ export default function TodoItem({ todo, onToggle, onEdit, onDateClick, isSelect
           >
             {dateLabel}
           </span>
+          {(todo.repeatEnabled || todo.repeatParentId) && (
+            <span style={styles.repeatBadge}>🔁</span>
+          )}
           {todo.source && todo.source !== 'manual' && (
             <span style={styles.sourceBadge}>{SOURCE_ICONS[todo.source]}</span>
           )}
@@ -207,4 +210,5 @@ const styles = {
   },
   sourceBadge: { fontSize: 14 },
   linkBadge: { fontSize: 12 },
+  repeatBadge: { fontSize: 12 },
 };
