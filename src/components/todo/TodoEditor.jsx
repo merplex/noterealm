@@ -149,23 +149,24 @@ export default function TodoEditor({ todo, onClose }) {
         await actions.updateTodo(data);
       }
 
-      // สร้าง repeat instances (เฉพาะที่ยังไม่มีเท่านั้น)
+      // ปิด modal ก่อนเสมอ — ไม่ให้ permission dialog รบกวน UI
+      onClose();
+
+      // Notification + repeat instances — ทำ async หลัง onClose
       if (repeatEnabled && data.repeatStartDate && data.repeatEvery && data.repeatUnit) {
         const instances = generateRepeatInstances(data, state.todos);
         for (const instance of instances) {
           const saved = await actions.addTodo(instance);
-          await scheduleTodoNotification(saved || instance);
+          scheduleTodoNotification(saved || instance).catch(console.warn);
         }
       } else if (data.dueDate && !data.done) {
-        // Todo ปกติ — ขอ permission แล้ว schedule
-        const granted = await requestNotificationPermission();
-        if (granted) await scheduleTodoNotification(data);
+        // ขอ permission (ถ้ายังไม่ได้ให้) แล้ว schedule — ไม่ await เพื่อไม่บล็อก
+        requestNotificationPermission().then((granted) => {
+          if (granted) scheduleTodoNotification(data).catch(console.warn);
+        });
       } else if (data.done) {
-        // ถ้า done แล้ว ให้ยกเลิก notification
-        await cancelTodoNotification(data.id);
+        cancelTodoNotification(data.id).catch(console.warn);
       }
-
-      onClose();
     } catch (err) {
       alert(t('todoEditor.saveFailed') + err.message);
     }
@@ -181,16 +182,19 @@ export default function TodoEditor({ todo, onClose }) {
     }
   };
 
-  // แสดงวันที่แบบ locale ปัจจุบัน (ไม่พึ่ง lang attribute บน input)
+  // แสดงวันที่แบบ locale — ใช้ date-fns แทน toLocaleDateString (WebView บางตัว support Intl ไม่ครบ)
   const formatDueDate = (dateStr) => {
     if (!dateStr) return '';
     try {
-      return new Date(dateStr + 'T00:00:00').toLocaleDateString(
-        locale === 'en' ? 'en-US' : 'th-TH',
-        { day: 'numeric', month: 'short', year: 'numeric' }
-      );
+      // รองรับทั้ง YYYY-MM-DD และ full ISO string จาก data เก่า
+      const clean = typeof dateStr === 'string' && dateStr.includes('T')
+        ? dateStr.split('T')[0]
+        : String(dateStr);
+      const d = new Date(clean + 'T00:00:00');
+      if (isNaN(d.getTime())) return '';
+      return format(d, 'd MMM yyyy', { locale: locale === 'en' ? enUS : th });
     } catch {
-      return dateStr;
+      return '';
     }
   };
 
