@@ -1,24 +1,43 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { getAlertSettings, leadTimeMs } from './alertSettings';
 
-/** แปลง UUID string → integer (สำหรับ notification ID) */
+const CHANNEL_ID = 'noterealm-todo';
+
+/** แปลง UUID string → integer สำหรับ notification ID */
 function uuidToInt(id) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = ((hash << 5) - hash) + id.charCodeAt(i);
     hash |= 0;
   }
-  return Math.abs(hash) % 2147483647; // max 32-bit int
+  return Math.abs(hash) % 2147483647;
 }
 
-/** เช็คว่าแอปอยู่บน Native platform (Android/iOS) ไหม */
 function isNative() {
   return Capacitor.isNativePlatform();
 }
 
 /**
- * ขอ permission แจ้งเตือน — คืน true ถ้าได้รับสิทธิ์
+ * สร้าง Notification Channel สำหรับ Android 8+ (ต้องเรียกก่อน schedule)
  */
+export async function createNotificationChannel() {
+  if (!isNative()) return;
+  try {
+    await LocalNotifications.createChannel({
+      id: CHANNEL_ID,
+      name: 'Todo แจ้งเตือน',
+      description: 'แจ้งเตือน Todo ถึงกำหนด',
+      importance: 5,          // IMPORTANCE_HIGH — มีเสียง + popup
+      sound: 'default',
+      vibration: true,
+      visibility: 1,          // VISIBILITY_PUBLIC
+    });
+  } catch (err) {
+    console.warn('[Notif] createChannel failed:', err);
+  }
+}
+
 export async function requestNotificationPermission() {
   if (!isNative()) return false;
   try {
@@ -29,9 +48,6 @@ export async function requestNotificationPermission() {
   }
 }
 
-/**
- * เช็คสถานะ permission โดยไม่ขอใหม่
- */
 export async function checkNotificationPermission() {
   if (!isNative()) return false;
   try {
@@ -42,49 +58,103 @@ export async function checkNotificationPermission() {
   }
 }
 
-/**
- * สร้าง notification schedule date จาก dueDate + dueTime
- * ถ้าไม่มี dueTime จะแจ้งเตือน 08:00 น. ของวันนั้น
- */
 function buildScheduleDate(dueDate, dueTime) {
   const timeStr = dueTime || '08:00';
   return new Date(`${dueDate}T${timeStr}:00`);
 }
 
+/** notification IDs สำหรับ todo รายการเดียว */
+function notifIds(todoId) {
+  return {
+    due:   uuidToInt(todoId + ':due'),
+    early: uuidToInt(todoId + ':early'),
+  };
+}
+
 /**
- * ตั้ง notification สำหรับ todo 1 รายการ
- * - ข้ามถ้า: ไม่มี dueDate, done แล้ว, หรือเลยกำหนดไปแล้ว
+ * สร้าง notification objects สำหรับ todo 1 รายการ
+ * - urgent/high: ได้ 2 notifs (ล่วงหน้า + ตรงเวลา)
+ * - normal/low: ได้ 1 notif (ตรงเวลา)
  */
+function buildNotificationsForTodo(todo, now) {
+  if (!todo.dueDate || todo.done || todo.repeatEnabled || todo.deletedAt) return [];
+
+  const atDue = buildScheduleDate(todo.dueDate, todo.dueTime);
+  const { urgentDays, urgentHours, highDays, highHours } = getAlertSettings();
+  const ids = notifIds(todo.id);
+  const notifs = [];
+  const priority = todo.priority || 'normal';
+
+  if (priority === 'urgent' || priority === 'high') {
+    const leadMs = priority === 'urgent'
+      ? leadTimeMs(urgentDays, urgentHours)
+      : leadTimeMs(highDays, highHours);
+
+    // notif ล่วงหน้า (ถ้า leadTime > 0)
+    if (leadMs > 0) {
+      const earlyAt = new Date(atDue.getTime() - leadMs);
+      if (earlyAt > now) {
+        notifs.push({
+          id: ids.early,
+          title: priority === 'urgent' ? '🚨 แจ้งเตือนล่วงหน้า' : '⚠️ แจ้งเตือนล่วงหน้า',
+          body: todo.title,
+          schedule: { at: earlyAt, allowWhileIdle: true },
+          sound: 'default',
+          channelId: CHANNEL_ID,
+          extra: { todoId: todo.id },
+        });
+      }
+    }
+
+    // notif ตรงเวลา
+    if (atDue > now) {
+      notifs.push({
+        id: ids.due,
+        title: priority === 'urgent' ? '🚨 ด่วน! Todo ถึงกำหนด' : '⚠️ สำคัญ! Todo ถึงกำหนด',
+        body: todo.title,
+        schedule: { at: atDue, allowWhileIdle: true },
+        sound: 'default',
+        channelId: CHANNEL_ID,
+        extra: { todoId: todo.id },
+      });
+    }
+  } else {
+    if (atDue > now) {
+      notifs.push({
+        id: ids.due,
+        title: '📋 NoteRealm Todo',
+        body: todo.title,
+        schedule: { at: atDue, allowWhileIdle: true },
+        sound: 'default',
+        channelId: CHANNEL_ID,
+        extra: { todoId: todo.id },
+      });
+    }
+  }
+
+  return notifs;
+}
+
+/** ตั้ง notification สำหรับ todo 1 รายการ */
 export async function scheduleTodoNotification(todo) {
   if (!isNative()) return;
-  if (!todo.dueDate || todo.done || todo.repeatEnabled) return;
-
-  const at = buildScheduleDate(todo.dueDate, todo.dueTime);
-  if (at <= new Date()) return; // อดีต — ข้าม
-
+  const notifs = buildNotificationsForTodo(todo, new Date());
+  if (notifs.length === 0) return;
   try {
-    await LocalNotifications.schedule({
-      notifications: [{
-        id: uuidToInt(todo.id),
-        title: '📋 NoteRealm Todo',
-        body: todo.title + (todo.note ? `\n${todo.note}` : ''),
-        schedule: { at, allowWhileIdle: true },
-        sound: null,
-        extra: { todoId: todo.id },
-      }],
-    });
+    await LocalNotifications.schedule({ notifications: notifs });
   } catch (err) {
     console.warn('[Notif] schedule failed:', err);
   }
 }
 
-/**
- * ยกเลิก notification ของ todo (เมื่อ done หรือลบ)
- */
+/** ยกเลิก notification ทั้งหมดของ todo (ล่วงหน้า + ตรงเวลา) */
 export async function cancelTodoNotification(todoId) {
   if (!isNative()) return;
   try {
-    await LocalNotifications.cancel({ notifications: [{ id: uuidToInt(todoId) }] });
+    const ids = notifIds(todoId);
+    await LocalNotifications.cancel({
+      notifications: [{ id: ids.due }, { id: ids.early }],
+    });
   } catch (err) {
     console.warn('[Notif] cancel failed:', err);
   }
@@ -92,10 +162,12 @@ export async function cancelTodoNotification(todoId) {
 
 /**
  * ตั้ง notification ให้ทุก todo ที่มี dueDate ในอนาคต (เรียกตอน app load)
- * - ลบ notification เก่าทั้งหมดก่อน แล้ว schedule ใหม่
+ * สร้าง channel ก่อนเสมอ เพื่อ Android 8+
  */
 export async function scheduleAllTodoNotifications(todos) {
   if (!isNative()) return;
+
+  await createNotificationChannel();
 
   const hasPermission = await checkNotificationPermission();
   if (!hasPermission) return;
@@ -104,29 +176,18 @@ export async function scheduleAllTodoNotifications(todos) {
   const notifications = [];
 
   for (const todo of todos) {
-    if (!todo.dueDate || todo.done || todo.deletedAt || todo.repeatEnabled) continue;
-    const at = buildScheduleDate(todo.dueDate, todo.dueTime);
-    if (at <= now) continue;
-
-    notifications.push({
-      id: uuidToInt(todo.id),
-      title: '📋 NoteRealm Todo',
-      body: todo.title + (todo.note ? `\n${todo.note}` : ''),
-      schedule: { at, allowWhileIdle: true },
-      sound: null,
-      extra: { todoId: todo.id },
-    });
+    const notifs = buildNotificationsForTodo(todo, now);
+    notifications.push(...notifs);
   }
 
-  if (notifications.length === 0) return;
-
   try {
-    // Cancel ที่ค้างอยู่ก่อน แล้ว schedule ใหม่
     const pending = await LocalNotifications.getPending();
     if (pending.notifications.length > 0) {
       await LocalNotifications.cancel({ notifications: pending.notifications });
     }
-    await LocalNotifications.schedule({ notifications });
+    if (notifications.length > 0) {
+      await LocalNotifications.schedule({ notifications });
+    }
   } catch (err) {
     console.warn('[Notif] bulk schedule failed:', err);
   }

@@ -134,6 +134,11 @@ const en = {
   'settings.filterAdsDesc': 'AI filters promotional/sales emails',
   'settings.autoSummary': '📝 Auto Summary',
   'settings.autoSummaryDesc': 'AI summarizes email content',
+  'settings.alertLeadTime': 'Alert lead time',
+  'settings.alertLeadTimeDesc': '2 notifications for urgent/high: early + at due time',
+  'settings.alertDays': 'days',
+  'settings.alertHours': 'hrs',
+
   'settings.lineConnect': 'LINE Connect',
   'settings.lineConnectDesc': 'Connect LINE to send/receive notes',
   'settings.lineConnecting': 'Connecting...',

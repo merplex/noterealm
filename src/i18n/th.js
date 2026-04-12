@@ -134,6 +134,11 @@ const th = {
   'settings.filterAdsDesc': 'AI กรองอีเมลโปรโมชัน/ขายของ ไม่สร้าง note',
   'settings.autoSummary': '📝 สรุปอัตโนมัติ',
   'settings.autoSummaryDesc': 'AI สรุปเนื้อหาอีเมลให้สั้นกระชับ',
+  'settings.alertLeadTime': 'แจ้งเตือนล่วงหน้า',
+  'settings.alertLeadTimeDesc': 'แจ้งเตือน 2 รอบสำหรับงานเร่งด่วน/สำคัญ (ล่วงหน้า + ตรงเวลา)',
+  'settings.alertDays': 'วัน',
+  'settings.alertHours': 'ชม.',
+
   'settings.lineConnect': 'LINE Connect',
   'settings.lineConnectDesc': 'เชื่อมต่อ LINE เพื่อรับ-ส่งโน้ต',
   'settings.lineConnecting': 'กำลังเชื่อมต่อ...',

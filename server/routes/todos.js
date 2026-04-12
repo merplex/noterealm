@@ -47,13 +47,14 @@ router.post('/', async (req, res) => {
 
 // Update todo
 router.put('/:id', async (req, res) => {
-  const { title, note, priority, dueDate, dueTime, tags, done, linkedNoteId, source } = req.body;
+  const { title, note, priority, dueDate, dueTime, tags, done, linkedNoteId, source, userId, deletedAt } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE todos SET title=$1, note=$2, priority=$3, due_date=$4, due_time=$5,
-       tags=$6, done=$7, linked_note_id=$8, source=$9, updated_at=NOW()
+       tags=$6, done=$7, linked_note_id=$8, source=$9, updated_at=NOW(),
+       user_id=COALESCE(user_id, $11), deleted_at=$12
        WHERE id=$10 RETURNING *`,
-      [title, note, priority, dueDate || null, dueTime || null, tags || [], done, linkedNoteId || null, source, req.params.id]
+      [title, note, priority, dueDate || null, dueTime || null, tags || [], done, linkedNoteId || null, source, req.params.id, userId || null, deletedAt || null]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json(mapTodo(rows[0]));

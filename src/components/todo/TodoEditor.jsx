@@ -16,6 +16,20 @@ import {
 
 const PRIORITY_KEYS = ['urgent', 'high', 'normal', 'low'];
 
+/** แปลง dueDate ไม่ว่า format ไหน → YYYY-MM-DD (หรือ '' ถ้าไม่ได้) */
+function normalizeDueDate(raw) {
+  if (!raw) return '';
+  const str = String(raw).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;          // YYYY-MM-DD แล้ว
+  if (str.includes('T')) return str.split('T')[0];            // ISO string
+  const d = new Date(str);                                    // fallback parse
+  if (isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // Repeat picks — แมปจาก quick pick → repeat frequency
 const REPEAT_PICKS = [
   { key: 'datePicker.today',      labelKey: 'repeat.daily',        repeatEvery: 1, repeatUnit: 'day'   },
@@ -41,7 +55,7 @@ export default function TodoEditor({ todo, onClose }) {
   const [title, setTitle] = useState(todo?.title || '');
   const [note, setNote] = useState(todo?.note || '');
   const [priority, setPriority] = useState(todo?.priority || 'normal');
-  const [dueDate, setDueDate] = useState(todo?.dueDate || '');
+  const [dueDate, setDueDate] = useState(normalizeDueDate(todo?.dueDate));
   const [dueTime, setDueTime] = useState(todo?.dueTime || '');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState(todo?.tags || []);

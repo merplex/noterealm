@@ -5,6 +5,8 @@ import { useApp } from '../context/AppContext';
 import { lineApi, notesApi } from '../utils/api';
 import { clearImageCache, getImageCacheStats, formatBytes } from '../utils/imageCache';
 import { sync, isAutoSyncEnabled, getSyncInfo, SYNC_AUTO_KEY, setUserId } from '../utils/syncService';
+import { getAlertSettings, setAlertSetting } from '../utils/alertSettings';
+import { pushSettings, pullSettings } from '../utils/settingsSync';
 import { useFontSize, setFontSizeLevel } from '../utils/useFontSize';
 import { useLocale, setLocale } from '../utils/useLocale';
 
@@ -33,6 +35,15 @@ export default function Settings({ onClose }) {
   const [emailFilterSpam, setEmailFilterSpam] = useState(() => localStorage.getItem('nk_email_filter_spam') === 'true');
   const [emailFilterAds, setEmailFilterAds] = useState(() => localStorage.getItem('nk_email_filter_ads') === 'true');
   const [emailFilterSummary, setEmailFilterSummary] = useState(() => localStorage.getItem('nk_email_filter_summary') === 'true');
+
+  const [alertSettings, setAlertSettingsState] = useState(() => getAlertSettings());
+
+  const handleAlertChange = (key, value) => {
+    setAlertSetting(key, value);
+    setAlertSettingsState(getAlertSettings());
+    window.dispatchEvent(new Event('alert-settings-changed'));
+    pushSettings().catch(() => {});
+  };
 
   const refreshSyncInfo = () => setSyncInfo(getSyncInfo());
 
@@ -99,6 +110,7 @@ export default function Settings({ onClose }) {
     const next = !syncAuto;
     setSyncAuto(next);
     localStorage.setItem(SYNC_AUTO_KEY, next ? 'true' : 'false');
+    pushSettings().catch(() => {});
   };
 
   const handleManualSync = async () => {
@@ -140,6 +152,10 @@ export default function Settings({ onClose }) {
     const handleUser = async (user) => {
       dispatch({ type: 'SET_USER', payload: user });
       setUserId(user.id);
+      // Pull settings จาก server ทันทีหลัง login
+      pullSettings().then(() => {
+        setAlertSettingsState(getAlertSettings());
+      }).catch(() => {});
       (async () => {
         const { db } = await import('../db/localDb');
         const [orphanNotes, orphanTodos] = await Promise.all([
@@ -292,7 +308,7 @@ export default function Settings({ onClose }) {
                     color: locale === lng.code ? C.white : C.sub,
                     minWidth: 40,
                   }}
-                  onClick={() => setLocale(lng.code)}
+                  onClick={() => { setLocale(lng.code); pushSettings().catch(() => {}); }}
                 >
                   {lng.label}
                 </button>
@@ -321,7 +337,7 @@ export default function Settings({ onClose }) {
                       color: fontLevel === level ? C.white : C.sub,
                       minWidth: 36,
                     }}
-                    onClick={() => setFontSizeLevel(level)}
+                    onClick={() => { setFontSizeLevel(level); pushSettings().catch(() => {}); }}
                   >
                     {ch.repeat(level)}
                   </button>
@@ -462,6 +478,64 @@ export default function Settings({ onClose }) {
               </div>
             </>
           )}
+
+          <div style={styles.divider} />
+
+          {/* Alert lead-time */}
+          <div style={{ padding: '14px 0 4px' }}>
+            <div style={{ ...styles.label, fontSize: 14 + d }}>{t('settings.alertLeadTime')}</div>
+            <div style={{ ...styles.desc, fontSize: 12 + d, marginBottom: 10 }}>{t('settings.alertLeadTimeDesc')}</div>
+
+            {/* Urgent row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: 13 + d, fontWeight: 600, color: '#ef4444', minWidth: 60 }}>🔴 {t('priority.urgent')}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                <div style={styles.alertInputWrap}>
+                  <input
+                    type="number" min="0" max="365" step="1"
+                    value={alertSettings.urgentDays}
+                    onChange={(e) => handleAlertChange('urgentDays', Math.max(0, Math.min(365, parseInt(e.target.value, 10) || 0)))}
+                    style={styles.alertInput}
+                  />
+                  <span style={styles.alertUnit}>{t('settings.alertDays')}</span>
+                </div>
+                <div style={styles.alertInputWrap}>
+                  <input
+                    type="number" min="0" max="23.5" step="0.5"
+                    value={alertSettings.urgentHours}
+                    onChange={(e) => handleAlertChange('urgentHours', Math.max(0, Math.min(23.5, parseFloat(e.target.value) || 0)))}
+                    style={styles.alertInput}
+                  />
+                  <span style={styles.alertUnit}>{t('settings.alertHours')}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* High row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 13 + d, fontWeight: 600, color: '#f97316', minWidth: 60 }}>🟠 {t('priority.high')}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                <div style={styles.alertInputWrap}>
+                  <input
+                    type="number" min="0" max="365" step="1"
+                    value={alertSettings.highDays}
+                    onChange={(e) => handleAlertChange('highDays', Math.max(0, Math.min(365, parseInt(e.target.value, 10) || 0)))}
+                    style={styles.alertInput}
+                  />
+                  <span style={styles.alertUnit}>{t('settings.alertDays')}</span>
+                </div>
+                <div style={styles.alertInputWrap}>
+                  <input
+                    type="number" min="0" max="23.5" step="0.5"
+                    value={alertSettings.highHours}
+                    onChange={(e) => handleAlertChange('highHours', Math.max(0, Math.min(23.5, parseFloat(e.target.value) || 0)))}
+                    style={styles.alertInput}
+                  />
+                  <span style={styles.alertUnit}>{t('settings.alertHours')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div style={styles.divider} />
 
@@ -640,6 +714,34 @@ const styles = {
     background: C.white, border: `1px solid ${C.amber}`,
     fontSize: 13, fontWeight: 600, fontFamily: C.font,
     cursor: 'pointer', color: C.amber,
+  },
+  alertInputWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+    border: `1px solid ${C.border}`,
+    borderRadius: 8,
+    background: C.white,
+    padding: '5px 8px',
+    minWidth: 0,
+  },
+  alertInput: {
+    width: '100%',
+    border: 'none',
+    outline: 'none',
+    background: 'transparent',
+    fontSize: 13,
+    fontFamily: C.font,
+    color: C.text,
+    textAlign: 'center',
+    minWidth: 0,
+  },
+  alertUnit: {
+    fontSize: 11,
+    color: C.muted,
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   actionBtn: {
     padding: '8px 16px',

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useApp } from './context/AppContext';
 import { useFontSize } from './utils/useFontSize';
 import { useLocale } from './utils/useLocale';
 import { Capacitor } from '@capacitor/core';
+import { getAlertSettings, leadTimeMs } from './utils/alertSettings';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -106,6 +107,34 @@ export default function App() {
   };
 
   const isNote = state.activeTab === 'note';
+
+  // Badge: recompute ทุกนาที + เมื่อ settings เปลี่ยน
+  const [badgeTick, setBadgeTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setBadgeTick(v => v + 1), 60000);
+    const onSettingsChanged = () => setBadgeTick(v => v + 1);
+    window.addEventListener('alert-settings-changed', onSettingsChanged);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('alert-settings-changed', onSettingsChanged);
+    };
+  }, []);
+
+  const badgeCounts = useMemo(() => {
+    const { urgentDays, urgentHours, highDays, highHours } = getAlertSettings();
+    const urgentLead = leadTimeMs(urgentDays, urgentHours);
+    const highLead   = leadTimeMs(highDays, highHours);
+    const now = Date.now();
+    let urgent = 0, high = 0;
+    for (const todo of state.todos) {
+      if (todo.done || todo.deletedAt || !todo.dueDate) continue;
+      const rawDue = todo.dueDate?.includes('T') ? todo.dueDate.split('T')[0] : todo.dueDate;
+      const dueMs = new Date(`${rawDue}T${todo.dueTime || '08:00'}:00`).getTime();
+      if (todo.priority === 'urgent' && dueMs <= now + urgentLead) urgent++;
+      if (todo.priority === 'high'   && dueMs <= now + highLead)   high++;
+    }
+    return { urgent, high };
+  }, [state.todos, badgeTick]);
 
   const todoPanel = (
     <div style={isWide ? styles.splitPanel : undefined}>
@@ -213,13 +242,21 @@ export default function App() {
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={isNote ? '#fff' : C.sub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           </button>
-          <button
-            style={{ ...styles.navBtn, background: !isNote ? C.amber : 'rgba(255,255,255,0.85)' }}
-            onClick={() => dispatch({ type: 'SET_TAB', payload: 'todo' })}
-            title="ปฏิทิน"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={!isNote ? '#fff' : C.sub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              style={{ ...styles.navBtn, background: !isNote ? C.amber : 'rgba(255,255,255,0.85)' }}
+              onClick={() => dispatch({ type: 'SET_TAB', payload: 'todo' })}
+              title="ปฏิทิน"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={!isNote ? '#fff' : C.sub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </button>
+            {badgeCounts.high > 0 && (
+              <span style={styles.badgeHigh}>{badgeCounts.high}</span>
+            )}
+            {badgeCounts.urgent > 0 && (
+              <span style={styles.badgeUrgent}>{badgeCounts.urgent}</span>
+            )}
+          </div>
         </div>
       )}
 
@@ -384,6 +421,43 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+  },
+  badgeHigh: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    background: 'transparent',
+    border: '2px solid #f97316',
+    color: '#f97316',
+    fontSize: 10,
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
+    padding: '0 3px',
+    pointerEvents: 'none',
+  },
+  badgeUrgent: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    background: '#ef4444',
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
+    padding: '0 3px',
+    pointerEvents: 'none',
   },
   todoToggle: {
     display: 'flex',

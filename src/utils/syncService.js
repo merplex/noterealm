@@ -106,9 +106,17 @@ const LOCAL_ONLY_FIELDS = [
   'repeatStartDate', 'repeatParentId',
 ];
 
+/** normalize date fields จาก server (PostgreSQL ส่ง ISO full string) → YYYY-MM-DD */
+function normalizeTodoFromServer(st) {
+  const out = { ...st };
+  if (out.dueDate && out.dueDate.includes('T')) out.dueDate = out.dueDate.split('T')[0];
+  return out;
+}
+
 async function mergeTodos(serverTodos) {
   const updates = [];
-  for (const st of serverTodos) {
+  for (const raw of serverTodos) {
+    const st = normalizeTodoFromServer(raw);
     const local = await db.todos.get(st.id);
     if (!local) {
       updates.push(db.todos.put({ ...st, syncSource: 'server', dirty: false }));

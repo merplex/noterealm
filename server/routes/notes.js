@@ -62,14 +62,14 @@ router.post('/', async (req, res) => {
 
 // Update note
 router.put('/:id', async (req, res) => {
-  const { title, content, tags, pinned, archived, images, aiBlocks, group, source, refs, history, userId } = req.body;
+  const { title, content, tags, pinned, archived, images, aiBlocks, group, source, refs, history, userId, deletedAt } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE notes SET title=$1, content=$2, tags=$3, pinned=$4, archived=$5, images=$6,
        ai_blocks=$7, "group"=$8, source=$9, refs=$10, history=$11, updated_at=NOW(),
-       user_id=COALESCE(user_id, $13)
+       user_id=COALESCE(user_id, $13), deleted_at=$14
        WHERE id=$12 RETURNING *`,
-      [title, content, tags || [], pinned || false, archived || false, images || [], JSON.stringify(aiBlocks || []), group, source, refs || [], JSON.stringify(history || []), req.params.id, userId || null]
+      [title, content, tags || [], pinned || false, archived || false, images || [], JSON.stringify(aiBlocks || []), group, source, refs || [], JSON.stringify(history || []), req.params.id, userId || null, deletedAt || null]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json(mapNote(rows[0]));

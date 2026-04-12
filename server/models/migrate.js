@@ -102,6 +102,9 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email_filter_summary') THEN
     ALTER TABLE users ADD COLUMN email_filter_summary BOOLEAN DEFAULT false;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='settings') THEN
+    ALTER TABLE users ADD COLUMN settings JSONB DEFAULT '{}';
+  END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);

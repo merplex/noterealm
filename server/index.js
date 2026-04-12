@@ -12,6 +12,7 @@ import oauthRouter from './routes/oauth.js';
 import lineRouter from './routes/line.js';
 import emailRouter from './routes/email.js';
 import ogRouter from './routes/og.js';
+import settingsRouter from './routes/settings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -33,6 +34,7 @@ app.use('/api/notes', notesRouter);
 app.use('/api/todos', todosRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/oauth', oauthRouter);
+app.use('/api/settings', settingsRouter);
 
 // LINE Webhook
 app.use('/webhook/line', lineRouter);
