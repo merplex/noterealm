@@ -103,6 +103,7 @@ const th = {
   'todo.permanentDelete': '🗑 ลบถาวร',
   'todo.restoreItems': '↩ กู้คืน',
   'todo.deleteItems': '🗑 ลบ',
+  'todo.selectAll': 'เลือกทั้งหมด',
 
   // settings
   'settings.title': 'ตั้งค่า',

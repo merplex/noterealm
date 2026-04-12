@@ -176,6 +176,12 @@ const styles = {
     color: C.text,
     marginBottom: 4,
     lineHeight: 1.4,
+    wordBreak: 'break-all',
+    overflowWrap: 'break-word',
+    overflow: 'hidden',
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
   },
   content: {
     fontSize: 12,

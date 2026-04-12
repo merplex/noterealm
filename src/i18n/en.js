@@ -103,6 +103,7 @@ const en = {
   'todo.permanentDelete': '🗑 Delete permanently',
   'todo.restoreItems': '↩ Restore',
   'todo.deleteItems': '🗑 Delete',
+  'todo.selectAll': 'Select all',
 
   // settings
   'settings.title': 'Settings',

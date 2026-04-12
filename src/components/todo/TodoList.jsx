@@ -121,6 +121,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
     });
   };
   const cancelSelection = () => setSelectedIds(new Set());
+  const selectAll = () => setSelectedIds(new Set(filteredTodos.map((t) => t.id)));
 
   const handleDelete = async () => {
     await Promise.all([...selectedIds].map((id) => actions.deleteTodo(id)));
@@ -138,9 +139,9 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
   const todoItemProps = (todo) => ({
     todo,
     onToggle: handleToggle,
-    onEdit: setEditingTodo,
-    onDateClick: setDatePickTodo,
-    isSelecting,
+    onEdit: isDeletedView ? undefined : setEditingTodo,
+    onDateClick: isDeletedView ? undefined : setDatePickTodo,
+    isSelecting: isDeletedView ? true : isSelecting,
     isSelected: selectedIds.has(todo.id),
     onLongPress: handleLongPress,
     onSelect: handleSelect,
@@ -153,6 +154,12 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
         <div style={styles.deletedHeader}>
           <button style={styles.backBtn} onClick={() => onTodoFilter?.(null)}>{t('todo.backFromTrash')}</button>
           <span style={styles.deletedTitle}>{t('todo.trash')}</span>
+          <button
+            style={styles.selectAllBtn}
+            onClick={() => selectedIds.size === filteredTodos.length ? cancelSelection() : selectAll()}
+          >
+            {selectedIds.size === filteredTodos.length && filteredTodos.length > 0 ? t('todo.cancelSelect') : t('todo.selectAll')}
+          </button>
         </div>
       )}
 
@@ -348,7 +355,12 @@ const styles = {
     background: 'none', border: 'none', fontSize: 14, color: C.sub,
     cursor: 'pointer', padding: 0, fontFamily: C.font,
   },
-  deletedTitle: { fontSize: 14, fontWeight: 600, color: '#dc2626' },
+  deletedTitle: { fontSize: 14, fontWeight: 600, color: '#dc2626', flex: 1 },
+  selectAllBtn: {
+    background: 'none', border: 'none', fontSize: 13, color: C.amber,
+    cursor: 'pointer', padding: 0, fontFamily: C.font, fontWeight: 600,
+    flexShrink: 0,
+  },
   sectionHeader: {
     display: 'flex', alignItems: 'center', gap: 8, width: '100%',
     padding: '10px 14px', background: '#f5f5f4', border: 'none',
