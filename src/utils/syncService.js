@@ -100,6 +100,12 @@ async function mergeNotes(serverNotes) {
   await Promise.all(updates);
 }
 
+// fields ที่เก็บแค่ local — server อาจไม่รู้จัก → preserve จาก local ถ้า server ไม่ส่งมา
+const LOCAL_ONLY_FIELDS = [
+  'repeatEnabled', 'repeatEvery', 'repeatUnit',
+  'repeatStartDate', 'repeatParentId',
+];
+
 async function mergeTodos(serverTodos) {
   const updates = [];
   for (const st of serverTodos) {
@@ -108,7 +114,14 @@ async function mergeTodos(serverTodos) {
       updates.push(db.todos.put({ ...st, syncSource: 'server', dirty: false }));
     } else if (local.syncSource === 'server') {
       if (new Date(st.updatedAt) > new Date(local.updatedAt)) {
-        updates.push(db.todos.put({ ...st, syncSource: 'server', dirty: false }));
+        // เก็บ field ที่ server ไม่รู้จักไว้จาก local
+        const preserved = {};
+        for (const key of LOCAL_ONLY_FIELDS) {
+          if (local[key] !== undefined && st[key] === undefined) {
+            preserved[key] = local[key];
+          }
+        }
+        updates.push(db.todos.put({ ...st, ...preserved, syncSource: 'server', dirty: false }));
       }
     }
   }

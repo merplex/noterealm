@@ -70,9 +70,9 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
       return todos;
     }
 
-    // filter พิเศษ: repeat (แสดงแค่ parent repeat)
+    // filter พิเศษ: repeat — แสดง child instances (รายการที่สร้างจริงๆ จาก repeat)
     if (priorityFilter === 'repeat') {
-      return todos.filter((t) => t.repeatEnabled);
+      return todos.filter((t) => !!t.repeatParentId && !t.done);
     }
 
     if (searchText) {
