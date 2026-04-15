@@ -4,6 +4,9 @@ import pool from '../models/db.js';
 const router = Router();
 
 // List notes (optional ?since= for incremental pull, filtered by X-User-Id header)
+// Incremental pull (with ?since): ส่งทุก record ที่ updated_at > since รวมทั้ง soft-deleted และ tombstone
+//   → client จะ merge deletedAt / permanentlyDeletedAt ได้ถูกต้อง
+// Full pull (ไม่มี ?since): ส่งทุก record ยกเว้น tombstone (permanently_deleted_at IS NOT NULL)
 router.get('/', async (req, res) => {
   try {
     const { since } = req.query;
@@ -11,21 +14,21 @@ router.get('/', async (req, res) => {
     let rows;
     if (userId && since) {
       ({ rows } = await pool.query(
-        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) AND updated_at > $2 AND deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`,
+        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) AND updated_at > $2 ORDER BY pinned DESC, updated_at DESC`,
         [userId, since]
       ));
     } else if (userId) {
       ({ rows } = await pool.query(
-        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) AND deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`,
+        `SELECT * FROM notes WHERE (user_id=$1 OR user_id IS NULL) AND permanently_deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`,
         [userId]
       ));
     } else if (since) {
       ({ rows } = await pool.query(
-        `SELECT * FROM notes WHERE updated_at > $1 AND deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`,
+        `SELECT * FROM notes WHERE updated_at > $1 ORDER BY pinned DESC, updated_at DESC`,
         [since]
       ));
     } else {
-      ({ rows } = await pool.query(`SELECT * FROM notes WHERE deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`));
+      ({ rows } = await pool.query(`SELECT * FROM notes WHERE permanently_deleted_at IS NULL ORDER BY pinned DESC, updated_at DESC`));
     }
     res.json(rows.map(mapNote));
   } catch (err) {
@@ -93,10 +96,14 @@ router.patch('/:id/soft-delete', async (req, res) => {
   }
 });
 
-// Delete note
+// Permanent delete note — ใช้ tombstone (permanently_deleted_at) แทนการลบจริง
+// เพื่อให้อีกเครื่อง pull tombstone แล้วลบ local ได้
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM notes WHERE id = $1', [req.params.id]);
+    await pool.query(
+      'UPDATE notes SET permanently_deleted_at=NOW(), updated_at=NOW() WHERE id=$1',
+      [req.params.id]
+    );
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -121,6 +128,7 @@ function mapNote(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at || null,
+    permanentlyDeletedAt: row.permanently_deleted_at || null,
   };
 }
 

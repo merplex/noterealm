@@ -89,6 +89,13 @@ async function mergeNotes(serverNotes) {
   const updates = [];
   for (const sn of serverNotes) {
     const local = await db.notes.get(sn.id);
+
+    // tombstone: ถูก permanent-delete บนเครื่องอื่น → ลบ local ด้วย
+    if (sn.permanentlyDeletedAt) {
+      if (local) updates.push(db.notes.delete(sn.id));
+      continue;
+    }
+
     if (!local) {
       updates.push(db.notes.put({ ...sn, syncSource: 'server', dirty: false }));
     } else if (local.syncSource === 'server') {
@@ -118,6 +125,13 @@ async function mergeTodos(serverTodos) {
   for (const raw of serverTodos) {
     const st = normalizeTodoFromServer(raw);
     const local = await db.todos.get(st.id);
+
+    // tombstone: ถูก permanent-delete บนเครื่องอื่น → ลบ local ด้วย
+    if (st.permanentlyDeletedAt) {
+      if (local) updates.push(db.todos.delete(st.id));
+      continue;
+    }
+
     if (!local) {
       updates.push(db.todos.put({ ...st, syncSource: 'server', dirty: false }));
     } else if (local.syncSource === 'server') {

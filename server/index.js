@@ -4,7 +4,8 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
-import { checkDbConnection } from './models/db.js';
+import pool, { checkDbConnection } from './models/db.js';
+import { autoMigrate } from './models/migrate.js';
 import notesRouter from './routes/notes.js';
 import todosRouter from './routes/todos.js';
 import aiRouter from './routes/ai.js';
@@ -57,5 +58,7 @@ app.listen(PORT, async () => {
   const dbOk = await checkDbConnection();
   if (!dbOk) {
     console.error('WARNING: Database is not accessible. Notes will not load. Check DATABASE_URL on Railway.');
+  } else {
+    await autoMigrate(pool);
   }
 });

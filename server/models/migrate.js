@@ -105,6 +105,13 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='settings') THEN
     ALTER TABLE users ADD COLUMN settings JSONB DEFAULT '{}';
   END IF;
+  -- Tombstone columns สำหรับ permanent delete sync
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='permanently_deleted_at') THEN
+    ALTER TABLE notes ADD COLUMN permanently_deleted_at TIMESTAMPTZ DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='permanently_deleted_at') THEN
+    ALTER TABLE todos ADD COLUMN permanently_deleted_at TIMESTAMPTZ DEFAULT NULL;
+  END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
@@ -129,4 +136,15 @@ async function migrate() {
   }
 }
 
+// สำหรับ auto-migrate ตอน server start (ใช้ pool หลัก)
+export async function autoMigrate(pool) {
+  try {
+    await pool.query(migrations);
+    console.log('[DB] Auto-migration completed');
+  } catch (err) {
+    console.error('[DB] Auto-migration failed:', err.message);
+  }
+}
+
+// รัน standalone ถ้าเรียกตรง (npm run db:migrate)
 migrate();

@@ -4,6 +4,8 @@ import pool from '../models/db.js';
 const router = Router();
 
 // List todos (optional ?since= for incremental pull, filtered by X-User-Id header)
+// Incremental pull (with ?since): ส่งทุก record รวมทั้ง tombstone → client จะลบ local ได้
+// Full pull (ไม่มี ?since): ยกเว้น tombstone
 router.get('/', async (req, res) => {
   const ORDER = `ORDER BY CASE priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END, due_date ASC NULLS LAST, created_at DESC`;
   try {
@@ -13,11 +15,11 @@ router.get('/', async (req, res) => {
     if (userId && since) {
       ({ rows } = await pool.query(`SELECT * FROM todos WHERE (user_id=$1 OR user_id IS NULL) AND updated_at > $2 ${ORDER}`, [userId, since]));
     } else if (userId) {
-      ({ rows } = await pool.query(`SELECT * FROM todos WHERE (user_id=$1 OR user_id IS NULL) ${ORDER}`, [userId]));
+      ({ rows } = await pool.query(`SELECT * FROM todos WHERE (user_id=$1 OR user_id IS NULL) AND permanently_deleted_at IS NULL ${ORDER}`, [userId]));
     } else if (since) {
       ({ rows } = await pool.query(`SELECT * FROM todos WHERE updated_at > $1 ${ORDER}`, [since]));
     } else {
-      ({ rows } = await pool.query(`SELECT * FROM todos ${ORDER}`));
+      ({ rows } = await pool.query(`SELECT * FROM todos WHERE permanently_deleted_at IS NULL ${ORDER}`));
     }
     res.json(rows.map(mapTodo));
   } catch (err) {
@@ -78,10 +80,13 @@ router.patch('/:id/soft-delete', async (req, res) => {
   }
 });
 
-// Permanent delete todo
+// Permanent delete todo — tombstone แทนลบจริง
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM todos WHERE id = $1', [req.params.id]);
+    await pool.query(
+      'UPDATE todos SET permanently_deleted_at=NOW(), updated_at=NOW() WHERE id=$1',
+      [req.params.id]
+    );
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -104,6 +109,7 @@ function mapTodo(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at || null,
+    permanentlyDeletedAt: row.permanently_deleted_at || null,
   };
 }
 
