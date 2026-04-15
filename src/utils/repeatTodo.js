@@ -9,7 +9,11 @@ export function addRepeatInterval(dateStr, repeatEvery, repeatUnit) {
   else if (repeatUnit === 'week') d.setDate(d.getDate() + repeatEvery * 7);
   else if (repeatUnit === 'month') d.setMonth(d.getMonth() + repeatEvery);
   else if (repeatUnit === 'year') d.setFullYear(d.getFullYear() + repeatEvery);
-  return d.toISOString().split('T')[0];
+  // ใช้ local date components — ห้ามใช้ toISOString() เพราะ return UTC ทำให้ UTC+7 ได้วันผิด
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${dy}`;
 }
 
 /**
