@@ -251,10 +251,10 @@ export default function App() {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={!isNote ? '#fff' : C.sub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </button>
             {badgeCounts.high > 0 && (
-              <span style={styles.badgeHigh}>{badgeCounts.high}</span>
+              <span style={styles.badgeHigh}>{badgeCounts.high > 99 ? '99+' : badgeCounts.high}</span>
             )}
             {badgeCounts.urgent > 0 && (
-              <span style={styles.badgeUrgent}>{badgeCounts.urgent}</span>
+              <span style={styles.badgeUrgent}>{badgeCounts.urgent > 99 ? '99+' : badgeCounts.urgent}</span>
             )}
           </div>
         </div>
@@ -424,12 +424,12 @@ const styles = {
   },
   badgeHigh: {
     position: 'absolute',
-    top: -4,
-    left: -4,
+    top: -6,
+    left: -6,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
-    background: 'transparent',
+    borderRadius: 100,
+    background: '#fff',
     border: '2px solid #f97316',
     color: '#f97316',
     fontSize: 10,
@@ -438,16 +438,18 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     lineHeight: 1,
-    padding: '0 3px',
+    padding: '0 5px',
+    whiteSpace: 'nowrap',
     pointerEvents: 'none',
+    boxSizing: 'border-box',
   },
   badgeUrgent: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -6,
+    right: -6,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: 100,
     background: '#ef4444',
     color: '#fff',
     fontSize: 10,
@@ -456,8 +458,10 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     lineHeight: 1,
-    padding: '0 3px',
+    padding: '0 5px',
+    whiteSpace: 'nowrap',
     pointerEvents: 'none',
+    boxSizing: 'border-box',
   },
   todoToggle: {
     display: 'flex',
