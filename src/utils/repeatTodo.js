@@ -44,9 +44,26 @@ export function generateRepeatInstances(parentTodo, existingTodos) {
   const maxCount = FALLBACK_MAX[repeatUnit] || 30;
   const instances = [];
   let current = repeatStartDate;
-  let count = 0;
   const SAFETY = 500;
 
+  // ถ้าเวลาของ instance แรก (startDate + dueTime) ผ่านไปแล้ว → เลื่อนไปรอบถัดไป
+  // เช่น ตอนนี้ 20:00 ตั้งเริ่ม วันที่ 15 เวลา 10:00 → instance แรกจะเป็นวันที่ 17 10:00
+  if (dueTime) {
+    const now = new Date();
+    const [h, m] = dueTime.split(':').map(Number);
+    let advance = 0;
+    while (advance < SAFETY) {
+      const occ = new Date(current + 'T00:00:00');
+      occ.setHours(h, m, 0, 0);
+      if (occ > now) break; // ยังไม่ถึงเวลา → ใช้ได้
+      const next = addRepeatInterval(current, repeatEvery, repeatUnit);
+      if (endDateObj && new Date(next + 'T00:00:00') > endDateObj) return []; // ไม่มีรอบในอนาคตแล้ว
+      current = next;
+      advance++;
+    }
+  }
+
+  let count = 0;
   while (count < SAFETY) {
     count++;
 

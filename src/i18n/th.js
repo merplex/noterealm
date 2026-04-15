@@ -239,7 +239,8 @@ const th = {
   'repeat.every6months': 'ทุก 6 เดือน',
   'repeat.yearly': 'ทุกปี',
   'repeat.custom': 'กำหนดเอง',
-  'todoEditor.repeatEndDate': 'วันสิ้นสุด',
+  'todoEditor.repeatStartDate': 'วันที่เริ่มต้น',
+  'todoEditor.repeatEndDate': 'วันที่สิ้นสุด',
   'todoEditor.repeatTimeAll': 'เวลา (ทุกรายการ)',
 
   // date picker

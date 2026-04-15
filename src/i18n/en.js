@@ -239,6 +239,7 @@ const en = {
   'repeat.every6months': '6 Monthly',
   'repeat.yearly': 'Yearly',
   'repeat.custom': 'Custom',
+  'todoEditor.repeatStartDate': 'Start date',
   'todoEditor.repeatEndDate': 'End date',
   'todoEditor.repeatTimeAll': 'Time (all)',
 

@@ -196,15 +196,14 @@ export default function TodoEditor({ todo, onClose }) {
     }
   };
 
-  // แสดงวันที่แบบ locale — ใช้ date-fns แทน toLocaleDateString (WebView บางตัว support Intl ไม่ครบ)
+  // แสดงวันที่แบบ locale — ใช้ date-fns + new Date(y,m,d) ที่ reliable ที่สุดบน WebView
   const formatDueDate = (dateStr) => {
     if (!dateStr) return '';
     try {
-      // รองรับทั้ง YYYY-MM-DD และ full ISO string จาก data เก่า
-      const clean = typeof dateStr === 'string' && dateStr.includes('T')
-        ? dateStr.split('T')[0]
-        : String(dateStr);
-      const d = new Date(clean + 'T00:00:00');
+      const normalized = normalizeDueDate(dateStr); // → YYYY-MM-DD เสมอ
+      if (!normalized) return '';
+      const parts = normalized.split('-').map(Number);
+      const d = new Date(parts[0], parts[1] - 1, parts[2]); // local time ไม่มี timezone shift
       if (isNaN(d.getTime())) return '';
       return format(d, 'd MMM yyyy', { locale: locale === 'en' ? enUS : th });
     } catch {
@@ -350,42 +349,110 @@ export default function TodoEditor({ todo, onClose }) {
             )}
           </div>
 
-          {/* Due date/time — label เปลี่ยนตาม repeat mode */}
-          <div style={styles.row}>
-            <div style={styles.field}>
-              <label style={{ ...styles.label, fontSize: 12 + fd }}>
-                {repeatEnabled ? t('todoEditor.repeatEndDate') : t('todoEditor.dueDate')}
-              </label>
-              <div style={styles.inputWrap}>
+          {/* Due date/time — layout ต่างกันตาม repeat mode */}
+          {repeatEnabled ? (
+            <>
+              {/* Row 1: วันที่เริ่มต้น + เวลา */}
+              <div style={styles.row}>
+                <div style={styles.field}>
+                  <label style={{ ...styles.label, fontSize: 12 + fd }}>
+                    {t('todoEditor.repeatStartDate')}
+                  </label>
+                  <div style={styles.inputWrap}>
+                    <input
+                      type="date"
+                      value={repeatStartDate}
+                      onChange={(e) => setRepeatStartDate(e.target.value)}
+                      style={{ ...styles.input, fontSize: 13 + fd, color: 'transparent', WebkitTextFillColor: 'transparent' }}
+                    />
+                    {repeatStartDate ? (
+                      <span style={{ ...styles.inputOverlay, fontSize: 13 + fd }}>
+                        {formatDueDate(repeatStartDate)}
+                      </span>
+                    ) : (
+                      <span style={{ ...styles.inputPlaceholder, fontSize: 13 + fd }}>
+                        {t('todoEditor.noDate')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={styles.field}>
+                  <label style={{ ...styles.label, fontSize: 12 + fd }}>
+                    {t('todoEditor.repeatTimeAll')}
+                  </label>
+                  <input
+                    type="time"
+                    value={dueTime}
+                    onChange={(e) => setDueTime(e.target.value)}
+                    style={{ ...styles.input, fontSize: 13 + fd }}
+                  />
+                </div>
+              </div>
+              {/* Row 2: วันที่สิ้นสุด (ใช้เวลาเดียวกับ row 1 จึงไม่มี time picker) */}
+              <div style={{ ...styles.row, marginTop: -6 }}>
+                <div style={styles.field}>
+                  <label style={{ ...styles.label, fontSize: 12 + fd }}>
+                    {t('todoEditor.repeatEndDate')}
+                  </label>
+                  <div style={styles.inputWrap}>
+                    <input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                      style={{ ...styles.input, fontSize: 13 + fd, color: 'transparent', WebkitTextFillColor: 'transparent' }}
+                    />
+                    {dueDate ? (
+                      <span style={{ ...styles.inputOverlay, fontSize: 13 + fd }}>
+                        {formatDueDate(dueDate)}
+                      </span>
+                    ) : (
+                      <span style={{ ...styles.inputPlaceholder, fontSize: 13 + fd }}>
+                        {t('todoEditor.noDate')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={styles.field} /> {/* spacer */}
+              </div>
+            </>
+          ) : (
+            // โหมดปกติ — due date + time
+            <div style={styles.row}>
+              <div style={styles.field}>
+                <label style={{ ...styles.label, fontSize: 12 + fd }}>
+                  {t('todoEditor.dueDate')}
+                </label>
+                <div style={styles.inputWrap}>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    style={{ ...styles.input, fontSize: 13 + fd, color: 'transparent', WebkitTextFillColor: 'transparent' }}
+                  />
+                  {dueDate ? (
+                    <span style={{ ...styles.inputOverlay, fontSize: 13 + fd }}>
+                      {formatDueDate(dueDate)}
+                    </span>
+                  ) : (
+                    <span style={{ ...styles.inputPlaceholder, fontSize: 13 + fd }}>
+                      {t('todoEditor.noDate')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={styles.field}>
+                <label style={{ ...styles.label, fontSize: 12 + fd }}>
+                  {t('todoEditor.time')}
+                </label>
                 <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  style={{ ...styles.input, fontSize: 13 + fd, color: 'transparent', WebkitTextFillColor: 'transparent' }}
+                  type="time"
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  style={{ ...styles.input, fontSize: 13 + fd }}
                 />
-                {dueDate ? (
-                  <span style={{ ...styles.inputOverlay, fontSize: 13 + fd }}>
-                    {formatDueDate(dueDate)}
-                  </span>
-                ) : (
-                  <span style={{ ...styles.inputPlaceholder, fontSize: 13 + fd }}>
-                    {t('todoEditor.noDate')}
-                  </span>
-                )}
               </div>
             </div>
-            <div style={styles.field}>
-              <label style={{ ...styles.label, fontSize: 12 + fd }}>
-                {repeatEnabled ? t('todoEditor.repeatTimeAll') : t('todoEditor.time')}
-              </label>
-              <input
-                type="time"
-                value={dueTime}
-                onChange={(e) => setDueTime(e.target.value)}
-                style={{ ...styles.input, fontSize: 13 + fd }}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Tags */}
           <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.tags')}</label>
