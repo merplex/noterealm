@@ -338,8 +338,8 @@ export default function TodoEditor({ todo, onClose }) {
                     onClick={() => {
                       setRepeatEvery(pick.repeatEvery);
                       setRepeatUnit(pick.repeatUnit);
-                      // set วันเริ่มต้น (start date) ตาม chip — ไม่ใช่ due/end date
-                      setRepeatStartDate(calcDate(QUICK_PICKS.find(q => q.key === pick.key)));
+                      // เริ่มจากวันนี้เสมอ — advance logic ใน generateRepeatInstances จะหา instance แรกที่ยังไม่ผ่านเองอัตโนมัติ
+                      setRepeatStartDate(calcDate({ days: 0 }));
                     }}
                   >
                     {t(pick.labelKey)}

@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
-// fallback max count ถ้าไม่มี end date
-const FALLBACK_MAX = { day: 60, week: 26, month: 12, year: 5 };
+// fallback max count ถ้าไม่มี end date — สร้างแค่ instance ใกล้ๆ ก่อน
+const FALLBACK_MAX = { day: 3, week: 2, month: 2, year: 1 };
 
 export function addRepeatInterval(dateStr, repeatEvery, repeatUnit) {
   const d = new Date(dateStr + 'T00:00:00');
