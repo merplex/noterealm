@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { C } from '../../constants/theme';
+import { useFontSize } from '../../utils/useFontSize';
 
 const FORMAT_COLORS = [
   '#dc2626', '#f97316', '#eab308', '#16a34a', '#06b6d4',
@@ -10,6 +11,7 @@ export default function FormatMenu({ onFormat, onOpen }) {
   const [open, setOpen] = useState(false);
   const [showColors, setShowColors] = useState(false);
   const ref = useRef(null);
+  const fd = (useFontSize() - 1) * 2;
 
   // Close on tap outside
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function FormatMenu({ onFormat, onOpen }) {
   return (
     <div style={styles.wrap} ref={ref}>
       <button
-        style={styles.triggerBtn}
+        style={{ ...styles.triggerBtn, fontSize: 11 + fd }}
         onClick={() => { if (!open) onOpen?.(); setOpen(!open); }}
       >
         STYLE
@@ -36,32 +38,32 @@ export default function FormatMenu({ onFormat, onOpen }) {
       {open && (
         <div style={styles.dropdown}>
           <button
-            style={styles.dropItem}
+            style={{ ...styles.dropItem, fontSize: 14 + fd }}
             onPointerDown={(e) => { e.preventDefault(); onFormat('bold'); }}
           >
             <span style={{ fontWeight: 700 }}>B</span>
-            <span style={styles.dropLabel}>ตัวหนา</span>
+            <span style={{ ...styles.dropLabel, fontSize: 13 + fd }}>ตัวหนา</span>
           </button>
           <button
-            style={styles.dropItem}
+            style={{ ...styles.dropItem, fontSize: 14 + fd }}
             onPointerDown={(e) => { e.preventDefault(); onFormat('italic'); }}
           >
             <span style={{ fontStyle: 'italic' }}>I</span>
-            <span style={styles.dropLabel}>ตัวเอียง</span>
+            <span style={{ ...styles.dropLabel, fontSize: 13 + fd }}>ตัวเอียง</span>
           </button>
           <button
-            style={styles.dropItem}
+            style={{ ...styles.dropItem, fontSize: 14 + fd }}
             onPointerDown={(e) => { e.preventDefault(); onFormat('underline'); }}
           >
             <span style={{ textDecoration: 'underline' }}>U</span>
-            <span style={styles.dropLabel}>ขีดเส้นใต้</span>
+            <span style={{ ...styles.dropLabel, fontSize: 13 + fd }}>ขีดเส้นใต้</span>
           </button>
           <button
-            style={styles.dropItem}
+            style={{ ...styles.dropItem, fontSize: 14 + fd }}
             onPointerDown={(e) => { e.preventDefault(); setShowColors(!showColors); }}
           >
-            <span style={styles.colorCircle} />
-            <span style={styles.dropLabel}>สีตัวอักษร</span>
+            <span style={{ ...styles.colorCircle, width: 14 + fd, height: 14 + fd }} />
+            <span style={{ ...styles.dropLabel, fontSize: 13 + fd }}>สีตัวอักษร</span>
           </button>
 
           {showColors && (
@@ -99,7 +101,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 'clamp(11px, 3.2vw, 15px)',
     fontWeight: 500,
     color: C.text,
     textTransform: 'none',
@@ -128,13 +129,11 @@ const styles = {
     border: 'none',
     background: 'transparent',
     cursor: 'pointer',
-    fontSize: 14,
     fontFamily: C.font,
     color: C.text,
     textAlign: 'left',
   },
   dropLabel: {
-    fontSize: 13,
     color: C.sub,
   },
   colorCircle: {
