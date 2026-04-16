@@ -19,7 +19,7 @@ if (typeof document !== 'undefined' && !document.getElementById('nr-marquee-css'
   document.head.appendChild(style);
 }
 
-function MarqueeChip({ text, dotColor, fontSize }) {
+function MarqueeChip({ text, dotColor, fontSize, done }) {
   const wrapRef = useRef(null);
   const measureRef = useRef(null);
   const [overflow, setOverflow] = useState(false);
@@ -33,7 +33,7 @@ function MarqueeChip({ text, dotColor, fontSize }) {
   const unit = (i) => (
     <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, paddingRight: '1.5em' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0, display: 'inline-block' }} />
-      <span style={{ fontSize, color: C.text, whiteSpace: 'nowrap' }}>{text}</span>
+      <span style={{ fontSize, color: done ? C.muted : C.text, textDecoration: done ? 'line-through' : 'none', whiteSpace: 'nowrap' }}>{text}</span>
     </span>
   );
 
@@ -145,6 +145,7 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
                       text={todo.title}
                       dotColor={PRIORITY_COLORS[todo.priority] || C.muted}
                       fontSize={10 + Math.floor(d / 2)}
+                      done={todo.done}
                     />
                   </div>
                 ))}

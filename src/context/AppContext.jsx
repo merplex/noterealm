@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from '../constants/providers';
 import { notesApi, todosApi } from '../utils/api';
 import { db } from '../db/localDb';
 import { sync, autoSync, pushDirty, pull, setUserId } from '../utils/syncService';
+import { generateRepeatInstances } from '../utils/repeatTodo';
 
 const AppContext = createContext(null);
 
@@ -294,6 +295,31 @@ export function AppProvider({ children }) {
       };
       await db.todos.put(todo);
       dispatch({ type: 'UPDATE_TODO', payload: todo });
+      // ถ้า child repeat instance เพิ่ง done → สร้าง instance ถัดไป ถ้ายังไม่มี child ที่ dueDate > วันนี้
+      if (todo.done && todo.repeatParentId) {
+        const parent = stateRef.current.todos.find(t => t.id === todo.repeatParentId && !t.deletedAt && !t.done);
+        if (parent) {
+          // ไม่สร้างถ้ามี child ที่ dueDate อยู่หลังจาก todo ที่เพิ่ง done อยู่แล้ว
+          const hasLaterInstance = stateRef.current.todos.some(
+            t => t.repeatParentId === todo.repeatParentId && !t.deletedAt && t.id !== todo.id
+               && t.dueDate && todo.dueDate && t.dueDate > todo.dueDate
+          );
+          if (!hasLaterInstance) {
+            const instances = generateRepeatInstances(parent, stateRef.current.todos);
+            for (const instance of instances) {
+              const newInstance = { ...instance, userId, dirty: true };
+              await db.todos.put(newInstance);
+              dispatch({ type: 'ADD_TODO', payload: newInstance });
+            }
+            // ถ้าสร้างไม่ได้แล้ว (เกิน end date) → auto-done parent
+            if (instances.length === 0) {
+              const parentDone = { ...parent, done: true, completedAt: new Date().toISOString(), updatedAt: new Date().toISOString(), dirty: true, userId };
+              await db.todos.put(parentDone);
+              dispatch({ type: 'UPDATE_TODO', payload: parentDone });
+            }
+          }
+        }
+      }
       pushDirty().catch(console.warn);
       return todo;
     },

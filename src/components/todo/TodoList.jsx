@@ -4,7 +4,6 @@ import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { useFontSize } from '../../utils/useFontSize';
 import { useLocale } from '../../utils/useLocale';
-import { repeatLabel } from '../../utils/repeatTodo';
 import TodoItem from './TodoItem';
 import TodoEditor from './TodoEditor';
 import DatePickerPopup from './DatePickerPopup';
@@ -22,7 +21,7 @@ const SECTIONS = [
 ];
 
 // filter พิเศษ (ไม่ใช่ priority)
-const SPECIAL_FILTERS = ['done', 'repeat'];
+const SPECIAL_FILTERS = ['done', 'auto'];
 
 export default function TodoList({ searchText, todoFilter, onTodoFilter, priorityFilter, onPriorityFilter, todoTagFilter }) {
   const { state, actions } = useApp();
@@ -51,6 +50,8 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once after mount
 
+  const sortDir = state.sortDir || 'asc'; // asc = วันเร็วก่อน, desc = วันช้าก่อน
+
   const filteredTodos = useMemo(() => {
     let todos = [...state.todos];
 
@@ -60,21 +61,31 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
       return todos;
     }
 
-    // Normal view: exclude deleted
-    todos = todos.filter((t) => !t.deletedAt);
+    // Normal view: exclude deleted และ parent repeat configs เสมอ (parent แสดงเฉพาะใน auto)
+    todos = todos.filter((t) => !t.deletedAt && !t.repeatEnabled);
 
-    // filter พิเศษ: done
+    // filter: auto — เฉพาะ parent config (repeatEnabled) เท่านั้น
+    if (priorityFilter === 'auto') {
+      const autoTodos = state.todos.filter((t) => !t.deletedAt && t.repeatEnabled);
+      autoTodos.sort((a, b) => {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return sortDir === 'asc'
+          ? new Date(a.dueDate) - new Date(b.dueDate)
+          : new Date(b.dueDate) - new Date(a.dueDate);
+      });
+      return autoTodos;
+    }
+
+    // filter: done — เฉพาะรายการที่ done (regular + repeat child)
     if (priorityFilter === 'done') {
       todos = todos.filter((t) => t.done);
       todos.sort((a, b) => new Date(b.completedAt || b.updatedAt) - new Date(a.completedAt || a.updatedAt));
       return todos;
     }
 
-    // filter พิเศษ: repeat — แสดง child instances (รายการที่สร้างจริงๆ จาก repeat)
-    if (priorityFilter === 'repeat') {
-      return todos.filter((t) => !!t.repeatParentId && !t.done);
-    }
-
+    // ค้นหา
     if (searchText) {
       const pq = parseQuery(searchText);
       todos = todos.filter((t) =>
@@ -82,27 +93,28 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
       );
     }
 
-    if (priorityFilter) {
-      todos = todos.filter((t) => t.priority === priorityFilter);
-    }
-
     if (todoTagFilter) {
       todos = todos.filter((t) => (t.tags || []).includes(todoTagFilter));
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // default (null): ทุกรายการยกเว้น done
+    if (!priorityFilter) {
+      todos = todos.filter((t) => !t.done);
+    }
+    // filter: all — ทุกรายการรวม done (ไม่ filter เพิ่ม)
+
+    // sort by dueDate
     todos.sort((a, b) => {
-      const aDate = a.dueDate ? new Date(a.dueDate) : null;
-      const bDate = b.dueDate ? new Date(b.dueDate) : null;
-      const aGroup = (aDate && aDate < today) ? 0 : !aDate ? 1 : 2;
-      const bGroup = (bDate && bDate < today) ? 0 : !bDate ? 1 : 2;
-      if (aGroup !== bGroup) return aGroup - bGroup;
-      if (aDate && bDate) return aDate - bDate;
-      return 0;
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return sortDir === 'asc'
+        ? new Date(a.dueDate) - new Date(b.dueDate)
+        : new Date(b.dueDate) - new Date(a.dueDate);
     });
+
     return todos;
-  }, [state.todos, searchText, isDeletedView, priorityFilter, todoTagFilter]);
+  }, [state.todos, searchText, isDeletedView, priorityFilter, todoTagFilter, sortDir]);
 
   const toggleCollapse = (key) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -179,8 +191,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
 
   // แบ่ง todos สำหรับ section ปกติ
   const isSpecialFilter = SPECIAL_FILTERS.includes(priorityFilter);
-  const repeatTodos = !isSpecialFilter ? filteredTodos.filter(t => t.repeatEnabled) : [];
-  const normalTodos = !isSpecialFilter ? filteredTodos.filter(t => !t.repeatEnabled) : filteredTodos;
+  const normalTodos = isSpecialFilter ? filteredTodos : filteredTodos;
 
   const renderSectionHeader = (labelNode, count, collapseKey) => (
     <button
@@ -224,28 +235,21 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
         </div>
       )}
 
-      {/* Priority + Done + Auto filter chips */}
+      {/* Filter chips: All / Done / Auto */}
       {!isDeletedView && (
         <div style={styles.filterRow}>
-          {SECTIONS.map((s) => {
-            const active = priorityFilter === s.key;
-            return (
-              <button
-                key={s.key}
-                style={{
-                  ...styles.filterChip,
-                  fontSize: 12 + d,
-                  background: active ? C.amber : C.white,
-                  color: active ? C.white : C.sub,
-                  borderColor: active ? C.amber : C.border,
-                }}
-                onClick={() => onPriorityFilter?.(active ? null : s.key)}
-              >
-                {s.key === 'urgent' ? t('priority.urgentLabel') : s.key === 'high' ? t('priority.highLabel') : s.key === 'normal' ? t('priority.normalLabel') : t('priority.lowLabel')}
-              </button>
-            );
-          })}
-          {/* เสร็จ */}
+          <button
+            style={{
+              ...styles.filterChip,
+              fontSize: 12 + d,
+              background: priorityFilter === 'all' ? C.amber : C.white,
+              color: priorityFilter === 'all' ? C.white : C.sub,
+              borderColor: priorityFilter === 'all' ? C.amber : C.border,
+            }}
+            onClick={() => onPriorityFilter?.(priorityFilter === 'all' ? null : 'all')}
+          >
+            ☰ {t('todo.filterAll')}
+          </button>
           <button
             style={{
               ...styles.filterChip,
@@ -258,18 +262,17 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
           >
             ✓ {t('todo.filterDone')}
           </button>
-          {/* อัตโนมัติ */}
           <button
             style={{
               ...styles.filterChip,
               fontSize: 12 + d,
-              background: priorityFilter === 'repeat' ? '#7c3aed' : C.white,
-              color: priorityFilter === 'repeat' ? C.white : C.sub,
-              borderColor: priorityFilter === 'repeat' ? '#7c3aed' : C.border,
+              background: priorityFilter === 'auto' ? '#7c3aed' : C.white,
+              color: priorityFilter === 'auto' ? C.white : C.sub,
+              borderColor: priorityFilter === 'auto' ? '#7c3aed' : C.border,
             }}
-            onClick={() => onPriorityFilter?.(priorityFilter === 'repeat' ? null : 'repeat')}
+            onClick={() => onPriorityFilter?.(priorityFilter === 'auto' ? null : 'auto')}
           >
-            🔁 {t('todo.filterRepeat')}
+            🔁 {t('todo.filterAuto')}
           </button>
         </div>
       )}
@@ -288,7 +291,6 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
                   style={{
                     ...styles.gridCard,
                     opacity: todo.done ? 0.5 : 1,
-                    borderLeftColor: PRIORITY_COLORS[todo.priority] || C.muted,
                   }}
                   onClick={() => setEditingTodo(todo)}
                 >
@@ -349,7 +351,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
                 ))
               )
             ) : (
-              // Normal list grouped by priority + repeat section
+              // Normal list grouped by priority
               <>
                 {SECTIONS.map((section) => {
                   const todos = normalTodos.filter((t) => t.priority === section.key);
@@ -369,18 +371,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
                   );
                 })}
 
-                {/* Section อัตโนมัติ — ล่างสุด */}
-                {repeatTodos.length > 0 && (
-                  <div>
-                    {renderSectionHeader(t('todo.repeatSection'), repeatTodos.length, '__repeat')}
-                    {!collapsed['__repeat'] &&
-                      repeatTodos.map((todo) => (
-                        <TodoItem key={todo.id} {...todoItemProps(todo)} />
-                      ))}
-                  </div>
-                )}
-
-                {normalTodos.length === 0 && repeatTodos.length === 0 && (
+                {normalTodos.length === 0 && (
                   <div style={styles.empty}>
                     {searchText ? t('todo.notFound') : t('todo.empty')}
                   </div>
@@ -489,7 +480,7 @@ const styles = {
   grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, padding: 10 },
   gridCard: {
     background: C.white, borderRadius: 10, border: `1px solid ${C.border}`,
-    borderLeft: '4px solid', padding: 10, cursor: 'pointer',
+    padding: 10, cursor: 'pointer',
     display: 'flex', flexDirection: 'column', gap: 6,
   },
   gridCardHeader: { display: 'flex', alignItems: 'flex-start', gap: 6 },

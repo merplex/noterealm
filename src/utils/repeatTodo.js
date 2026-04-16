@@ -73,8 +73,6 @@ export function generateRepeatInstances(parentTodo, existingTodos) {
 
     // หยุดถ้าเกิน end date
     if (endDateObj && new Date(current + 'T00:00:00') > endDateObj) break;
-    // หยุดถ้าไม่มี end date และครบ max count
-    if (!endDateObj && instances.length >= maxCount) break;
 
     if (!existingDates.has(current)) {
       const now = new Date().toISOString();
@@ -91,7 +89,8 @@ export function generateRepeatInstances(parentTodo, existingTodos) {
         createdAt: now,
         updatedAt: now,
       });
-      existingDates.add(current);
+      // สร้างแค่ 1 instance ถัดไปเสมอ — รอ done แล้วค่อยสร้างต่อ
+      break;
     }
 
     current = addRepeatInterval(current, repeatEvery, repeatUnit);

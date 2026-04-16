@@ -104,7 +104,9 @@ const en = {
   'todo.restoreItems': '↩ Restore',
   'todo.deleteItems': '🗑 Delete',
   'todo.selectAll': 'Select all',
+  'todo.filterAll': 'All',
   'todo.filterDone': 'Done',
+  'todo.filterAuto': 'Auto',
   'todo.filterRepeat': 'Auto',
   'todo.repeatSection': '🔁 Auto',
 

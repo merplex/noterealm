@@ -46,9 +46,12 @@ export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityF
     setDate(fn[view](date, 1));
   };
 
-  const filteredTodos = priorityFilter
-    ? state.todos.filter((t) => t.priority === priorityFilter)
-    : state.todos;
+  const filteredTodos = state.todos.filter((t) => {
+    if (t.deletedAt) return false;        // ไม่แสดงรายการที่ลบ
+    if (t.repeatEnabled) return false;    // ไม่แสดง parent repeat (config)
+    if (priorityFilter && t.priority !== priorityFilter) return false;
+    return true;
+  });
 
   const viewProps = {
     date,

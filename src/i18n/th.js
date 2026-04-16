@@ -104,7 +104,9 @@ const th = {
   'todo.restoreItems': '↩ กู้คืน',
   'todo.deleteItems': '🗑 ลบ',
   'todo.selectAll': 'เลือกทั้งหมด',
+  'todo.filterAll': 'ทั้งหมด',
   'todo.filterDone': 'เสร็จ',
+  'todo.filterAuto': 'อัตโนมัติ',
   'todo.filterRepeat': 'อัตโนมัติ',
   'todo.repeatSection': '🔁 อัตโนมัติ',
 

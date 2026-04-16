@@ -19,7 +19,11 @@ function calcDate(pick) {
   const d = new Date();
   if (pick.months) d.setMonth(d.getMonth() + pick.months);
   else d.setDate(d.getDate() + (pick.days || 0));
-  return d.toISOString().split('T')[0];
+  // ใช้ local date components — ห้ามใช้ toISOString() เพราะ return UTC ทำให้ UTC+7 ได้วันผิด
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${dy}`;
 }
 
 // QUICK_PICKS export สำหรับ TodoEditor (ใช้ key แทน label)
