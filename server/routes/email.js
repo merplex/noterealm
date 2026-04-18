@@ -250,7 +250,10 @@ router.post('/', async (req, res) => {
   try {
     const subject = decodeMimeSubject(rawSubject);
     const { name, email, domain } = parseSender(from);
+    console.log('[email] incoming subject:', subject, '| raw length:', raw?.length ?? 0);
+    console.log('[email] raw first 500:', raw?.slice(0, 500));
     const body = raw ? extractBody(raw) : '(ไม่มีเนื้อหา)';
+    console.log('[email] extracted body:', body.slice(0, 300));
 
     // หา inbox token จาก to address เช่น notes-abc123@neverjod.com
     const toMatch = (to || '').match(/^notes-([a-z0-9]+)@/i);
