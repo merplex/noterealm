@@ -206,14 +206,18 @@ function extractAttachments(raw, depth = 0) {
   return attachments;
 }
 
-// ตรวจว่าเป็น verification/confirmation email ไหม — ถ้าใช่ห้ามสรุป
+// ตรวจว่าเป็น verification/confirmation email ไหม — ป้องกัน AI กรองทิ้ง
 function isVerificationEmail(subject, body) {
   const verifyKeywords = /verif|confirm|activate|ยืนยัน|activation|otp|one.time|passcode/i;
   if (verifyKeywords.test(subject)) return true;
-  // มี URL ที่ดูเหมือน confirmation link
   const linkPattern = /https?:\/\/\S+(?:verif|confirm|activate|token|code|auth)\S*/i;
   if (linkPattern.test(body)) return true;
   return false;
+}
+
+// ดึง URL ทั้งหมดจาก plain text
+function extractUrls(text) {
+  return [...new Set((text.match(/https?:\/\/\S+/g) || []).map(u => u.replace(/[.,;)>]+$/, '')))];
 }
 
 // AI filter: ใช้ Gemini วิเคราะห์อีเมล
@@ -288,18 +292,19 @@ router.post('/', async (req, res) => {
     // AI filter: กรองสแปม + สรุป (ถ้า user เปิด)
     let finalBody = body;
     const isVerify = isVerificationEmail(subject, body);
+    const bodyUrls = extractUrls(body); // เก็บ URL ก่อน AI จะแตะ
     if (userId && (userFilters.email_filter_spam || userFilters.email_filter_ads || userFilters.email_filter_summary)) {
       try {
-        // ถ้าเป็น verification email → ข้ามสรุป แต่ยังกรองสแปมได้
+        // verification email → ห้าม skip แต่ยัง summarize ได้ (URL จะถูกแปะกลับ)
         const filtersToApply = isVerify
-          ? { ...userFilters, email_filter_summary: false }
+          ? { ...userFilters, email_filter_spam: false, email_filter_ads: false }
           : userFilters;
         const aiResult = await aiFilterEmail(subject, body, filtersToApply);
         if (aiResult.skip) {
           console.log('Email skipped by AI (spam):', subject);
           return res.json({ ok: true, skipped: true });
         }
-        if (aiResult.summary && !isVerify) finalBody = aiResult.summary;
+        if (aiResult.summary) finalBody = aiResult.summary;
       } catch (err) {
         console.error('AI filter error (proceeding without filter):', err.message);
       }
@@ -344,7 +349,27 @@ router.post('/', async (req, res) => {
       hour: '2-digit', minute: '2-digit',
     });
     const escapedSubject = subject.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const escapedBody = finalBody.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+
+    // Escape HTML แล้วแปลง plain-text URL → <a href> ที่คลิกได้
+    let escapedBody = finalBody
+      .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+    escapedBody = escapedBody.replace(
+      /(https?:\/\/[^\s<>"]+)/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0284c7;word-break:break-all">$1</a>'
+    );
+
+    // ถ้า AI summarize แล้วทิ้ง URL ออก → แปะ URL กลับท้ายเนื้อหา
+    if (finalBody !== body && bodyUrls.length > 0) {
+      const summaryUrls = extractUrls(finalBody);
+      const missingUrls = bodyUrls.filter(u => !summaryUrls.includes(u));
+      if (missingUrls.length > 0) {
+        escapedBody += missingUrls.map(u =>
+          `<br><a href="${u}" target="_blank" rel="noopener noreferrer" style="color:#0284c7;word-break:break-all">${u}</a>`
+        ).join('');
+      }
+    }
+
     const isoNow = new Date().toISOString();
     const newBlock = `<p data-ts="${isoNow}" style="font-size:0.7em;color:#a8a29e;margin:10px 0 2px">─── ${timestamp} ───</p><p style="margin:2px 0 4px;font-weight:600">เรื่อง: ${escapedSubject}</p><p style="margin:4px 0 8px">${escapedBody}</p>${attachmentHtml}`;
 
