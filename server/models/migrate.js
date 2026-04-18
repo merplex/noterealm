@@ -112,6 +112,22 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='permanently_deleted_at') THEN
     ALTER TABLE todos ADD COLUMN permanently_deleted_at TIMESTAMPTZ DEFAULT NULL;
   END IF;
+  -- Repeat todo fields
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='repeat_enabled') THEN
+    ALTER TABLE todos ADD COLUMN repeat_enabled BOOLEAN DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='repeat_every') THEN
+    ALTER TABLE todos ADD COLUMN repeat_every INT DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='repeat_unit') THEN
+    ALTER TABLE todos ADD COLUMN repeat_unit TEXT DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='repeat_start_date') THEN
+    ALTER TABLE todos ADD COLUMN repeat_start_date TEXT DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='todos' AND column_name='repeat_parent_id') THEN
+    ALTER TABLE todos ADD COLUMN repeat_parent_id TEXT DEFAULT NULL;
+  END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);

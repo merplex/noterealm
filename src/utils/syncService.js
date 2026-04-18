@@ -107,11 +107,8 @@ async function mergeNotes(serverNotes) {
   await Promise.all(updates);
 }
 
-// fields ที่เก็บแค่ local — server อาจไม่รู้จัก → preserve จาก local ถ้า server ไม่ส่งมา
-const LOCAL_ONLY_FIELDS = [
-  'repeatEnabled', 'repeatEvery', 'repeatUnit',
-  'repeatStartDate', 'repeatParentId',
-];
+// fields ที่ server เคยไม่รู้จัก — ตอนนี้ sync ได้แล้ว แต่ยังเผื่อ preserve ถ้า server เก่า
+const LOCAL_ONLY_FIELDS = [];
 
 /** normalize date fields จาก server (PostgreSQL ส่ง ISO full string) → YYYY-MM-DD */
 function normalizeTodoFromServer(st) {

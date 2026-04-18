@@ -29,17 +29,23 @@ router.get('/', async (req, res) => {
 
 // Create todo
 router.post('/', async (req, res) => {
-  const { id, title, note, priority, dueDate, dueTime, tags, done, linkedNoteId, source, userId } = req.body;
+  const { id, title, note, priority, dueDate, dueTime, tags, done, linkedNoteId, source, userId,
+          repeatEnabled, repeatEvery, repeatUnit, repeatStartDate, repeatParentId } = req.body;
   try {
     const { rows } = await pool.query(
-      `INSERT INTO todos (id, user_id, title, note, priority, due_date, due_time, tags, done, linked_note_id, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `INSERT INTO todos (id, user_id, title, note, priority, due_date, due_time, tags, done, linked_note_id, source,
+         repeat_enabled, repeat_every, repeat_unit, repeat_start_date, repeat_parent_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        ON CONFLICT (id) DO UPDATE SET
          title=EXCLUDED.title, note=EXCLUDED.note, priority=EXCLUDED.priority,
          due_date=EXCLUDED.due_date, due_time=EXCLUDED.due_time, tags=EXCLUDED.tags,
-         done=EXCLUDED.done, linked_note_id=EXCLUDED.linked_note_id, updated_at=NOW()
+         done=EXCLUDED.done, linked_note_id=EXCLUDED.linked_note_id,
+         repeat_enabled=EXCLUDED.repeat_enabled, repeat_every=EXCLUDED.repeat_every,
+         repeat_unit=EXCLUDED.repeat_unit, repeat_start_date=EXCLUDED.repeat_start_date,
+         repeat_parent_id=EXCLUDED.repeat_parent_id, updated_at=NOW()
        RETURNING *`,
-      [id, userId || null, title, note, priority || 'normal', dueDate || null, dueTime || null, tags || [], done || false, linkedNoteId || null, source || 'manual']
+      [id, userId || null, title, note, priority || 'normal', dueDate || null, dueTime || null, tags || [], done || false, linkedNoteId || null, source || 'manual',
+       repeatEnabled || null, repeatEvery || null, repeatUnit || null, repeatStartDate || null, repeatParentId || null]
     );
     res.status(201).json(mapTodo(rows[0]));
   } catch (err) {
@@ -49,14 +55,17 @@ router.post('/', async (req, res) => {
 
 // Update todo
 router.put('/:id', async (req, res) => {
-  const { title, note, priority, dueDate, dueTime, tags, done, linkedNoteId, source, userId, deletedAt } = req.body;
+  const { title, note, priority, dueDate, dueTime, tags, done, linkedNoteId, source, userId, deletedAt,
+          repeatEnabled, repeatEvery, repeatUnit, repeatStartDate, repeatParentId } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE todos SET title=$1, note=$2, priority=$3, due_date=$4, due_time=$5,
        tags=$6, done=$7, linked_note_id=$8, source=$9, updated_at=NOW(),
-       user_id=COALESCE(user_id, $11), deleted_at=$12
+       user_id=COALESCE(user_id, $11), deleted_at=$12,
+       repeat_enabled=$13, repeat_every=$14, repeat_unit=$15, repeat_start_date=$16, repeat_parent_id=$17
        WHERE id=$10 RETURNING *`,
-      [title, note, priority, dueDate || null, dueTime || null, tags || [], done, linkedNoteId || null, source, req.params.id, userId || null, deletedAt || null]
+      [title, note, priority, dueDate || null, dueTime || null, tags || [], done, linkedNoteId || null, source, req.params.id, userId || null, deletedAt || null,
+       repeatEnabled || null, repeatEvery || null, repeatUnit || null, repeatStartDate || null, repeatParentId || null]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json(mapTodo(rows[0]));
@@ -106,6 +115,11 @@ function mapTodo(row) {
     done: row.done,
     linkedNoteId: row.linked_note_id,
     source: row.source,
+    repeatEnabled: row.repeat_enabled || undefined,
+    repeatEvery: row.repeat_every || undefined,
+    repeatUnit: row.repeat_unit || undefined,
+    repeatStartDate: row.repeat_start_date || undefined,
+    repeatParentId: row.repeat_parent_id || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at || null,
