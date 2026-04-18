@@ -103,10 +103,15 @@ function extractBody(raw, depth = 0) {
       }
     }
 
-    let body = textPart || '';
-    if (!body && htmlPart) {
+    // Prefer HTML part: preserves <a href> links via htmlToText
+    // Fall back to text/plain only when no HTML part exists
+    let body = '';
+    if (htmlPart) {
       body = htmlToText(htmlPart);
+    } else {
+      body = textPart || '';
     }
+    console.log('[email] textPart length:', textPart?.length ?? 0, '| htmlPart length:', htmlPart?.length ?? 0, '| body snippet:', body.slice(0, 200));
     body = body.split('\n').filter(l => !l.trim().startsWith('>')).join('\n');
     return body.trim().slice(0, 5000) || '(ไม่มีเนื้อหา)';
   }
