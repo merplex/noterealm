@@ -51,6 +51,17 @@ function parseSender(from) {
   return { name: '', email, domain };
 }
 
+// แปลง HTML → plain text โดยเก็บ URL จาก <a href> ไว้
+function htmlToText(html) {
+  return html
+    .replace(/<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, url, text) => {
+      const t = text.replace(/<[^>]+>/g, '').trim();
+      return t && t !== url ? `${t} ${url}` : url;
+    })
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&[a-z]+;/gi, ' ');
+}
+
 // Extract plain text from raw email — supports multipart MIME
 function extractBody(raw, depth = 0) {
   if (!raw || depth > 3) return '(ไม่มีเนื้อหา)';
@@ -94,7 +105,7 @@ function extractBody(raw, depth = 0) {
 
     let body = textPart || '';
     if (!body && htmlPart) {
-      body = htmlPart.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ');
+      body = htmlToText(htmlPart);
     }
     body = body.split('\n').filter(l => !l.trim().startsWith('>')).join('\n');
     return body.trim().slice(0, 5000) || '(ไม่มีเนื้อหา)';
@@ -107,7 +118,7 @@ function extractBody(raw, depth = 0) {
   // Check Content-Transfer-Encoding in headers
   body = decodePartBody(body, headers.toLowerCase());
 
-  body = body.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ');
+  body = htmlToText(body);
   body = body.split('\n').filter(l => !l.trim().startsWith('>')).join('\n');
   return body.trim().slice(0, 5000) || '(ไม่มีเนื้อหา)';
 }
