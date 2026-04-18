@@ -222,6 +222,8 @@ async function aiFilterEmail(subject, body, filters) {
   if (filters.email_filter_spam) tasks.push('ถ้าเป็นอีเมลสแปมหรือข้อความขยะ ให้ตอบ skip: true');
   if (filters.email_filter_ads) tasks.push('ถ้าเป็นอีเมลโฆษณา โปรโมชัน ขายของ เสนอบริการ ให้ตอบ skip: true');
   if (filters.email_filter_summary) tasks.push('สรุปเนื้อหาอีเมลให้กระชับ 2-3 บรรทัด เก็บข้อมูลสำคัญไว้ ใส่ใน summary');
+  // No tasks to perform — skip AI entirely
+  if (tasks.length === 0) return { skip: false, summary: null };
 
   const prompt = `วิเคราะห์อีเมลนี้:\nหัวข้อ: ${subject}\nเนื้อหา: ${body.slice(0, 2000)}\n\n${tasks.join('\n')}\n\nตอบเป็น JSON เท่านั้น: {"skip": true/false, "summary": "..." หรือ null}`;
 
@@ -297,7 +299,7 @@ router.post('/', async (req, res) => {
           console.log('Email skipped by AI (spam):', subject);
           return res.json({ ok: true, skipped: true });
         }
-        if (aiResult.summary) finalBody = aiResult.summary;
+        if (aiResult.summary && !isVerify) finalBody = aiResult.summary;
       } catch (err) {
         console.error('AI filter error (proceeding without filter):', err.message);
       }
