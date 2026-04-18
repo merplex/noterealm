@@ -190,6 +190,16 @@ function extractAttachments(raw, depth = 0) {
   return attachments;
 }
 
+// ตรวจว่าเป็น verification/confirmation email ไหม — ถ้าใช่ห้ามสรุป
+function isVerificationEmail(subject, body) {
+  const verifyKeywords = /verif|confirm|activate|ยืนยัน|activation|otp|one.time|passcode/i;
+  if (verifyKeywords.test(subject)) return true;
+  // มี URL ที่ดูเหมือน confirmation link
+  const linkPattern = /https?:\/\/\S+(?:verif|confirm|activate|token|code|auth)\S*/i;
+  if (linkPattern.test(body)) return true;
+  return false;
+}
+
 // AI filter: ใช้ Gemini วิเคราะห์อีเมล
 async function aiFilterEmail(subject, body, filters) {
   const tasks = [];
@@ -256,9 +266,14 @@ router.post('/', async (req, res) => {
 
     // AI filter: กรองสแปม + สรุป (ถ้า user เปิด)
     let finalBody = body;
+    const isVerify = isVerificationEmail(subject, body);
     if (userId && (userFilters.email_filter_spam || userFilters.email_filter_ads || userFilters.email_filter_summary)) {
       try {
-        const aiResult = await aiFilterEmail(subject, body, userFilters);
+        // ถ้าเป็น verification email → ข้ามสรุป แต่ยังกรองสแปมได้
+        const filtersToApply = isVerify
+          ? { ...userFilters, email_filter_summary: false }
+          : userFilters;
+        const aiResult = await aiFilterEmail(subject, body, filtersToApply);
         if (aiResult.skip) {
           console.log('Email skipped by AI (spam):', subject);
           return res.json({ ok: true, skipped: true });
