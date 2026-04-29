@@ -218,6 +218,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const [previewNote, setPreviewNote] = useState(null); // popup preview ของ relate note
   const [lastSaved, setLastSaved] = useState(note?.updatedAt || null);
   const autoSaveTimer = useRef(null);
+  const createdNoteRef = useRef(null); // สำหรับโน้ตใหม่: เก็บ noteData หลัง autosave ครั้งแรก
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
@@ -594,8 +595,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
   // Auto-save (no new version, just save current state)
   const doAutoSave = useCallback(async () => {
-    if (isNew) return; // Don't auto-save unsaved notes
-    if (!dirtyRef.current) return; // ไม่ได้แก้ไข → ไม่ save ทับ (ป้องกันทับ webhook data)
+    if (!dirtyRef.current) return;
     const el = textareaRef.current;
     const curContent = el ? el.innerHTML : content;
     const cleanContent = curContent.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
@@ -603,26 +603,61 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     if (!title.trim() && !textOnly) return;
 
     const now = new Date().toISOString();
-    try {
-      await actions.updateNote({
-        ...note,
-        title: title.trim() || note.title,
+    const baseNote = createdNoteRef.current || note;
+
+    if (!baseNote?.id) {
+      // โน้ตใหม่ที่ยังไม่เคย save — สร้างครั้งแรก
+      let finalTitle = title.trim();
+      if (!finalTitle) {
+        const lines = cleanContent.split(/<br\s*\/?>|<\/p>|<\/div>/i)
+          .map(l => l.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim())
+          .filter(Boolean);
+        const firstLine = lines[0] || textOnly;
+        const words = firstLine.split(/\s+/).filter(Boolean);
+        finalTitle = (words.length > 20 ? words.slice(0, 20).join(' ') : firstLine).slice(0, 50);
+      }
+      const noteData = {
+        id: uuidv4(),
+        title: finalTitle,
         content: cleanContent,
         tags, pinned, images, aiBlocks, group,
+        archived: false,
+        source: note?.source || 'manual',
+        history: [],
         refs,
+        createdAt: now,
         updatedAt: now,
-      });
-      setLastSaved(now);
-    } catch { /* silent */ }
-  }, [isNew, note, title, content, tags, pinned, images, aiBlocks, group, refs, actions]);
+      };
+      try {
+        await actions.addNote(noteData);
+        createdNoteRef.current = noteData;
+        setLastSaved(now);
+        dirtyRef.current = false;
+      } catch { /* silent */ }
+    } else {
+      // โน้ตที่มีอยู่แล้ว หรือโน้ตใหม่ที่ผ่าน autosave ครั้งแรกมาแล้ว
+      try {
+        const updated = {
+          ...baseNote,
+          title: title.trim() || baseNote.title,
+          content: cleanContent,
+          tags, pinned, images, aiBlocks, group,
+          refs,
+          updatedAt: now,
+        };
+        await actions.updateNote(updated);
+        if (createdNoteRef.current) createdNoteRef.current = updated;
+        setLastSaved(now);
+      } catch { /* silent */ }
+    }
+  }, [note, title, content, tags, pinned, images, aiBlocks, group, refs, actions]);
 
   // Debounced auto-save on content change
   useEffect(() => {
-    if (isNew) return;
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(doAutoSave, 3000);
     return () => clearTimeout(autoSaveTimer.current);
-  }, [content, title, refs, doAutoSave, isNew]);
+  }, [content, title, refs, doAutoSave]);
 
   // AI auto-fill title: เกิน 3 บรรทัด + หัวข้อว่าง + ยังไม่เคย AI fill → คิดชื่อให้ครั้งเดียว
   const aiTitleTimer = useRef(null);
@@ -672,7 +707,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       onClose();
       return;
     }
-    // ถ้าหัวข้อยังว่าง → ใช้บรรทัดแรกของ content (AI ทำงานก่อนหน้าแล้วถ้าเกิน 3 บรรทัด)
+    // ถ้าหัวข้อยังว่าง → ใช้บรรทัดแรกของ content
     let finalTitle = title.trim();
     if (!finalTitle && textOnly) {
       const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
@@ -685,8 +720,12 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       finalTitle = (words.length > 20 ? words.slice(0, 20).join(' ') : firstLine).slice(0, 50);
     }
 
+    // ใช้ baseNote: createdNoteRef ถ้า autosave สร้างโน้ตไปแล้ว
+    const baseNote = createdNoteRef.current || note;
+    const effectivelyNew = !baseNote?.id;
+
     const noteData = {
-      id: note?.id || uuidv4(),
+      id: baseNote?.id || uuidv4(),
       title: finalTitle,
       content: cleanContent,
       tags,
@@ -694,28 +733,28 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       images,
       aiBlocks,
       group,
-      archived: note?.archived || false,
-      source: note?.source || 'manual',
-      history: note?.history || [],
+      archived: baseNote?.archived || false,
+      source: baseNote?.source || 'manual',
+      history: baseNote?.history || [],
       refs,
-      createdAt: note?.createdAt || now,
+      createdAt: baseNote?.createdAt || now,
       updatedAt: now,
     };
 
-    // Save history entry
-    const prevRefs = note?.refs || [];
+    // Save history entry (เฉพาะโน้ตที่มีอยู่แล้ว)
+    const prevRefs = baseNote?.refs || [];
     const refsAdded = refs.filter(id => !prevRefs.includes(id));
     const refsRemoved = prevRefs.filter(id => !refs.includes(id));
     const refsChanged = refsAdded.length > 0 || refsRemoved.length > 0;
-    const contentChanged = !isNew && note.content !== cleanContent;
+    const contentChanged = !effectivelyNew && baseNote.content !== cleanContent;
 
-    if (!isNew && (contentChanged || refsChanged)) {
+    if (!effectivelyNew && (contentChanged || refsChanged)) {
       const entry = {
         timestamp: now,
-        content: note.content,
+        content: baseNote.content,
         diff: {
-          added: contentChanged ? Math.max(0, cleanContent.length - note.content.length) : 0,
-          deleted: contentChanged ? Math.max(0, note.content.length - cleanContent.length) : 0,
+          added: contentChanged ? Math.max(0, cleanContent.length - baseNote.content.length) : 0,
+          deleted: contentChanged ? Math.max(0, baseNote.content.length - cleanContent.length) : 0,
           edited: contentChanged ? 1 : 0,
         },
       };
@@ -727,7 +766,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     }
 
     try {
-      if (isNew) {
+      if (effectivelyNew) {
         await actions.addNote(noteData);
       } else {
         await actions.updateNote(noteData);
