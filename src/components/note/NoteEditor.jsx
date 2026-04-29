@@ -659,32 +659,50 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     return () => clearTimeout(autoSaveTimer.current);
   }, [content, title, refs, doAutoSave]);
 
-  // AI auto-fill title: เกิน 3 บรรทัด + หัวข้อว่าง + ยังไม่เคย AI fill → คิดชื่อให้ครั้งเดียว
+  // AI auto-fill title: เนื้อหา > 200 ตัวอักษร (ไม่นับ whitespace) → AI คิดชื่อ
+  //                      เนื้อหา ≤ 200 → ใช้บรรทัดแรกที่ไม่ว่าง
   const aiTitleTimer = useRef(null);
   useEffect(() => {
     if (aiTitleDoneRef.current) return;
-    if (title.trim()) { aiTitleDoneRef.current = true; return; } // user ตั้งชื่อเองแล้ว
+    if (title.trim()) { aiTitleDoneRef.current = true; return; }
     clearTimeout(aiTitleTimer.current);
     aiTitleTimer.current = setTimeout(async () => {
+      if (title.trim()) return; // user พิมพ์ชื่อระหว่างรอ
       const cleanContent = content.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
-      const lines = cleanContent
-        .split(/<br\s*\/?>|<\/p>|<\/div>/i)
-        .map(l => l.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim())
-        .filter(Boolean);
-      if (lines.length <= 3) return;
-      if (title.trim()) return; // user อาจพิมพ์ชื่อระหว่างรอ
-      try {
-        const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
-        const providerId = state.aiSettings?.provider || 'claude';
-        const aiTitle = await callAI({
-          provider: providerId,
-          messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
-          settings: state.aiSettings,
-        });
-        const t = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
-        if (t) { setTitle(t); aiTitleDoneRef.current = true; }
-      } catch (e) {
-        console.warn('AI auto-title failed:', e.message);
+      // นับตัวอักษรจริง — ลบ HTML, entities, และ whitespace ทุกชนิดออกก่อนนับ
+      const charOnly = cleanContent
+        .replace(/<[^>]+>/g, '')
+        .replace(/&[a-z]+;/gi, '')
+        .replace(/[\s ]/g, '');
+      if (!charOnly) return;
+
+      if (charOnly.length > 200) {
+        // เนื้อหาเยอะ → ให้ AI คิดชื่อ
+        try {
+          const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+          const providerId = state.aiSettings?.provider || 'claude';
+          const aiTitle = await callAI({
+            provider: providerId,
+            messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
+            settings: state.aiSettings,
+          });
+          const t = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
+          if (t) { setTitle(t); aiTitleDoneRef.current = true; }
+        } catch (e) {
+          console.warn('AI auto-title failed:', e.message);
+        }
+      } else {
+        // เนื้อหาน้อย → ใช้บรรทัดแรกที่ไม่ว่าง
+        const lines = cleanContent
+          .split(/<br\s*\/?>|<\/p>|<\/div>/i)
+          .map(l => l.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim())
+          .filter(Boolean); // filter(Boolean) ตัดบรรทัดว่างออกแล้ว
+        const firstLine = lines[0];
+        if (firstLine) {
+          const words = firstLine.split(/\s+/).filter(Boolean);
+          const t = (words.length > 20 ? words.slice(0, 20).join(' ') : firstLine).slice(0, 50);
+          if (t) { setTitle(t); aiTitleDoneRef.current = true; }
+        }
       }
     }, 1500);
     return () => clearTimeout(aiTitleTimer.current);
