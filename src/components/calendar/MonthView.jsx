@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  addDays, isSameMonth, isSameDay, format,
+  addDays, isSameMonth, isSameDay, format, isWithinInterval,
 } from 'date-fns';
 import { th, enUS } from 'date-fns/locale';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
@@ -62,9 +62,12 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
   const dfLocale = locale === 'en' ? enUS : th;
   const d = (useFontSize() - 1) * 2;
   const today = new Date();
-  const [selectedDay, setSelectedDay] = useState(
-    isSameMonth(today, date) ? today : null
-  );
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  // Reset selection when navigating to a different month
+  useEffect(() => {
+    setSelectedDay(null);
+  }, [date.getFullYear(), date.getMonth()]);
 
   const weeks = useMemo(() => {
     const monthStart = startOfMonth(date);
@@ -94,11 +97,24 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
   );
 
   const handleDayClick = (day) => {
-    setSelectedDay(day);
-    onSelectDay?.(day);
+    if (selectedDay && isSameDay(day, selectedDay)) {
+      setSelectedDay(null);
+      onSelectDay?.(null);
+    } else {
+      setSelectedDay(day);
+      onSelectDay?.(day);
+    }
   };
 
   const dayTodos = selectedDay ? getTodosForDay(selectedDay) : [];
+
+  const monthTodos = useMemo(() => {
+    const start = startOfMonth(date);
+    const end = endOfMonth(date);
+    return todos
+      .filter((t) => t.dueDate && isWithinInterval(new Date(t.dueDate), { start, end }))
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+  }, [todos, date]);
 
   return (
     <div>
@@ -158,52 +174,58 @@ export default function MonthView({ date, todos, onSelectDay, onSelectTodo, onTo
         </div>
       ))}
 
-      {/* Day Detail Panel */}
-      {selectedDay && (
-        <div style={styles.dayPanel}>
-          <div style={{ ...styles.dayPanelHeader, fontSize: 14 + d }}>
-            {format(selectedDay, 'EEEE d MMMM yyyy', { locale: dfLocale })}
-          </div>
-          {dayTodos.length === 0 ? (
-            <p style={{ ...styles.noTodos, fontSize: 13 + d }}>{t('cal.noItems')}</p>
-          ) : (
-            dayTodos.map((todo) => (
-              <div key={todo.id} style={styles.dayTodoItem}>
-                <button
-                  style={{
-                    ...styles.cb,
-                    background: todo.done ? C.amber : 'transparent',
-                    borderColor: todo.done ? C.amber : C.border,
-                  }}
-                  onClick={() => onToggleTodo?.(todo)}
-                >
-                  {todo.done && <span style={styles.cbCheck}>✓</span>}
-                </button>
-                <span
-                  style={{
-                    ...styles.dayTodoTitle,
-                    fontSize: 13 + d,
-                    textDecoration: todo.done ? 'line-through' : 'none',
-                  }}
-                  onClick={() => onSelectTodo?.(todo)}
-                >
-                  {todo.title}
-                </span>
-                <span style={{
-                  ...styles.priorityTag,
-                  fontSize: 10 + d,
-                  background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
-                  color: PRIORITY_COLORS[todo.priority] || C.muted,
-                  borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
-                }}>
-                  {t(`priority.${todo.priority}`) || t('priority.normal')}
-                </span>
-                {todo.dueTime && <span style={{ ...styles.timeLabel, fontSize: 11 + d }}>{todo.dueTime}</span>}
-              </div>
-            ))
-          )}
+      {/* Day Detail Panel / Month Overview Panel */}
+      <div style={styles.dayPanel}>
+        <div style={{ ...styles.dayPanelHeader, fontSize: 14 + d }}>
+          {selectedDay
+            ? format(selectedDay, 'EEEE d MMMM yyyy', { locale: dfLocale })
+            : `${format(date, 'MMMM', { locale: dfLocale })} ${locale === 'th' ? date.getFullYear() + 543 : date.getFullYear()}`
+          }
         </div>
-      )}
+        {(selectedDay ? dayTodos : monthTodos).length === 0 ? (
+          <p style={{ ...styles.noTodos, fontSize: 13 + d }}>{t('cal.noItems')}</p>
+        ) : (
+          (selectedDay ? dayTodos : monthTodos).map((todo) => (
+            <div key={todo.id} style={styles.dayTodoItem}>
+              <button
+                style={{
+                  ...styles.cb,
+                  background: todo.done ? C.amber : 'transparent',
+                  borderColor: todo.done ? C.amber : C.border,
+                }}
+                onClick={() => onToggleTodo?.(todo)}
+              >
+                {todo.done && <span style={styles.cbCheck}>✓</span>}
+              </button>
+              {!selectedDay && todo.dueDate && (
+                <span style={{ ...styles.timeLabel, fontSize: 11 + d, flexShrink: 0, minWidth: 36 }}>
+                  {format(new Date(todo.dueDate), 'd MMM', { locale: dfLocale })}
+                </span>
+              )}
+              <span
+                style={{
+                  ...styles.dayTodoTitle,
+                  fontSize: 13 + d,
+                  textDecoration: todo.done ? 'line-through' : 'none',
+                }}
+                onClick={() => onSelectTodo?.(todo)}
+              >
+                {todo.title}
+              </span>
+              <span style={{
+                ...styles.priorityTag,
+                fontSize: 10 + d,
+                background: (PRIORITY_COLORS[todo.priority] || C.muted) + '20',
+                color: PRIORITY_COLORS[todo.priority] || C.muted,
+                borderColor: PRIORITY_COLORS[todo.priority] || C.muted,
+              }}>
+                {t(`priority.${todo.priority}`) || t('priority.normal')}
+              </span>
+              {todo.dueTime && <span style={{ ...styles.timeLabel, fontSize: 11 + d }}>{todo.dueTime}</span>}
+            </div>
+          ))
+        )}
+      </div>
 
       {/* No-date todos */}
       {noDateTodos.length > 0 && (
