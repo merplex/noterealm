@@ -454,6 +454,39 @@ export default function TodoEditor({ todo, onClose }) {
             </div>
           )}
 
+          {/* Add to Google Calendar — แสดงเฉพาะเมื่อมี dueDate และไม่ใช่ repeat mode */}
+          {dueDate && !repeatEnabled && (
+            <button
+              style={{ ...styles.gcalBtn, fontSize: 12 + fd }}
+              onClick={() => {
+                const [y, mo, d] = dueDate.split('-').map(Number);
+                const pad = (n) => String(n).padStart(2, '0');
+                const dateStr = `${y}${pad(mo)}${pad(d)}`;
+                let dates;
+                if (dueTime) {
+                  const [h, mi] = dueTime.split(':').map(Number);
+                  const endH = h + 1 < 24 ? h + 1 : 23;
+                  dates = `${dateStr}T${pad(h)}${pad(mi)}00/${dateStr}T${pad(endH)}${pad(mi)}00`;
+                } else {
+                  const next = new Date(y, mo - 1, d + 1);
+                  const endStr = `${next.getFullYear()}${pad(next.getMonth() + 1)}${pad(next.getDate())}`;
+                  dates = `${dateStr}/${endStr}`;
+                }
+                const params = new URLSearchParams({ text: title || 'Task', dates });
+                if (note.trim()) params.set('details', note.trim());
+                window.open(`https://calendar.google.com/calendar/r/eventedit?${params}`, '_blank', 'noopener,noreferrer');
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke="#4285F4" strokeWidth="2" fill="white"/>
+                <path d="M3 9h18" stroke="#4285F4" strokeWidth="2"/>
+                <path d="M8 2v4M16 2v4" stroke="#4285F4" strokeWidth="2" strokeLinecap="round"/>
+                <rect x="7" y="13" width="4" height="4" rx="1" fill="#EA4335"/>
+              </svg>
+              เพิ่มใน Google Calendar
+            </button>
+          )}
+
           {/* Tags */}
           <label style={{ ...styles.label, fontSize: 12 + fd }}>{t('todoEditor.tags')}</label>
           <div style={styles.tagsWrap}>
@@ -736,6 +769,21 @@ const styles = {
     color: C.muted,
     fontStyle: 'italic',
     fontSize: 13,
+  },
+  gcalBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 12px',
+    borderRadius: 8,
+    border: `1px solid #4285F4`,
+    background: '#f0f4ff',
+    color: '#4285F4',
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: 'pointer',
+    fontFamily: C.font,
+    marginBottom: 14,
   },
   tagsWrap: {
     display: 'flex',
