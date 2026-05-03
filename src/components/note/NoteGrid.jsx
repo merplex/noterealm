@@ -55,11 +55,14 @@ export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, o
 
     if (searchText) {
       const pq = parseQuery(searchText);
-      notes = notes.filter((n) =>
-        matchQuery(n.title, pq) ||
-        matchQuery(n.content, pq) ||
-        (n.tags || []).some((t) => matchQuery(t, pq))
-      );
+      notes = notes.filter((n) => {
+        const textContent = (n.content || '').replace(/<img[^>]*>/gi, '');
+        return (
+          matchQuery(n.title, pq) ||
+          matchQuery(textContent, pq) ||
+          (n.tags || []).some((t) => matchQuery(t, pq))
+        );
+      });
     }
 
     const dir = state.sortDir === 'asc' ? 1 : -1;
