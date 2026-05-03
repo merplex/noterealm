@@ -126,22 +126,24 @@ function FullscreenViewer({ src, onClose }) {
 
   return (
     <div ref={containerRef} style={styles.fullscreenOverlay}>
-      <button
-        style={{ position: 'absolute', top: 'max(20px, env(safe-area-inset-top, 20px))', right: 20, zIndex: 1, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 18, width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        onClick={onClose}
-      >✕</button>
-      <CachedImage
-        src={src}
-        style={{
-          ...styles.fullscreenImg,
-          transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-          transformOrigin: 'center center',
-          transition: scale === 1 ? 'transform 0.2s' : 'none',
-          cursor: scale > 1 ? 'grab' : 'default',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-        }}
-      />
+      <div style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          style={{ position: 'absolute', top: 8, right: 8, zIndex: 1, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 18, width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={onClose}
+        >✕</button>
+        <CachedImage
+          src={src}
+          style={{
+            ...styles.fullscreenImg,
+            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+            transformOrigin: 'center center',
+            transition: scale === 1 ? 'transform 0.2s' : 'none',
+            cursor: scale > 1 ? 'grab' : 'default',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
+        />
+      </div>
     </div>
   );
 }
