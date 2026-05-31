@@ -223,17 +223,21 @@ function extractUrls(text) {
 // AI filter: ใช้ Gemini วิเคราะห์อีเมล
 async function aiFilterEmail(subject, body, filters) {
   const tasks = [];
-  if (filters.email_filter_spam) tasks.push('ถ้าเป็นอีเมลสแปมหรือข้อความขยะ ให้ตอบ skip: true');
-  if (filters.email_filter_ads) tasks.push('ถ้าเป็นอีเมลโฆษณา โปรโมชัน ขายของ เสนอบริการ ให้ตอบ skip: true');
+  if (filters.email_filter_spam) tasks.push('ถ้าเป็นอีเมล spam หรือขยะแบบ bulk (เช่น phishing, lottery, Nigerian scam, unsolicited mass mail) ให้ตอบ skip: true — อีเมลสั้น/ทดสอบ/ส่วนตัว ห้าม skip');
+  if (filters.email_filter_ads) tasks.push('ถ้าเป็นอีเมลโฆษณา newsletter โปรโมชัน ขายของ หรือ marketing ที่ส่งแบบ bulk ให้ตอบ skip: true — อีเมลส่วนตัวหรืออีเมลสั้นๆ ห้าม skip');
   if (filters.email_filter_summary) tasks.push('สรุปเนื้อหาอีเมลให้กระชับ 2-3 บรรทัด เก็บข้อมูลสำคัญไว้ ใส่ใน summary');
   // No tasks to perform — skip AI entirely
   if (tasks.length === 0) return { skip: false, summary: null };
 
-  const prompt = `วิเคราะห์อีเมลนี้:\nหัวข้อ: ${subject}\nเนื้อหา: ${body.slice(0, 2000)}\n\n${tasks.join('\n')}\n\nตอบเป็น JSON เท่านั้น: {"skip": true/false, "summary": "..." หรือ null}`;
+  const bodyPreview = body.slice(0, 2000);
+  const isShort = body.trim().length < 100;
+  const shortNote = isShort ? '\n\nหมายเหตุ: เนื้อหาสั้นมาก — นี่คืออีเมลส่วนตัว ห้าม skip' : '';
+
+  const prompt = `วิเคราะห์อีเมลนี้:\nหัวข้อ: ${subject}\nเนื้อหา: ${bodyPreview}${shortNote}\n\n${tasks.join('\n')}\n\nตอบเป็น JSON เท่านั้น: {"skip": true/false, "summary": "..." หรือ null}`;
 
   const result = await gemini({
     messages: [{ role: 'user', content: prompt }],
-    systemPrompt: 'คุณเป็น AI กรองอีเมล ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย',
+    systemPrompt: 'คุณเป็น AI กรองอีเมล ตอบเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย conservative เสมอ — ถ้าไม่แน่ใจว่าเป็น spam ให้ skip: false',
   });
 
   // Parse JSON from AI response
