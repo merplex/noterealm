@@ -141,9 +141,9 @@ async function findOrCreateLineNote(senderId, senderName) {
     // lock key = hash ของ senderId — serialize เฉพาะ sender เดียวกัน
     await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [senderId]);
 
-    // หา note ที่ active (ไม่ archived, ไม่ deleted)
+    // หา note ที่ active (ไม่ archived, ไม่ deleted, ไม่ permanent-deleted)
     const { rows } = await client.query(
-      `SELECT id, content, title, tags FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
+      `SELECT id, content, title, tags, user_id FROM notes WHERE source='line' AND $1=ANY(tags) AND archived=false AND deleted_at IS NULL AND permanently_deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
       [idTag]
     );
 
@@ -152,7 +152,7 @@ async function findOrCreateLineNote(senderId, senderName) {
     let foundRows = rows;
     if (foundRows.length === 0) {
       const { rows: byTitle } = await client.query(
-        `SELECT id, content, title, tags FROM notes WHERE source='line' AND title=$1 AND archived=false AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
+        `SELECT id, content, title, tags, user_id FROM notes WHERE source='line' AND title=$1 AND archived=false AND deleted_at IS NULL AND permanently_deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`,
         [title]
       );
       if (byTitle.length > 0) {
@@ -169,6 +169,7 @@ async function findOrCreateLineNote(senderId, senderName) {
 
     if (foundRows.length > 0) {
       const note = foundRows[0];
+      console.log('[LINE] found note', note.id, 'user_id:', note.user_id ?? 'NULL');
       // เช็ค trim period จาก tag _line_trim:xxx
       const trimTag = (note.tags || []).find((t) => t.startsWith('_line_trim:'));
       const period = trimTag?.split(':')[1];
@@ -185,6 +186,7 @@ async function findOrCreateLineNote(senderId, senderName) {
         result = note;
       }
     } else {
+      console.log('[LINE] no active note found → creating new note for', title);
       // ไม่มี active note → สร้างใหม่ inherit trim tag จากโน้ตล่าสุด
       const { rows: prev } = await client.query(
         `SELECT tags FROM notes WHERE source='line' AND title=$1 ORDER BY updated_at DESC LIMIT 1`,
