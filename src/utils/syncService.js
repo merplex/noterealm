@@ -44,32 +44,22 @@ export function isAutoSyncEnabled() {
 
 async function pushNote(note) {
   const { dirty, syncSource, ...payload } = note;
-  try {
-    if (syncSource === 'local') {
-      await req('/api/notes', { method: 'POST', body: JSON.stringify(payload) });
-    } else {
-      await req(`/api/notes/${note.id}`, { method: 'PUT', body: JSON.stringify(payload) });
-    }
-    await db.notes.update(note.id, { dirty: false, syncSource: 'server' });
-  } catch (e) {
-    console.warn(`[sync] push note ${note.id} failed:`, e.message);
-    throw e;
+  if (syncSource === 'local') {
+    await req('/api/notes', { method: 'POST', body: JSON.stringify(payload) });
+  } else {
+    await req(`/api/notes/${note.id}`, { method: 'PUT', body: JSON.stringify(payload) });
   }
+  await db.notes.update(note.id, { dirty: false, syncSource: 'server' });
 }
 
 async function pushTodo(todo) {
   const { dirty, syncSource, ...payload } = todo;
-  try {
-    if (syncSource === 'local') {
-      await req('/api/todos', { method: 'POST', body: JSON.stringify(payload) });
-    } else {
-      await req(`/api/todos/${todo.id}`, { method: 'PUT', body: JSON.stringify(payload) });
-    }
-    await db.todos.update(todo.id, { dirty: false, syncSource: 'server' });
-  } catch (e) {
-    console.warn(`[sync] push todo ${todo.id} failed:`, e.message);
-    throw e;
+  if (syncSource === 'local') {
+    await req('/api/todos', { method: 'POST', body: JSON.stringify(payload) });
+  } else {
+    await req(`/api/todos/${todo.id}`, { method: 'PUT', body: JSON.stringify(payload) });
   }
+  await db.todos.update(todo.id, { dirty: false, syncSource: 'server' });
 }
 
 export async function pushDirty() {
@@ -77,10 +67,12 @@ export async function pushDirty() {
     db.notes.filter(n => !!n.dirty).toArray(),
     db.todos.filter(t => !!t.dirty).toArray(),
   ]);
-  await Promise.all([
-    ...dirtyNotes.map(pushNote),
-    ...dirtyTodos.map(pushTodo),
+  // push แต่ละ item แบบ independent — ถ้า item นึงล้มเหลว ไม่หยุด sync ทั้งหมด
+  const results = await Promise.allSettled([
+    ...dirtyNotes.map(n => pushNote(n).catch(e => { console.warn(`[sync] push note ${n.id} failed:`, e.message); })),
+    ...dirtyTodos.map(t => pushTodo(t).catch(e => { console.warn(`[sync] push todo ${t.id} failed:`, e.message); })),
   ]);
+  return results;
 }
 
 // --- Pull & Merge ---
