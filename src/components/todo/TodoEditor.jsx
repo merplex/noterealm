@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
@@ -211,9 +211,21 @@ export default function TodoEditor({ todo, onClose }) {
     }
   };
 
+  const swipeStart = useRef(null);
+  const handleSwipeTouchStart = (e) => {
+    swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleSwipeTouchEnd = (e) => {
+    if (!swipeStart.current) return;
+    const dx = e.changedTouches[0].clientX - swipeStart.current.x;
+    const dy = e.changedTouches[0].clientY - swipeStart.current.y;
+    swipeStart.current = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) onClose?.();
+  };
+
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()} onTouchStart={handleSwipeTouchStart} onTouchEnd={handleSwipeTouchEnd}>
         <div style={styles.header}>
           <h3 style={{ ...styles.headerTitle, fontSize: 16 + fd }}>{isNew ? t('todoEditor.create') : t('todoEditor.edit')}</h3>
           {!isNew && (

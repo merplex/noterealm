@@ -221,6 +221,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const [lastSaved, setLastSaved] = useState(note?.updatedAt || null);
   const autoSaveTimer = useRef(null);
   const createdNoteRef = useRef(null); // สำหรับโน้ตใหม่: เก็บ noteData หลัง autosave ครั้งแรก
+  const swipeStart = useRef(null);
 
   const isNew = !note?.id;
   const initializedRef = useRef(false);
@@ -933,8 +934,19 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   // landscape + มีรูปหรือมี relate → right panel แทน gallery bar ด้านล่าง
   const showRightPanel = isLandscape && (allImages.length > 0 || hasRelates);
 
+  const handleSwipeTouchStart = (e) => {
+    swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleSwipeTouchEnd = (e) => {
+    if (!swipeStart.current) return;
+    const dx = e.changedTouches[0].clientX - swipeStart.current.x;
+    const dy = e.changedTouches[0].clientY - swipeStart.current.y;
+    swipeStart.current = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) onClose?.();
+  };
+
   return (
-    <div style={styles.overlay}>
+    <div style={styles.overlay} onTouchStart={handleSwipeTouchStart} onTouchEnd={handleSwipeTouchEnd}>
       <div style={{ ...styles.modal, flexDirection: isLandscape ? 'row' : 'column' }}>
         {/* Left column (หรือ full column ใน portrait) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))' }}>

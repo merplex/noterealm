@@ -40,6 +40,7 @@ export default function App() {
   const [todoFilter, setTodoFilter] = useState(null);
   const [todoTagFilter, setTodoTagFilter] = useState(null); // tag name (ไม่มี 'tag:' prefix)
   const [priorityFilter, setPriorityFilter] = useState(null);
+  const [calendarSelectedDay, setCalendarSelectedDay] = useState(null);
   const [isWide, setIsWide] = useState(() => window.innerWidth >= 768);
 
   useEffect(() => {
@@ -93,7 +94,10 @@ export default function App() {
   const handleAddNote = () => setEditingNote({});
   const handleAddTodo = () => {
     dispatch({ type: 'SET_TAB', payload: 'todo' });
-    setEditingTodo({});
+    const initTodo = todoView === 'calendar' && calendarSelectedDay
+      ? { dueDate: calendarSelectedDay.toLocaleDateString('en-CA') }
+      : {};
+    setEditingTodo(initTodo);
   };
 
   const handleRestoreHistory = (version) => {
@@ -155,7 +159,7 @@ export default function App() {
       {todoView === 'list' ? (
         <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} todoTagFilter={todoTagFilter} />
       ) : (
-        <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
+        <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} onSelectDay={setCalendarSelectedDay} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
       )}
     </div>
   );
@@ -225,7 +229,7 @@ export default function App() {
               {todoView === 'list' ? (
                 <TodoList searchText={searchText} todoFilter={todoFilter} onTodoFilter={setTodoFilter} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} todoTagFilter={todoTagFilter} />
               ) : (
-                <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
+                <CalendarView onSelectTodo={(todo) => setEditingTodo(todo)} onSelectDay={setCalendarSelectedDay} priorityFilter={priorityFilter} onPriorityFilter={setPriorityFilter} />
               )}
             </>
           )}

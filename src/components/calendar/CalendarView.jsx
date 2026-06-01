@@ -23,7 +23,7 @@ const PRIORITY_FILTERS = [
   { key: 'low', label: '⚪ ต่ำ' },
 ];
 
-export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityFilter }) {
+export default function CalendarView({ onSelectTodo, onSelectDay, priorityFilter, onPriorityFilter }) {
   const { state, actions } = useApp();
   const { t } = useLocale();
   const d = (useFontSize() - 1) * 2;
@@ -57,6 +57,7 @@ export default function CalendarView({ onSelectTodo, priorityFilter, onPriorityF
     date,
     todos: filteredTodos,
     onSelectTodo,
+    onSelectDay,
     onToggleTodo: handleToggleTodo,
   };
 
