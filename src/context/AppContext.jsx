@@ -1,7 +1,7 @@
 import { createContext, useContext, useReducer, useEffect, useMemo, useRef } from 'react';
 import { storage } from '../constants/storage';
 import { STORAGE_KEYS } from '../constants/providers';
-import { notesApi, todosApi } from '../utils/api';
+import { notesApi, todosApi, lineApi } from '../utils/api';
 import { db } from '../db/localDb';
 import { sync, autoSync, pushDirty, pull, setUserId } from '../utils/syncService';
 import { generateRepeatInstances } from '../utils/repeatTodo';
@@ -160,6 +160,18 @@ export function AppProvider({ children }) {
         dispatch({ type: 'SET_TODOS', payload: t });
       };
       autoSync().then(() => reloadLocal()).catch(console.warn);
+
+      // Auto-trim LINE notes วันละครั้ง (rolling window: newest message vs today)
+      if (loaded.lineTrim) {
+        const today = new Date().toLocaleDateString('en-CA');
+        const lastTrim = localStorage.getItem('nk_last_trim_date');
+        if (lastTrim !== today) {
+          lineApi.trim(loaded.lineTrim).then(() => {
+            localStorage.setItem('nk_last_trim_date', today);
+            return reloadLocal();
+          }).catch(console.warn);
+        }
+      }
     })();
   }, []);
 

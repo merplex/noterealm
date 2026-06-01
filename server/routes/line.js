@@ -117,13 +117,12 @@ function parseDayMarkers(content) {
   return [...(content || '').matchAll(/<!-- LINE_DAY:(\d{4}-\d{2}-\d{2}) -->/g)].map((m) => m[1]);
 }
 
-// เช็คว่า note เกิน period หรือยัง (ดูจาก span ของ markers)
+// เช็คว่า note เกิน period หรือยัง (rolling window: newest day marker vs วันนี้)
 function isNoteExpired(content, period) {
   const dates = parseDayMarkers(content);
   if (dates.length < 1) return false;
-  const newest = dates[0];
-  const oldest = dates[dates.length - 1];
-  const diffMs = new Date(newest) - new Date(oldest);
+  const newest = dates[0]; // prepend ไว้ด้านบนสุด → index 0 = ล่าสุดเสมอ
+  const diffMs = Date.now() - new Date(newest + 'T00:00:00+07:00').getTime();
   const diffDays = diffMs / (1000 * 60 * 60 * 24);
   const maxDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
   return diffDays >= maxDays;
