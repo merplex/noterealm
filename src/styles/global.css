@@ -31,11 +31,9 @@ button {
   text-transform: none;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+/* Scrollbar — ซ่อนบน mobile/app ให้ไม่เขยิบ layout */
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; -ms-overflow-style: none; }
 
 /* Safe-area utilities
    Native app: env(safe-area-inset-*) ทำงานปกติ

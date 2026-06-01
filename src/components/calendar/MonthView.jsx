@@ -294,7 +294,7 @@ const styles = {
     cursor: 'pointer',
     overflow: 'hidden',
   },
-  dayNum: { fontSize: 12, display: 'block', marginBottom: 0 },
+  dayNum: { fontSize: 12, display: 'block', marginBottom: 0, textAlign: 'center' },
   todoDot: {
     display: 'flex',
     alignItems: 'center',

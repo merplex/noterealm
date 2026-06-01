@@ -124,10 +124,29 @@ export function AppProvider({ children }) {
       if (loaded.user?.id) setUserId(loaded.user.id);
 
       // 2. Load from IndexedDB immediately (instant, offline-first)
-      const [localNotes, localTodos] = await Promise.all([
+      const [localNotes, localTodosRaw] = await Promise.all([
         db.notes.orderBy('updatedAt').reverse().toArray(),
         db.todos.orderBy('updatedAt').reverse().toArray(),
       ]);
+
+      // สร้าง repeat instance ที่หายไป (เช่น sync ไม่ผ่านก่อน install ใหม่)
+      const userId = loaded.user?.id || null;
+      let localTodos = localTodosRaw;
+      const parentRepeat = localTodosRaw.filter(t => t.repeatEnabled && !t.deletedAt && !t.done);
+      for (const parent of parentRepeat) {
+        const hasActiveChild = localTodos.some(
+          t => t.repeatParentId === parent.id && !t.deletedAt && !t.done
+        );
+        if (!hasActiveChild) {
+          const instances = generateRepeatInstances(parent, localTodos);
+          for (const inst of instances) {
+            const newInst = { ...inst, userId, dirty: true };
+            await db.todos.put(newInst);
+            localTodos = [...localTodos, newInst];
+          }
+        }
+      }
+
       dispatch({ type: 'SET_NOTES', payload: localNotes });
       dispatch({ type: 'SET_TODOS', payload: localTodos });
 
