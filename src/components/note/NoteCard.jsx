@@ -64,7 +64,7 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: isSelecting ? 10 : 0, minWidth: 0, overflow: 'hidden', background: C.bg }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: isSelecting ? 10 : 0, minWidth: 0 }}>
       {isSelecting && (
         <div
           style={{
