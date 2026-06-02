@@ -236,7 +236,6 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const tagInputRef = useRef(null);
   const textareaRef = useRef(null);
   const dirtyRef = useRef(false); // true เมื่อ user แก้ไขจริง — ป้องกัน auto-save ทับ webhook data
-  const aiTitleDoneRef = useRef(false); // AI auto-fill title ทำแล้วครั้งเดียว ไม่ทำซ้ำ
   const [selMenu, setSelMenu] = useState(null); // { x, y } for custom selection menu
   const [showInsertMenu, setShowInsertMenu] = useState(false);
   const [showUrlPopup, setShowUrlPopup] = useState(false);
@@ -691,54 +690,6 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     return () => clearTimeout(autoSaveTimer.current);
   }, [content, title, refs, doAutoSave]);
 
-  // AI auto-fill title: เนื้อหา > 200 ตัวอักษร (ไม่นับ whitespace) → AI คิดชื่อ
-  //                      เนื้อหา ≤ 200 → ใช้บรรทัดแรกที่ไม่ว่าง
-  const aiTitleTimer = useRef(null);
-  useEffect(() => {
-    if (aiTitleDoneRef.current) return;
-    if (title.trim()) { aiTitleDoneRef.current = true; return; }
-    clearTimeout(aiTitleTimer.current);
-    aiTitleTimer.current = setTimeout(async () => {
-      if (title.trim()) return; // user พิมพ์ชื่อระหว่างรอ
-      const cleanContent = content.replace(/\n?\[AI_BLOCK:[^\]]+\]/g, '');
-      // นับตัวอักษรจริง — ลบ HTML, entities, และ whitespace ทุกชนิดออกก่อนนับ
-      const charOnly = cleanContent
-        .replace(/<[^>]+>/g, '')
-        .replace(/&[a-z]+;/gi, '')
-        .replace(/[\s ]/g, '');
-      if (!charOnly) return;
-
-      if (charOnly.length > 200) {
-        // เนื้อหาเยอะ → ให้ AI คิดชื่อ
-        try {
-          const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
-          const providerId = state.aiSettings?.provider || 'claude';
-          const aiTitle = await callAI({
-            provider: providerId,
-            messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
-            settings: state.aiSettings,
-          });
-          const t = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
-          if (t) { setTitle(t); aiTitleDoneRef.current = true; }
-        } catch (e) {
-          console.warn('AI auto-title failed:', e.message);
-        }
-      } else {
-        // เนื้อหาน้อย → ใช้บรรทัดแรกที่ไม่ว่าง
-        const lines = cleanContent
-          .split(/<br\s*\/?>|<\/p>|<\/div>/i)
-          .map(l => l.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim())
-          .filter(Boolean); // filter(Boolean) ตัดบรรทัดว่างออกแล้ว
-        const firstLine = lines[0];
-        if (firstLine) {
-          const words = firstLine.split(/\s+/).filter(Boolean);
-          const t = (words.length > 20 ? words.slice(0, 20).join(' ') : firstLine).slice(0, 50);
-          if (t) { setTitle(t); aiTitleDoneRef.current = true; }
-        }
-      }
-    }, 1500);
-    return () => clearTimeout(aiTitleTimer.current);
-  }, [content]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRefer = (refNote) => {
     dirtyRef.current = true;
@@ -757,17 +708,31 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
       onClose();
       return;
     }
-    // ถ้าหัวข้อยังว่าง → ใช้บรรทัดแรกของ content
+    // ถ้าหัวข้อยังว่าง → เนื้อหา > 200 ตัวอักษร ให้ AI คิดชื่อ, น้อยกว่าใช้บรรทัดแรก
     let finalTitle = title.trim();
     if (!finalTitle && textOnly) {
+      const charOnly = cleanContent.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, '').replace(/[\s ]/g, '');
       const readableText = cleanContent.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
-      const lines = cleanContent
-        .split(/<br\s*\/?>|<\/p>|<\/div>/i)
-        .map(l => l.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim())
-        .filter(Boolean);
-      const firstLine = lines[0] || readableText;
-      const words = firstLine.split(/\s+/).filter(Boolean);
-      finalTitle = (words.length > 20 ? words.slice(0, 20).join(' ') : firstLine).slice(0, 50);
+      if (charOnly.length > 200) {
+        try {
+          const providerId = state.aiSettings?.provider || 'claude';
+          const aiTitle = await callAI({
+            provider: providerId,
+            messages: [{ role: 'user', content: `สร้างหัวข้อสั้นๆ ไม่เกิน 8 คำ จากเนื้อหานี้ (ตอบแค่หัวข้อ ไม่ต้องมีคำอธิบาย):\n\n${readableText.slice(0, 300)}` }],
+            settings: state.aiSettings,
+          });
+          finalTitle = aiTitle.trim().replace(/^["']|["']$/g, '').slice(0, 50);
+        } catch { /* fallback to first line */ }
+      }
+      if (!finalTitle) {
+        const lines = cleanContent
+          .split(/<br\s*\/?>|<\/p>|<\/div>/i)
+          .map(l => l.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim())
+          .filter(Boolean);
+        const firstLine = lines[0] || readableText;
+        const words = firstLine.split(/\s+/).filter(Boolean);
+        finalTitle = (words.length > 20 ? words.slice(0, 20).join(' ') : firstLine).slice(0, 50);
+      }
     }
 
     // ใช้ baseNote: createdNoteRef ถ้า autosave สร้างโน้ตไปแล้ว
