@@ -64,7 +64,7 @@ export default function NoteCard({ note, onClick, listMode, isSelecting, isSelec
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: isSelecting ? 10 : 0, minWidth: 0, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: isSelecting ? 10 : 0, minWidth: 0, overflow: 'hidden', background: C.bg }}>
       {isSelecting && (
         <div
           style={{
@@ -167,7 +167,7 @@ const styles = {
   pinBadge: {
     position: 'absolute',
     top: 8,
-    left: 8,
+    right: 8,
     fontSize: 14,
   },
   title: {
