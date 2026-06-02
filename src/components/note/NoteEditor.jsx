@@ -979,7 +979,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
           </div>
           <FormatMenu onFormat={handleFormat} onOpen={() => setSelMenu(null)} />
           <button
-            style={{ ...styles.toolBtn, fontSize: `clamp(${11+d}px, 3.2vw, ${15+d}px)`, marginLeft: 'auto', color: pinned ? C.amber : C.muted }}
+            style={{ ...styles.toolBtn, fontSize: `clamp(${11+d}px, 3.2vw, ${15+d}px)`, marginLeft: 'auto', background: pinned ? C.amberLight : C.white, borderColor: pinned ? C.amber : C.border }}
             onClick={() => setPinned(!pinned)}
           >
             📌

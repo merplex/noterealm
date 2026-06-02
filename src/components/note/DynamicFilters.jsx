@@ -4,7 +4,6 @@ import { useFontSize } from '../../utils/useFontSize';
 export default function DynamicFilters({ activeFilter, onFilter }) {
   const d = (useFontSize() - 1) * 2;
   const filters = [
-    { key: 'pinned', label: 'Pin', icon: '📌' },
     { key: 'line', label: 'Line', icon: '💬' },
     { key: 'email', label: 'Email', icon: '📧' },
     { key: 'picture', label: 'Picture', icon: '🖼' },
