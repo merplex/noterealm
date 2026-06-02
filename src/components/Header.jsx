@@ -95,7 +95,10 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
     if (holdTimer.current) {
       clearTimeout(holdTimer.current);
       holdTimer.current = null;
-      dispatch({ type: 'SET_SORT', payload: { sortDir: state.sortDir === 'desc' ? 'asc' : 'desc' } });
+      const isNote = state.activeTab === 'note';
+      const cur = isNote ? state.noteSortDir : state.todoSortDir;
+      const next = cur === 'desc' ? 'asc' : 'desc';
+      dispatch({ type: 'SET_SORT', payload: isNote ? { noteSortDir: next } : { todoSortDir: next } });
     }
   };
 
@@ -188,7 +191,7 @@ export default function Header({ onSidebar, onSearch, onSettings, onSelectNote, 
             onPointerUp={handleSortUp}
             onPointerLeave={() => { clearTimeout(holdTimer.current); holdTimer.current = null; }}
           >
-            {state.sortDir === 'asc' ? (
+            {(state.activeTab === 'note' ? state.noteSortDir : state.todoSortDir) === 'asc' ? (
               <svg width={20 + d} height={20 + d} viewBox="0 0 20 20" fill="none">
                 <rect x="0" y="14" width="6" height="3" rx="0.5" fill={C.amber}/>
                 <rect x="0" y="8.5" width="10" height="3" rx="0.5" fill={C.amber}/>

@@ -46,11 +46,18 @@ function AIOverlay({ children }) {
   );
 }
 
-function FullscreenViewer({ src, onClose }) {
+function FullscreenViewer({ src, allImages, onNavigate, onClose }) {
   const containerRef = useRef(null);
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const st = useRef({ scale: 1, tx: 0, ty: 0, pinching: false, startDist: 0, startScale: 1, dragging: false, startTouchX: 0, startTouchY: 0, startTx: 0, startTy: 0, moved: false });
+
+  const allImagesRef = useRef(allImages);
+  const srcRef = useRef(src);
+  const onNavigateRef = useRef(onNavigate);
+  useEffect(() => { allImagesRef.current = allImages; }, [allImages]);
+  useEffect(() => { srcRef.current = src; }, [src]);
+  useEffect(() => { onNavigateRef.current = onNavigate; }, [onNavigate]);
 
   useEffect(() => {
     st.current.scale = 1; st.current.tx = 0; st.current.ty = 0;
@@ -82,12 +89,16 @@ function FullscreenViewer({ src, onClose }) {
         const d = dist(e.touches[0], e.touches[1]);
         s.scale = Math.min(6, Math.max(1, s.startScale * d / s.startDist));
         setScale(s.scale); s.moved = true; e.preventDefault();
-      } else if (s.dragging && e.touches.length === 1 && s.scale > 1) {
+      } else if (s.dragging && e.touches.length === 1) {
         const dx = e.touches[0].clientX - s.startTouchX;
         const dy = e.touches[0].clientY - s.startTouchY;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) s.moved = true;
-        s.tx = s.startTx + dx; s.ty = s.startTy + dy;
-        setTranslate({ x: s.tx, y: s.ty }); e.preventDefault();
+        if (s.scale > 1) {
+          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) s.moved = true;
+          s.tx = s.startTx + dx; s.ty = s.startTy + dy;
+          setTranslate({ x: s.tx, y: s.ty }); e.preventDefault();
+        } else {
+          if (Math.abs(dx) > 8 || Math.abs(dy) > 8) s.moved = true;
+        }
       }
     };
 
@@ -104,6 +115,15 @@ function FullscreenViewer({ src, onClose }) {
             setScale(1); setTranslate({ x: 0, y: 0 });
           } else {
             onClose();
+          }
+        } else if (s.scale <= 1.05) {
+          const dx = e.changedTouches[0].clientX - s.startTouchX;
+          const dy = e.changedTouches[0].clientY - s.startTouchY;
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+            const imgs = allImagesRef.current;
+            const curIdx = imgs.indexOf(srcRef.current);
+            if (dx < 0 && curIdx < imgs.length - 1) onNavigateRef.current(imgs[curIdx + 1]);
+            else if (dx > 0 && curIdx > 0) onNavigateRef.current(imgs[curIdx - 1]);
           }
         }
         s.pinching = false; s.dragging = false;
@@ -124,6 +144,8 @@ function FullscreenViewer({ src, onClose }) {
     };
   }, [onClose]);
 
+  const curIdx = allImages.indexOf(src);
+
   return (
     <div ref={containerRef} style={styles.fullscreenOverlay}>
       <div style={{ position: 'relative', display: 'inline-flex' }}>
@@ -131,6 +153,13 @@ function FullscreenViewer({ src, onClose }) {
           style={{ position: 'absolute', top: 8, right: 8, zIndex: 1, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 18, width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={onClose}
         >✕</button>
+        {allImages.length > 1 && (
+          <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6, zIndex: 1 }}>
+            {allImages.map((_, i) => (
+              <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: i === curIdx ? '#fff' : 'rgba(255,255,255,0.4)' }} />
+            ))}
+          </div>
+        )}
         <CachedImage
           src={src}
           style={{
@@ -1180,7 +1209,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
 
         {/* Fullscreen image overlay */}
         {fullscreenImg && (
-          <FullscreenViewer src={fullscreenImg} onClose={() => setFullscreenImg(null)} />
+          <FullscreenViewer src={fullscreenImg} allImages={allImages} onNavigate={(s) => setFullscreenImg(s)} onClose={() => setFullscreenImg(null)} />
         )}
 
         {/* Sticky: Footer */}

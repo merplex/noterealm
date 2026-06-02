@@ -65,7 +65,7 @@ export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, o
       });
     }
 
-    const dir = state.sortDir === 'asc' ? 1 : -1;
+    const dir = (state.noteSortDir ?? state.sortDir) === 'asc' ? 1 : -1;
     notes.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -82,7 +82,7 @@ export default function NoteGrid({ searchText, activeFilter, onFilter, onEdit, o
     });
 
     return notes;
-  }, [state.notes, state.sortBy, state.sortDir, activeFilter, searchText]);
+  }, [state.notes, state.sortBy, state.noteSortDir, state.sortDir, activeFilter, searchText]);
 
   const handleLongPress = (note) => {
     setSelectedIds(new Set([note.id]));

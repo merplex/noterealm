@@ -57,6 +57,8 @@ export const STORAGE_KEYS = {
   todoViewMode: 'nk_todo_view_mode',
   sortBy: 'nk_sort_by',
   sortDir: 'nk_sort_dir',
+  noteSortDir: 'nk_note_sort_dir',
+  todoSortDir: 'nk_todo_sort_dir',
   defaultTab: 'nk_default_tab',
   lineTrim: 'nk_line_trim',
   profileImage: 'nk_profile_image',

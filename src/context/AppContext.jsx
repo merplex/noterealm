@@ -21,6 +21,8 @@ const initialState = {
   todoViewMode: 'list',
   sortBy: 'updated',
   sortDir: 'desc',
+  noteSortDir: 'desc',
+  todoSortDir: 'asc',
   defaultTab: 'note',
   lineTrim: 'month',
   profileImage: null,
@@ -43,7 +45,7 @@ function reducer(state, action) {
     case 'SET_TODO_VIEW_MODE':
       return { ...state, todoViewMode: action.payload };
     case 'SET_SORT':
-      return { ...state, sortBy: action.payload.sortBy ?? state.sortBy, sortDir: action.payload.sortDir ?? state.sortDir };
+      return { ...state, sortBy: action.payload.sortBy ?? state.sortBy, sortDir: action.payload.sortDir ?? state.sortDir, noteSortDir: action.payload.noteSortDir ?? state.noteSortDir, todoSortDir: action.payload.todoSortDir ?? state.todoSortDir };
     case 'SET_DEFAULT_TAB':
       return { ...state, defaultTab: action.payload };
     case 'SET_PROFILE_IMAGE':
@@ -113,7 +115,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     (async () => {
       // 1. Load local settings
-      const localKeys = ['aiSettings', 'connections', 'user', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'defaultTab', 'lineTrim', 'profileImage'];
+      const localKeys = ['aiSettings', 'connections', 'user', 'groups', 'tags', 'activeTab', 'noteViewMode', 'todoViewMode', 'sortBy', 'sortDir', 'noteSortDir', 'todoSortDir', 'defaultTab', 'lineTrim', 'profileImage'];
       const loaded = {};
       for (const key of localKeys) {
         const val = await storage.get(STORAGE_KEYS[key]);
@@ -225,10 +227,12 @@ export function AppProvider({ children }) {
     storage.set(STORAGE_KEYS.todoViewMode, state.todoViewMode);
     storage.set(STORAGE_KEYS.sortBy, state.sortBy);
     storage.set(STORAGE_KEYS.sortDir, state.sortDir);
+    storage.set(STORAGE_KEYS.noteSortDir, state.noteSortDir);
+    storage.set(STORAGE_KEYS.todoSortDir, state.todoSortDir);
     storage.set(STORAGE_KEYS.defaultTab, state.defaultTab);
     storage.set(STORAGE_KEYS.lineTrim, state.lineTrim);
     storage.set(STORAGE_KEYS.profileImage, state.profileImage);
-  }, [state.aiSettings, state.connections, state.user, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.defaultTab, state.lineTrim, state.profileImage]);
+  }, [state.aiSettings, state.connections, state.user, state.groups, state.tags, state.activeTab, state.noteViewMode, state.todoViewMode, state.sortBy, state.sortDir, state.noteSortDir, state.todoSortDir, state.defaultTab, state.lineTrim, state.profileImage]);
 
   const actions = useMemo(() => ({
     addNote: async (noteData) => {

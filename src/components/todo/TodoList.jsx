@@ -50,7 +50,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once after mount
 
-  const sortDir = state.sortDir || 'asc'; // asc = วันเร็วก่อน, desc = วันช้าก่อน
+  const sortDir = state.todoSortDir ?? state.sortDir ?? 'asc'; // asc = วันเร็วก่อน, desc = วันช้าก่อน
 
   const filteredTodos = useMemo(() => {
     let todos = [...state.todos];
@@ -114,7 +114,7 @@ export default function TodoList({ searchText, todoFilter, onTodoFilter, priorit
     });
 
     return todos;
-  }, [state.todos, searchText, isDeletedView, priorityFilter, todoTagFilter, sortDir]);
+  }, [state.todos, searchText, isDeletedView, priorityFilter, todoTagFilter, state.todoSortDir, state.sortDir]);
 
   const toggleCollapse = (key) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
