@@ -938,7 +938,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
     const dx = e.changedTouches[0].clientX - swipeStart.current.x;
     const dy = e.changedTouches[0].clientY - swipeStart.current.y;
     swipeStart.current = null;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) onClose?.();
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { doAutoSave(); onClose?.(); }
   };
 
   return (
@@ -1205,7 +1205,7 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
               </span>
             )}
             <div style={{ flex: 1 }} />
-            <button style={{ ...styles.cancelBtn, fontSize: 15 + d }} onClick={() => { doAutoSave(); onClose(); }}>{t('editor.exit')}</button>
+            <button style={{ ...styles.cancelBtn, fontSize: 15 + d }} onClick={async () => { await doAutoSave(); onClose(); }}>{t('editor.exit')}</button>
             <button style={{ ...styles.saveBtn, fontSize: 15 + d }} onClick={handleSave}>{t('editor.save')}</button>
           </div>
         </div>
