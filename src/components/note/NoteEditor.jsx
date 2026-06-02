@@ -935,6 +935,8 @@ export default function NoteEditor({ note, onClose, onNavigateToNote }) {
   const showRightPanel = isLandscape && (allImages.length > 0 || hasRelates);
 
   const handleSwipeTouchStart = (e) => {
+    if (fullscreenImg) return;
+    if (galleryRef.current?.contains(e.target)) return;
     swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
   const handleSwipeTouchEnd = (e) => {

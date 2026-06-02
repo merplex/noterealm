@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { Capacitor } from '@capacitor/core';
 import { C, PRIORITY_COLORS } from '../../constants/theme';
 import { useApp } from '../../context/AppContext';
 import { QUICK_PICKS, calcDate } from './DatePickerPopup';
@@ -486,7 +487,12 @@ export default function TodoEditor({ todo, onClose }) {
                 }
                 const params = new URLSearchParams({ text: title || 'Task', dates });
                 if (note.trim()) params.set('details', note.trim());
-                window.open(`https://calendar.google.com/calendar/r/eventedit?${params}`, '_blank', 'noopener,noreferrer');
+                const calUrl = `https://calendar.google.com/calendar/r/eventedit?${params}`;
+                if (Capacitor.isNativePlatform()) {
+                  window.open(calUrl, '_system');
+                } else {
+                  window.open(calUrl, '_blank', 'noopener,noreferrer');
+                }
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
