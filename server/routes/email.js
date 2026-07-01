@@ -135,9 +135,10 @@ function decodePartBody(body, headers) {
       return Buffer.from(body.replace(/\s/g, ''), 'base64').toString('utf-8');
     }
     if (headers.includes('content-transfer-encoding: quoted-printable') || headers.includes('content-transfer-encoding:quoted-printable')) {
-      return body
+      const decoded = body
         .replace(/=\r?\n/g, '') // soft line breaks
         .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+      return Buffer.from(decoded, 'binary').toString('utf-8');
     }
   } catch {}
   return body;
